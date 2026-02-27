@@ -41,7 +41,7 @@ FlowForce is a premium, high-performance Kanban board application designed for p
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/flowforce-kanban.git
+   git clone https://github.com/kkim025/flowforce-kanban.git
    cd flowforce-kanban
    ```
 

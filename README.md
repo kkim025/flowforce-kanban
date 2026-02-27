@@ -2,7 +2,7 @@
 
 FlowForce is a premium, high-performance Kanban board application designed for professional workflows. Featuring a modern Glassmorphism UI and robust state management, it provides a seamless and productive experience for managing tasks and projects.
 
-![FlowForce Kanban](https://github.com/kkim025/flowforce-kanban/resource/screenshot.png) *(Placeholder for screenshot)*
+![FlowForce Kanban](https://github.com/kkim025/flowforce-kanban/blob/development/resource/screenshot.png) *(Placeholder for screenshot)*
 
 ## ✨ Features
 

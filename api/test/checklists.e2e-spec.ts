@@ -50,7 +50,15 @@ describe('Checklists (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { id: userId } });
+    // Delete in order to avoid FK constraints
+    if (userId) {
+      const boards = await prisma.board.findMany({ where: { ownerId: userId } });
+      for (const board of boards) {
+        await prisma.column.deleteMany({ where: { boardId: board.id } });
+        await prisma.board.delete({ where: { id: board.id } });
+      }
+      await prisma.user.delete({ where: { id: userId } });
+    }
     await app.close();
   });
 

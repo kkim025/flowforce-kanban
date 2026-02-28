@@ -379,91 +379,89 @@ const Board: React.FC = () => {
                             onMouseLeave={handleMouseLeave}
                             onMouseUp={handleMouseUp}
                             onMouseMove={handleMouseMove}
-                            className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                            style={{ minWidth: '100%', display: 'flex' }}
+                            className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none gap-6 items-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                         >
-                            <div className="flex gap-6 h-full items-start pointer-events-none" style={{ minWidth: 'max-content', paddingRight: '2rem' }}>
-                                {state.columnOrder.map((columnId, index) => {
-                                    const column = state.columns[columnId];
-                                    const tasks = column.taskIds
-                                        .map((taskId) => state.tasks[taskId])
-                                        .filter(task => {
-                                            if (!searchQuery) return true;
-                                            const query = searchQuery.toLowerCase();
-                                            return (
-                                                task.title.toLowerCase().includes(query) ||
-                                                task.description.toLowerCase().includes(query) ||
-                                                task.tags.some(t => t.toLowerCase().includes(query)) ||
-                                                task.priority.toLowerCase().includes(query)
-                                            );
-                                        });
+                            {state.columnOrder.map((columnId, index) => {
+                                const column = state.columns[columnId];
+                                const tasks = column.taskIds
+                                    .map((taskId) => state.tasks[taskId])
+                                    .filter(task => {
+                                        if (!searchQuery) return true;
+                                        const query = searchQuery.toLowerCase();
+                                        return (
+                                            task.title.toLowerCase().includes(query) ||
+                                            task.description.toLowerCase().includes(query) ||
+                                            task.tags.some(t => t.toLowerCase().includes(query)) ||
+                                            task.priority.toLowerCase().includes(query)
+                                        );
+                                    });
 
-                                    return (
-                                        <div key={column.id} className="pointer-events-auto h-full">
-                                            <Column
-                                                index={index}
-                                                column={column}
-                                                tasks={tasks}
-                                                onAddTask={() => openCreateModal(column.id)}
-                                                onEditTask={openEditModal}
-                                                onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
-                                                onDeleteColumn={() => handleDeleteColumn(column.id)}
-                                                selectedTaskIds={state.selectedTaskIds}
-                                                onSelectTask={handleSelectTask}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                                {provided.placeholder}
+                                return (
+                                    <Column
+                                        key={column.id}
+                                        index={index}
+                                        column={column}
+                                        tasks={tasks}
+                                        onAddTask={() => openCreateModal(column.id)}
+                                        onEditTask={openEditModal}
+                                        onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
+                                        onDeleteColumn={() => handleDeleteColumn(column.id)}
+                                        selectedTaskIds={state.selectedTaskIds}
+                                        onSelectTask={handleSelectTask}
+                                    />
+                                );
+                            })}
+                            {provided.placeholder}
 
-                                {/* Add Column Button */}
-                                <div className="pointer-events-auto w-80 flex-shrink-0">
-                                    {isAddingColumn ? (
-                                        <div className="glass rounded-3xl p-4 border-2 border-accent-blue/30 bg-white/5">
-                                            <input
-                                                ref={addColumnInputRef}
-                                                type="text"
+                            {/* Add Column Button */}
+                            <div className="w-80 flex-shrink-0 pr-8">
+                                {isAddingColumn ? (
+                                    <div className="glass rounded-3xl p-4 border-2 border-accent-blue/30 bg-white/5">
+                                        <input
+                                            ref={addColumnInputRef}
+                                            type="text"
+                                            disabled={isSavingColumn}
+                                            value={newColumnTitle}
+                                            onChange={(e) => setNewColumnTitle(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
+                                            placeholder="Enter column title..."
+                                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-accent-blue/50 mb-3 disabled:opacity-50"
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleAddColumn}
                                                 disabled={isSavingColumn}
-                                                value={newColumnTitle}
-                                                onChange={(e) => setNewColumnTitle(e.target.value)}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
-                                                placeholder="Enter column title..."
-                                                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-accent-blue/50 mb-3 disabled:opacity-50"
-                                            />
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={handleAddColumn}
-                                                    disabled={isSavingColumn}
-                                                    className="flex-1 bg-accent-blue hover:bg-blue-600 text-white py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {isSavingColumn ? (
-                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            <Check className="w-4 h-4" /> Add
-                                                        </>
-                                                    )}
-                                                </button>
-                                                <button
-                                                    onClick={() => !isSavingColumn && setIsAddingColumn(false)}
-                                                    disabled={isSavingColumn}
-                                                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl transition-all disabled:opacity-50"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            </div>
+                                                className="flex-1 bg-accent-blue hover:bg-blue-600 text-white py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {isSavingColumn ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4" /> Add
+                                                    </>
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => !isSavingColumn && setIsAddingColumn(false)}
+                                                disabled={isSavingColumn}
+                                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl transition-all disabled:opacity-50"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </button>
                                         </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => setIsAddingColumn(true)}
-                                            className="w-full group glass border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-accent-blue/50 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 opacity-60 hover:opacity-100 bg-white/5"
-                                        >
-                                            <div className="p-3 bg-slate-200 dark:bg-slate-800 group-hover:bg-accent-blue group-hover:text-white rounded-2xl transition-all">
-                                                <Plus className="w-6 h-6" />
-                                            </div>
-                                            <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs">Add Column</span>
-                                        </button>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsAddingColumn(true)}
+                                        className="w-full group glass border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-accent-blue/50 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 opacity-60 hover:opacity-100 bg-white/5"
+                                    >
+                                        <div className="p-3 bg-slate-200 dark:bg-slate-800 group-hover:bg-accent-blue group-hover:text-white rounded-2xl transition-all">
+                                            <Plus className="w-6 h-6" />
+                                        </div>
+                                        <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs">Add Column</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}

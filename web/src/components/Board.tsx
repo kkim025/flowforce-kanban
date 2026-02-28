@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
+import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import TaskModal from './TaskModal';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
+import { LogOut } from 'lucide-react';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo } = useKanban();
+    const { user, logout } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeTask, setActiveTask] = useState<Task | undefined>(undefined);
     const [targetColumnId, setTargetColumnId] = useState('todo');
@@ -191,6 +194,20 @@ const Board: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {user && (
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-slate-900/50 border border-white/20 rounded-xl mr-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                    {user.name?.[0] || user.email[0].toUpperCase()}
+                                </div>
+                                <div className="hidden md:block text-left">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
+                                    <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
+                                        <LogOut className="w-2.5 h-2.5" /> Log Out
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
                             <button
                                 onClick={toggleTheme}

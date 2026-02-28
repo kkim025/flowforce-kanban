@@ -7,7 +7,7 @@ import { mapApiBoardToState } from '../lib/mappers';
 
 interface KanbanContextType {
     state: BoardState;
-    dispatch: React.Dispatch<KanbanAction>;
+    dispatch: (action: KanbanAction) => Promise<void>;
     undo: () => void;
     redo: () => void;
     canUndo: boolean;
@@ -19,10 +19,10 @@ interface KanbanContextType {
 const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
 
 export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [isSyncing, setIsSyncing] = useState(false);
     const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
-    const isInitialLoad = useRef(true);
+    const [isHydrated, setIsHydrated] = useState(false);
     
     const [history, setHistory] = useReducer(
         (h: { past: BoardState[]; present: BoardState; future: BoardState[] }, action: KanbanAction) => {
@@ -31,15 +31,13 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (action.type === 'INTERNAL_UNDO') {
                 if (past.length === 0) return h;
                 const previous = past[past.length - 1];
-                const newPast = past.slice(0, past.length - 1);
-                return { past: newPast, present: previous, future: [present, ...future] };
+                return { past: past.slice(0, past.length - 1), present: previous, future: [present, ...future] };
             }
 
             if (action.type === 'INTERNAL_REDO') {
                 if (future.length === 0) return h;
                 const next = future[0];
-                const newFuture = future.slice(1);
-                return { past: [...past, present], present: next, future: newFuture };
+                return { past: [...past, present], present: next, future: future.slice(1) };
             }
 
             if (action.type === 'SET_STATE') {
@@ -58,40 +56,46 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         { past: [], present: initialState, future: [] }
     );
 
-    // Initial Load from API
+    // Latest state ref for async dispatches
+    const stateRef = useRef(history.present);
+    useEffect(() => {
+        stateRef.current = history.present;
+    }, [history.present]);
+
+    // Initial Hydration
     useEffect(() => {
         if (!isAuthenticated) return;
 
         const loadBoardData = async () => {
             setIsSyncing(true);
             try {
+                console.log('Fetching boards...');
                 const response = await api.get('/boards');
                 let board;
 
                 if (response.data.length === 0) {
-                    // Create default board for new users
-                    const newBoard = await api.post('/boards', { title: 'Personal Board' });
-                    board = newBoard.data;
+                    console.log('No boards found, creating default...');
+                    const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
+                    board = newBoardRes.data;
                     
-                    // Create default columns
                     const columnTitles = ['To Do', 'In Progress', 'Done'];
                     for (let i = 0; i < columnTitles.length; i++) {
                         await api.post('/columns', { title: columnTitles[i], boardId: board.id, order: i });
                     }
                     
-                    // Fetch fully hydrated board
-                    const fullBoard = await api.get(`/boards/${board.id}`);
-                    board = fullBoard.data;
+                    const refreshed = await api.get(`/boards/${board.id}`);
+                    board = refreshed.data;
                 } else {
                     board = response.data[0];
+                    console.log('Board found:', board.id);
                 }
 
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
                 setHistory({ type: 'SET_STATE', payload: mappedState });
-                isInitialLoad.current = false;
+                setIsHydrated(true);
             } catch (err) {
-                console.error('Failed to initialize board:', err);
+                console.error('Initial load error:', err);
             } finally {
                 setIsSyncing(false);
             }
@@ -100,24 +104,47 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loadBoardData();
     }, [isAuthenticated]);
 
-    // Side-effect persistence (Optimistic UI + Backend Sync)
+    // Async Synchronizer
     const wrappedDispatch = useCallback(async (action: KanbanAction) => {
-        // 1. Update UI immediately
+        // 1. Optimistic Update
         setHistory(action);
 
-        if (!activeBoardId) return;
+        if (!activeBoardId || !isHydrated) {
+            console.warn('Action skipped sync: Board not hydrated or ID missing');
+            return;
+        }
 
-        // 2. Persist to backend
+        // 2. Persistence
         try {
             switch (action.type) {
                 case 'ADD_TASK': {
                     const { columnId, task } = action.payload;
-                    await api.post('/tasks', {
+                    const response = await api.post('/tasks', {
                         content: task.title,
                         description: task.description,
                         priority: task.priority.toUpperCase(),
                         columnId: columnId,
-                        order: 999, // Should be calculated or handled by backend reorder
+                        order: stateRef.current.columns[columnId]?.taskIds.length || 0,
+                    });
+                    
+                    // Replace temp ID with real ID in the state
+                    const realId = response.data.id;
+                    const updatedTasks = { ...stateRef.current.tasks, [realId]: { ...task, id: realId } };
+                    delete updatedTasks[task.id];
+
+                    const updatedColumns = { ...stateRef.current.columns };
+                    updatedColumns[columnId] = {
+                        ...updatedColumns[columnId],
+                        taskIds: updatedColumns[columnId].taskIds.map(id => id === task.id ? realId : id)
+                    };
+
+                    setHistory({
+                        type: 'SET_STATE',
+                        payload: {
+                            ...stateRef.current,
+                            tasks: updatedTasks,
+                            columns: updatedColumns
+                        }
                     });
                     break;
                 }
@@ -140,16 +167,13 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         columnId: destinationColId,
                         order: destinationIndex,
                     });
-                    // Note: In a full implementation, we'd also trigger reorders for other tasks
                     break;
                 }
-                // Add more cases as needed for columns, etc.
             }
         } catch (err) {
-            console.error('Failed to sync action to backend:', err);
-            // In a real app, you might want to show a toast or revert the optimistic update
+            console.error('Persistence failure:', err);
         }
-    }, [activeBoardId]);
+    }, [activeBoardId, isHydrated]);
 
     const undo = useCallback(() => setHistory({ type: 'INTERNAL_UNDO' }), []);
     const redo = useCallback(() => setHistory({ type: 'INTERNAL_REDO' }), []);

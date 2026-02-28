@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
 import { useAuth } from '../store/AuthContext';
@@ -16,8 +16,35 @@ const Board: React.FC = () => {
     const [targetColumnId, setTargetColumnId] = useState('todo');
     const [searchQuery, setSearchQuery] = useState('');
     const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
-    const searchInputRef = React.useRef<HTMLInputElement>(null);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Grab to scroll logic
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!scrollContainerRef.current) return;
+        // Don't scroll if clicking on an interactive element
+        if ((e.target as HTMLElement).closest('button, input, textarea, [data-rbd-draggable-id]')) return;
+        
+        setIsDragging(true);
+        setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+        setScrollLeft(scrollContainerRef.current.scrollLeft);
+    };
+
+    const handleMouseLeave = () => setIsDragging(false);
+    const handleMouseUp = () => setIsDragging(false);
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startX) * 2; // scroll-speed
+        scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
 
     // Global Keyboard Shortcuts
     useEffect(() => {
@@ -100,8 +127,6 @@ const Board: React.FC = () => {
     const handleDeleteSelected = () => {
         if (window.confirm(`Delete ${state.selectedTaskIds.length} selected tasks?`)) {
             state.selectedTaskIds.forEach(taskId => {
-                // We need the columnId to delete properly in the current reducer
-                // Let's find it.
                 const columnId = Object.keys(state.columns).find(id =>
                     state.columns[id].taskIds.includes(taskId)
                 );
@@ -168,8 +193,8 @@ const Board: React.FC = () => {
     };
 
     return (
-        <div className="p-8 h-full flex flex-col">
-            <header className="flex justify-between items-end mb-12">
+        <div className="p-8 h-screen max-h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+            <header className="flex justify-between items-end mb-8 flex-shrink-0">
                 <div>
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
                         FlowForce<span className="text-accent-blue">.</span>
@@ -289,35 +314,45 @@ const Board: React.FC = () => {
             </header>
 
             <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex gap-8 overflow-x-auto pb-8 flex-1">
-                    {state.columnOrder.map((columnId) => {
-                        const column = state.columns[columnId];
-                        const tasks = column.taskIds
-                            .map((taskId) => state.tasks[taskId])
-                            .filter(task => {
-                                if (!searchQuery) return true;
-                                const query = searchQuery.toLowerCase();
-                                return (
-                                    task.title.toLowerCase().includes(query) ||
-                                    task.description.toLowerCase().includes(query) ||
-                                    task.tags.some(t => t.toLowerCase().includes(query)) ||
-                                    task.priority.toLowerCase().includes(query)
-                                );
-                            });
+                <div 
+                    ref={scrollContainerRef}
+                    onMouseDown={handleMouseDown}
+                    onMouseLeave={handleMouseLeave}
+                    onMouseUp={handleMouseUp}
+                    onMouseMove={handleMouseMove}
+                    className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                >
+                    <div className="flex gap-6 h-full items-start pointer-events-none" style={{ minWidth: 'max-content', paddingRight: '2rem' }}>
+                        {state.columnOrder.map((columnId) => {
+                            const column = state.columns[columnId];
+                            const tasks = column.taskIds
+                                .map((taskId) => state.tasks[taskId])
+                                .filter(task => {
+                                    if (!searchQuery) return true;
+                                    const query = searchQuery.toLowerCase();
+                                    return (
+                                        task.title.toLowerCase().includes(query) ||
+                                        task.description.toLowerCase().includes(query) ||
+                                        task.tags.some(t => t.toLowerCase().includes(query)) ||
+                                        task.priority.toLowerCase().includes(query)
+                                    );
+                                });
 
-                        return (
-                            <Column
-                                key={column.id}
-                                column={column}
-                                tasks={tasks}
-                                onAddTask={() => openCreateModal(column.id)}
-                                onEditTask={openEditModal}
-                                onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
-                                selectedTaskIds={state.selectedTaskIds}
-                                onSelectTask={handleSelectTask}
-                            />
-                        );
-                    })}
+                            return (
+                                <div key={column.id} className="pointer-events-auto h-full">
+                                    <Column
+                                        column={column}
+                                        tasks={tasks}
+                                        onAddTask={() => openCreateModal(column.id)}
+                                        onEditTask={openEditModal}
+                                        onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
+                                        selectedTaskIds={state.selectedTaskIds}
+                                        onSelectTask={handleSelectTask}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </DragDropContext>
 

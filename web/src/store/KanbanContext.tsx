@@ -98,6 +98,12 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
+                
+                // Enhance mapped state with WIP limits (client-side only for now)
+                if (mappedState.columns['inprogress']) mappedState.columns['inprogress'].wipLimit = 3;
+                if (mappedState.columns['review']) mappedState.columns['review'].wipLimit = 2;
+                if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
+
                 setHistory({ type: 'SET_STATE', payload: mappedState });
                 setIsHydrated(true);
             } catch (err) {

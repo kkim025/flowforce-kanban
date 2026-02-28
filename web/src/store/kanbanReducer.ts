@@ -3,12 +3,16 @@ import { BoardState, KanbanAction } from '../types';
 export const initialState: BoardState = {
     tasks: {},
     columns: {
+        'backlog': { id: 'backlog', title: 'Backlog', taskIds: [] },
         'todo': { id: 'todo', title: 'To Do', taskIds: [], wipLimit: 10 },
         'inprogress': { id: 'inprogress', title: 'In Progress', taskIds: [], wipLimit: 3 },
+        'review': { id: 'review', title: 'Review', taskIds: [], wipLimit: 2 },
         'done': { id: 'done', title: 'Done', taskIds: [] },
     },
-    columnOrder: ['todo', 'inprogress', 'done'],
+    columnOrder: ['backlog', 'todo', 'inprogress', 'review', 'done'],
     selectedTaskIds: [],
+    viewMode: (localStorage.getItem('flowforce_view_mode') as 'board' | 'list') || 'board',
+    searchQuery: '',
 };
 
 export interface HistoryState {
@@ -19,6 +23,10 @@ export interface HistoryState {
 
 export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardState => {
     switch (action.type) {
+        // ... (rest of cases)
+        case 'SET_SEARCH_QUERY':
+            return { ...state, searchQuery: action.payload };
+        // ...
         case 'MOVE_TASK': {
             const { taskId, sourceColId, destinationColId, sourceIndex, destinationIndex } = action.payload;
 
@@ -95,8 +103,63 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             };
         }
 
+        case 'ADD_COLUMN': {
+            const { column } = action.payload;
+            return {
+                ...state,
+                columns: {
+                    ...state.columns,
+                    [column.id]: column,
+                },
+                columnOrder: [...state.columnOrder, column.id],
+            };
+        }
+
+        case 'DELETE_COLUMN': {
+            const { columnId } = action.payload;
+            const newColumns = { ...state.columns };
+            const taskIdsToRemove = newColumns[columnId]?.taskIds || [];
+            delete newColumns[columnId];
+
+            const newTasks = { ...state.tasks };
+            taskIdsToRemove.forEach(id => delete newTasks[id]);
+
+            return {
+                ...state,
+                tasks: newTasks,
+                columns: newColumns,
+                columnOrder: state.columnOrder.filter(id => id !== columnId),
+            };
+        }
+
+        case 'REORDER_COLUMN': {
+            const { columnOrder } = action.payload;
+            return {
+                ...state,
+                columnOrder,
+            };
+        }
+
+        case 'UPDATE_COLUMN': {
+            const { column } = action.payload;
+            return {
+                ...state,
+                columns: {
+                    ...state.columns,
+                    [column.id]: column,
+                },
+            };
+        }
+
         case 'SET_STATE':
-            return { ...action.payload, selectedTaskIds: [] };
+            return { 
+                ...initialState,
+                ...action.payload, 
+                selectedTaskIds: [],
+                // Preserve current search query if the payload doesn't have one (payload is usually from API board mapping)
+                searchQuery: action.payload.searchQuery !== undefined ? action.payload.searchQuery : state.searchQuery,
+                viewMode: action.payload.viewMode !== undefined ? action.payload.viewMode : state.viewMode
+            };
 
         case 'TOGGLE_SELECT_TASK': {
             const { taskId, multiSelect } = (action as any).payload;
@@ -114,6 +177,54 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'CLEAR_SELECTION':
             return { ...state, selectedTaskIds: [] };
+
+        case 'SET_VIEW_MODE':
+            return { ...state, viewMode: action.payload };
+
+        case 'ADD_CHECKLIST': {
+            const { taskId, checklist } = action.payload;
+            const task = state.tasks[taskId];
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: [...(task.checklists || []), checklist],
+                    },
+                },
+            };
+        }
+
+        case 'DELETE_CHECKLIST': {
+            const { taskId, checklistId } = action.payload;
+            const task = state.tasks[taskId];
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.filter(cl => cl.id !== checklistId),
+                    },
+                },
+            };
+        }
+
+        case 'UPDATE_CHECKLIST': {
+            const { taskId, checklist } = action.payload;
+            const task = state.tasks[taskId];
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl => cl.id === checklist.id ? checklist : cl),
+                    },
+                },
+            };
+        }
 
         default:
             return state;

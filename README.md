@@ -22,12 +22,10 @@ FlowForce is a premium, high-performance Kanban board application designed for p
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [React 19](https://react.dev/) (TypeScript)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Drag & Drop**: [@hello-pangea/dnd](https://github.com/hello-pangea/dnd)
-- **State Management**: React Context API + `useReducer`
-- **Testing**: [Vitest](https://vitest.dev/) + React Testing Library
+- **Frontend**: [React 19](https://react.dev/) (TypeScript), [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), [@hello-pangea/dnd](https://github.com/hello-pangea/dnd)
+- **Backend**: [NestJS](https://nestjs.com/), [Prisma ORM](https://www.prisma.io/), [Passport JWT](http://www.passportjs.org/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (Docker)
+- **State Management**: React Context API + `useReducer` (with backend sync)
 - **Build Tool**: [Vite](https://vitejs.dev/)
 
 ## 🚀 Getting Started
@@ -35,9 +33,10 @@ FlowForce is a premium, high-performance Kanban board application designed for p
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Latest LTS recommended)
+- [Docker Desktop](https://www.docker.com/) (for PostgreSQL)
 - [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
-### Installation
+### Installation & Setup
 
 1. Clone the repository:
    ```bash
@@ -45,19 +44,30 @@ FlowForce is a premium, high-performance Kanban board application designed for p
    cd flowforce-kanban
    ```
 
-2. Navigate to the `web` directory and install dependencies:
+2. **Start the Database**:
+   ```bash
+   cd api
+   docker-compose up -d
+   ```
+
+3. **Set up the Backend**:
+   ```bash
+   cd api
+   npm install
+   npx prisma migrate dev  # Sync database schema
+   npm run start:dev       # API will run on http://localhost:3000
+   ```
+
+4. **Set up the Frontend**:
+   Open a new terminal window:
    ```bash
    cd web
    npm install
+   npm run dev             # Web app will run on http://localhost:5173
    ```
 
-### Development
-
-Run the development server:
-```bash
-npm run dev
-```
-The application will be available at `http://localhost:5173`.
+### First Time Use
+After starting both servers, navigate to `http://localhost:5173/register` to create your first account and initialize your personal board.
 
 ### Build
 

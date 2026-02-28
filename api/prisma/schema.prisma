@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed password
+  name      String?
+  boards    Board[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Board {
+  id        String   @id @default(uuid())
+  title     String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  columns   Column[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Column {
+  id        String   @id @default(uuid())
+  title     String
+  order     Int      // To maintain column position
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  content     String
+  description String?
+  priority    Priority  @default(MEDIUM)
+  order       Int       // To maintain task position
+  columnId    String
+  column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  checklists  Checklist[]
+  subtasks    Subtask[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Checklist {
+  id        String    @id @default(uuid())
+  title     String
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items     Subtask[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Subtask {
+  id          String     @id @default(uuid())
+  content     String
+  completed   Boolean    @default(false)
+  taskId      String?
+  task        Task?      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  checklistId String?
+  checklist   Checklist? @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}

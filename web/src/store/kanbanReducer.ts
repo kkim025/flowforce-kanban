@@ -97,6 +97,54 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             };
         }
 
+        case 'ADD_COLUMN': {
+            const { column } = action.payload;
+            return {
+                ...state,
+                columns: {
+                    ...state.columns,
+                    [column.id]: column,
+                },
+                columnOrder: [...state.columnOrder, column.id],
+            };
+        }
+
+        case 'DELETE_COLUMN': {
+            const { columnId } = action.payload;
+            const newColumns = { ...state.columns };
+            const taskIdsToRemove = newColumns[columnId]?.taskIds || [];
+            delete newColumns[columnId];
+
+            const newTasks = { ...state.tasks };
+            taskIdsToRemove.forEach(id => delete newTasks[id]);
+
+            return {
+                ...state,
+                tasks: newTasks,
+                columns: newColumns,
+                columnOrder: state.columnOrder.filter(id => id !== columnId),
+            };
+        }
+
+        case 'REORDER_COLUMN': {
+            const { columnOrder } = action.payload;
+            return {
+                ...state,
+                columnOrder,
+            };
+        }
+
+        case 'UPDATE_COLUMN': {
+            const { column } = action.payload;
+            return {
+                ...state,
+                columns: {
+                    ...state.columns,
+                    [column.id]: column,
+                },
+            };
+        }
+
         case 'SET_STATE':
             return { ...action.payload, selectedTaskIds: [] };
 

@@ -16,11 +16,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     
     const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
+    
+    // Explicitly pass the adapter to the super constructor.
+    // In this project's version of Prisma, an adapter is required when engineType is 'client'.
     super({ adapter });
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      await this.$connect();
+      this.logger.log('Connected to Database');
+    } catch (error) {
+      this.logger.error('Failed to connect to Database', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

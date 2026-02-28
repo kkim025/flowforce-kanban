@@ -7,5 +7,6 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
   imports: [PrismaModule],
   providers: [ColumnsService],
   controllers: [ColumnsController],
+  exports: [ColumnsService],
 })
 export class ColumnsModule {}

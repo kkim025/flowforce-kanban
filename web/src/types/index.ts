@@ -38,6 +38,8 @@ export type KanbanAction =
     | { type: 'DELETE_TASK'; payload: { taskId: string; columnId: string } }
     | { type: 'REORDER_COLUMN'; payload: { columnOrder: string[] } }
     | { type: 'UPDATE_COLUMN'; payload: { column: Column } }
+    | { type: 'ADD_COLUMN'; payload: { column: Column } }
+    | { type: 'DELETE_COLUMN'; payload: { columnId: string } }
     | { type: 'SET_STATE'; payload: BoardState }
     | { type: 'TOGGLE_SELECT_TASK'; payload: { taskId: string; multiSelect: boolean } }
     | { type: 'CLEAR_SELECTION' }

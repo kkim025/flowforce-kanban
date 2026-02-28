@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Logger } from '@nestjs/common';
 import { ColumnsService } from './columns.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -6,6 +6,8 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 @Controller('columns')
 @UseGuards(JwtAuthGuard)
 export class ColumnsController {
+  private readonly logger = new Logger(ColumnsController.name);
+
   constructor(private readonly columnsService: ColumnsService) {}
 
   @Post()

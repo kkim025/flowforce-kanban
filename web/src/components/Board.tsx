@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
 import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import TaskModal from './TaskModal';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
+import { LogOut, Plus, X, Check } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo } = useKanban();
@@ -19,6 +20,12 @@ const Board: React.FC = () => {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Column Management
+    const [isAddingColumn, setIsAddingColumn] = useState(false);
+    const [isSavingColumn, setIsSavingColumn] = useState(false);
+    const [newColumnTitle, setNewColumnTitle] = useState('');
+    const addColumnInputRef = useRef<HTMLInputElement>(null);
 
     // Grab to scroll logic
     const [isDragging, setIsDragging] = useState(false);
@@ -74,7 +81,7 @@ const Board: React.FC = () => {
     }, [undo, redo, canUndo, canRedo]);
 
     const onDragEnd = (result: DropResult) => {
-        const { destination, source, draggableId } = result;
+        const { destination, source, draggableId, type } = result;
 
         if (!destination) return;
 
@@ -82,6 +89,18 @@ const Board: React.FC = () => {
             destination.droppableId === source.droppableId &&
             destination.index === source.index
         ) {
+            return;
+        }
+
+        if (type === 'COLUMN') {
+            const newColumnOrder = Array.from(state.columnOrder);
+            newColumnOrder.splice(source.index, 1);
+            newColumnOrder.splice(destination.index, 0, draggableId);
+
+            dispatch({
+                type: 'REORDER_COLUMN',
+                payload: { columnOrder: newColumnOrder },
+            });
             return;
         }
 
@@ -191,6 +210,40 @@ const Board: React.FC = () => {
         };
         reader.readAsText(file);
     };
+
+    const handleAddColumn = async () => {
+        if (!newColumnTitle.trim() || isSavingColumn) {
+            setIsAddingColumn(false);
+            return;
+        }
+
+        setIsSavingColumn(true);
+        try {
+            const newColumn = {
+                id: uuidv4(),
+                title: newColumnTitle.trim(),
+                taskIds: [],
+            };
+
+            await dispatch({ type: 'ADD_COLUMN', payload: { column: newColumn } });
+            setNewColumnTitle('');
+            setIsAddingColumn(false);
+        } finally {
+            setIsSavingColumn(false);
+        }
+    };
+
+    const handleDeleteColumn = (columnId: string) => {
+        if (window.confirm('Are you sure you want to delete this column and all its tasks?')) {
+            dispatch({ type: 'DELETE_COLUMN', payload: { columnId } });
+        }
+    };
+
+    useEffect(() => {
+        if (isAddingColumn) {
+            addColumnInputRef.current?.focus();
+        }
+    }, [isAddingColumn]);
 
     return (
         <div className="p-8 h-screen max-h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
@@ -314,46 +367,107 @@ const Board: React.FC = () => {
             </header>
 
             <DragDropContext onDragEnd={onDragEnd}>
-                <div 
-                    ref={scrollContainerRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseLeave={handleMouseLeave}
-                    onMouseUp={handleMouseUp}
-                    onMouseMove={handleMouseMove}
-                    className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                >
-                    <div className="flex gap-6 h-full items-start pointer-events-none" style={{ minWidth: 'max-content', paddingRight: '2rem' }}>
-                        {state.columnOrder.map((columnId) => {
-                            const column = state.columns[columnId];
-                            const tasks = column.taskIds
-                                .map((taskId) => state.tasks[taskId])
-                                .filter(task => {
-                                    if (!searchQuery) return true;
-                                    const query = searchQuery.toLowerCase();
-                                    return (
-                                        task.title.toLowerCase().includes(query) ||
-                                        task.description.toLowerCase().includes(query) ||
-                                        task.tags.some(t => t.toLowerCase().includes(query)) ||
-                                        task.priority.toLowerCase().includes(query)
-                                    );
-                                });
+                <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">
+                    {(provided) => (
+                        <div 
+                            {...provided.droppableProps}
+                            ref={(el) => {
+                                provided.innerRef(el);
+                                (scrollContainerRef as any).current = el;
+                            }}
+                            onMouseDown={handleMouseDown}
+                            onMouseLeave={handleMouseLeave}
+                            onMouseUp={handleMouseUp}
+                            onMouseMove={handleMouseMove}
+                            className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        >
+                            <div className="flex gap-6 h-full items-start pointer-events-none" style={{ minWidth: 'max-content', paddingRight: '2rem' }}>
+                                {state.columnOrder.map((columnId, index) => {
+                                    const column = state.columns[columnId];
+                                    const tasks = column.taskIds
+                                        .map((taskId) => state.tasks[taskId])
+                                        .filter(task => {
+                                            if (!searchQuery) return true;
+                                            const query = searchQuery.toLowerCase();
+                                            return (
+                                                task.title.toLowerCase().includes(query) ||
+                                                task.description.toLowerCase().includes(query) ||
+                                                task.tags.some(t => t.toLowerCase().includes(query)) ||
+                                                task.priority.toLowerCase().includes(query)
+                                            );
+                                        });
 
-                            return (
-                                <div key={column.id} className="pointer-events-auto h-full">
-                                    <Column
-                                        column={column}
-                                        tasks={tasks}
-                                        onAddTask={() => openCreateModal(column.id)}
-                                        onEditTask={openEditModal}
-                                        onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
-                                        selectedTaskIds={state.selectedTaskIds}
-                                        onSelectTask={handleSelectTask}
-                                    />
+                                    return (
+                                        <div key={column.id} className="pointer-events-auto h-full">
+                                            <Column
+                                                index={index}
+                                                column={column}
+                                                tasks={tasks}
+                                                onAddTask={() => openCreateModal(column.id)}
+                                                onEditTask={openEditModal}
+                                                onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
+                                                onDeleteColumn={() => handleDeleteColumn(column.id)}
+                                                selectedTaskIds={state.selectedTaskIds}
+                                                onSelectTask={handleSelectTask}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                                {provided.placeholder}
+
+                                {/* Add Column Button */}
+                                <div className="pointer-events-auto w-80 flex-shrink-0">
+                                    {isAddingColumn ? (
+                                        <div className="glass rounded-3xl p-4 border-2 border-accent-blue/30 bg-white/5">
+                                            <input
+                                                ref={addColumnInputRef}
+                                                type="text"
+                                                disabled={isSavingColumn}
+                                                value={newColumnTitle}
+                                                onChange={(e) => setNewColumnTitle(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
+                                                placeholder="Enter column title..."
+                                                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-accent-blue/50 mb-3 disabled:opacity-50"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={handleAddColumn}
+                                                    disabled={isSavingColumn}
+                                                    className="flex-1 bg-accent-blue hover:bg-blue-600 text-white py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isSavingColumn ? (
+                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                    ) : (
+                                                        <>
+                                                            <Check className="w-4 h-4" /> Add
+                                                        </>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => !isSavingColumn && setIsAddingColumn(false)}
+                                                    disabled={isSavingColumn}
+                                                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl transition-all disabled:opacity-50"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsAddingColumn(true)}
+                                            className="w-full group glass border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-accent-blue/50 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-300 opacity-60 hover:opacity-100 bg-white/5"
+                                        >
+                                            <div className="p-3 bg-slate-200 dark:bg-slate-800 group-hover:bg-accent-blue group-hover:text-white rounded-2xl transition-all">
+                                                <Plus className="w-6 h-6" />
+                                            </div>
+                                            <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs">Add Column</span>
+                                        </button>
+                                    )}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                            </div>
+                        </div>
+                    )}
+                </Droppable>
             </DragDropContext>
 
             {state.selectedTaskIds.length > 0 && (

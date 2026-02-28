@@ -7,10 +7,15 @@ export class ColumnsService {
   constructor(private prisma: PrismaService) {}
 
   private async checkBoardOwnership(userId: string, boardId: string) {
+    if (!boardId) {
+      throw new NotFoundException('Board ID is required');
+    }
     const board = await this.prisma.board.findUnique({
       where: { id: boardId },
     });
-    if (!board) throw new NotFoundException('Board not found');
+    if (!board) {
+      throw new NotFoundException(`Board with ID ${boardId} not found`);
+    }
     if (board.ownerId !== userId) throw new ForbiddenException('Access denied');
     return board;
   }
@@ -56,6 +61,19 @@ export class ColumnsService {
         order: data.order,
       },
     });
+  }
+
+  async reorder(userId: string, boardId: string, columnIds: string[]): Promise<void> {
+    await this.checkBoardOwnership(userId, boardId);
+
+    await this.prisma.$transaction(
+      columnIds.map((id, index) =>
+        this.prisma.column.update({
+          where: { id },
+          data: { order: index },
+        }),
+      ),
+    );
   }
 
   async remove(userId: string, id: string): Promise<Column> {

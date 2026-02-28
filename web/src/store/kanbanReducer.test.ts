@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { kanbanReducer, initialState } from './kanbanReducer';
-import { BoardState, Task } from '../types';
+import { BoardState, Task, Column } from '../types';
 
 describe('kanbanReducer', () => {
     it('should handle MOVE_TASK within the same column', () => {
@@ -53,5 +53,56 @@ describe('kanbanReducer', () => {
         const newState = kanbanReducer(initialState, action);
         expect(newState.tasks['3']).toEqual(newTask);
         expect(newState.columns['todo'].taskIds).toContain('3');
+    });
+
+    it('should handle ADD_COLUMN', () => {
+        const newColumn: Column = {
+            id: 'col-new',
+            title: 'New Column',
+            taskIds: [],
+        };
+
+        const action = {
+            type: 'ADD_COLUMN' as const,
+            payload: { column: newColumn },
+        };
+
+        const newState = kanbanReducer(initialState, action);
+        expect(newState.columns['col-new']).toEqual(newColumn);
+        expect(newState.columnOrder).toContain('col-new');
+    });
+
+    it('should handle DELETE_COLUMN and remove its tasks', () => {
+        const state: BoardState = {
+            ...initialState,
+            tasks: {
+                'task-1': { id: 'task-1', title: 'Task 1' } as any,
+            },
+            columns: {
+                ...initialState.columns,
+                'todo': { id: 'todo', title: 'To Do', taskIds: ['task-1'] },
+            },
+        };
+
+        const action = {
+            type: 'DELETE_COLUMN' as const,
+            payload: { columnId: 'todo' },
+        };
+
+        const newState = kanbanReducer(state, action);
+        expect(newState.columns['todo']).toBeUndefined();
+        expect(newState.columnOrder).not.toContain('todo');
+        expect(newState.tasks['task-1']).toBeUndefined();
+    });
+
+    it('should handle REORDER_COLUMN', () => {
+        const newOrder = ['done', 'review', 'inprogress', 'todo', 'backlog'];
+        const action = {
+            type: 'REORDER_COLUMN' as const,
+            payload: { columnOrder: newOrder },
+        };
+
+        const newState = kanbanReducer(initialState, action);
+        expect(newState.columnOrder).toEqual(newOrder);
     });
 });

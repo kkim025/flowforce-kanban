@@ -181,6 +181,44 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     });
                     break;
                 }
+                case 'ADD_COLUMN': {
+                    const { column } = action.payload;
+                    const response = await api.post('/columns', {
+                        title: column.title,
+                        boardId: activeBoardId,
+                        order: stateRef.current.columnOrder.length,
+                    });
+
+                    // Replace temp ID with real ID
+                    const realId = response.data.id;
+                    const updatedColumns = { ...stateRef.current.columns, [realId]: { ...column, id: realId } };
+                    delete updatedColumns[column.id];
+
+                    const updatedColumnOrder = stateRef.current.columnOrder.map(id => 
+                        id === column.id ? realId : id
+                    );
+
+                    setHistory({
+                        type: 'SET_STATE',
+                        payload: {
+                            ...stateRef.current,
+                            columns: updatedColumns,
+                            columnOrder: updatedColumnOrder
+                        }
+                    });
+                    break;
+                }
+                case 'DELETE_COLUMN': {
+                    await api.delete(`/columns/${action.payload.columnId}`);
+                    break;
+                }
+                case 'REORDER_COLUMN': {
+                    console.log('Syncing column reorder:', { boardId: activeBoardId, columnIds: action.payload.columnOrder });
+                    await api.post(`/boards/${activeBoardId}/columns/reorder`, {
+                        columnIds: action.payload.columnOrder,
+                    });
+                    break;
+                }
             }
         } catch (err) {
             console.error('Persistence failure:', err);

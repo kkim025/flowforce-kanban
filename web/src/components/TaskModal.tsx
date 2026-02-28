@@ -346,20 +346,33 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, initialT
                                     <div>
                                         <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Priority</label>
                                         <div className="flex flex-col gap-2">
-                                            {(['low', 'medium', 'high'] as Priority[]).map((p) => (
-                                                <button
-                                                    key={p}
-                                                    onClick={() => setPriority(p)}
-                                                    className={`
-                                                        w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all
-                                                        ${priority === p
-                                                            ? 'bg-accent-blue text-white shadow-xl shadow-accent-blue/30 scale-[1.02]'
-                                                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}
-                                                    `}
-                                                >
-                                                    {p}
-                                                </button>
-                                            ))}
+                                            {(['low', 'medium', 'high'] as Priority[]).map((p) => {
+                                                const isSelected = priority === p;
+                                                let activeClass = '';
+                                                
+                                                if (isSelected) {
+                                                    switch (p) {
+                                                        case 'high': activeClass = 'bg-red-500 text-white shadow-lg shadow-red-500/20'; break;
+                                                        case 'medium': activeClass = 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'; break;
+                                                        case 'low': activeClass = 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'; break;
+                                                    }
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={p}
+                                                        onClick={() => setPriority(p)}
+                                                        className={`
+                                                            w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all scale-[1] hover:scale-[1.02] active:scale-[0.98]
+                                                            ${isSelected
+                                                                ? `${activeClass} scale-[1.02]`
+                                                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}
+                                                        `}
+                                                    >
+                                                        {p}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 

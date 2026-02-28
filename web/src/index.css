@@ -43,10 +43,24 @@ body {
   @apply bg-slate-950 text-slate-100;
 }
 
+/* Global Button Reset */
+@layer base {
+  button, 
+  [role="button"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
+}
+
 /* Glassmorphism utility */
 .glass {
   @apply backdrop-blur-md bg-white/40 border border-white/20 shadow-md;
 }
+
 
 .dark .glass {
   @apply bg-black/40 border-white/10;

@@ -280,6 +280,13 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     }
                     break;
                 }
+                case 'UPDATE_COLUMN': {
+                    const { column } = action.payload;
+                    await api.patch(`/columns/${column.id}`, {
+                        title: column.title,
+                    });
+                    break;
+                }
                 case 'SET_VIEW_MODE': {
                     localStorage.setItem('flowforce_view_mode', action.payload);
                     break;

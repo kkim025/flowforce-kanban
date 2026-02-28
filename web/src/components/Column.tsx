@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Column as ColumnType, Task } from '../types';
 import TaskCard from './TaskCard';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Check, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useKanban } from '../store/KanbanContext';
 
 interface ColumnProps {
     column: ColumnType;
@@ -29,6 +30,38 @@ const getColumnColor = (id: string) => {
 };
 
 const Column: React.FC<ColumnProps> = ({ column, tasks, index, onAddTask, onEditTask, onDeleteTask, onDeleteColumn, selectedTaskIds, onSelectTask }) => {
+    const { dispatch } = useKanban();
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [titleValue, setTitleValue] = useState(column.title);
+    const editInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditingTitle) {
+            editInputRef.current?.focus();
+            editInputRef.current?.select();
+        }
+    }, [isEditingTitle]);
+
+    const handleTitleSave = () => {
+        if (titleValue.trim() && titleValue !== column.title) {
+            dispatch({
+                type: 'UPDATE_COLUMN',
+                payload: { column: { ...column, title: titleValue.trim() } }
+            });
+        } else {
+            setTitleValue(column.title);
+        }
+        setIsEditingTitle(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleTitleSave();
+        if (e.key === 'Escape') {
+            setTitleValue(column.title);
+            setIsEditingTitle(false);
+        }
+    };
+
     return (
         <Draggable draggableId={column.id} index={index}>
             {(provided, snapshot) => {
@@ -44,12 +77,29 @@ const Column: React.FC<ColumnProps> = ({ column, tasks, index, onAddTask, onEdit
                             {...provided.dragHandleProps}
                             className="flex items-center justify-between p-4 bg-white/5 dark:bg-black/5 backdrop-blur-sm z-10"
                         >
-                            <div className="flex items-center gap-2">
-                                <h2 className="font-black text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
-                                    {column.title}
-                                </h2>
+                            <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
+                                {isEditingTitle ? (
+                                    <div className="flex items-center gap-1 w-full" onClick={e => e.stopPropagation()}>
+                                        <input
+                                            ref={editInputRef}
+                                            type="text"
+                                            value={titleValue}
+                                            onChange={e => setTitleValue(e.target.value)}
+                                            onBlur={handleTitleSave}
+                                            onKeyDown={handleKeyDown}
+                                            className="w-full bg-white/10 dark:bg-black/20 border border-accent-blue/30 rounded px-2 py-0.5 text-[11px] font-black uppercase text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-accent-blue"
+                                        />
+                                    </div>
+                                ) : (
+                                    <h2 
+                                        onClick={() => setIsEditingTitle(true)}
+                                        className="font-black text-slate-900 dark:text-white uppercase tracking-wider text-[11px] truncate cursor-text hover:text-accent-blue transition-colors"
+                                    >
+                                        {column.title}
+                                    </h2>
+                                )}
                                 <span className={`
-                                    text-[10px] font-black px-2 py-0.5 rounded-lg transition-colors
+                                    text-[10px] font-black px-2 py-0.5 rounded-lg transition-colors flex-shrink-0
                                     ${column.wipLimit && tasks.length > column.wipLimit
                                         ? 'bg-red-500 text-white animate-pulse'
                                         : 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400'}

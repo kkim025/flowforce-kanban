@@ -48,19 +48,32 @@ model Task {
   order       Int       // To maintain task position
   columnId    String
   column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  checklists  Checklist[]
   subtasks    Subtask[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
-model Subtask {
-  id        String   @id @default(uuid())
-  content   String
-  completed Boolean  @default(false)
+model Checklist {
+  id        String    @id @default(uuid())
+  title     String
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items     Subtask[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Subtask {
+  id          String     @id @default(uuid())
+  content     String
+  completed   Boolean    @default(false)
+  taskId      String?
+  task        Task?      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  checklistId String?
+  checklist   Checklist? @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 enum Priority {

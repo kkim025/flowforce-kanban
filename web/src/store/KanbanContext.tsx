@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
-import { BoardState, KanbanAction } from '../types';
+import { BoardState, KanbanAction, Task, Checklist } from '../types';
 import { kanbanReducer, initialState } from './kanbanReducer';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
@@ -40,12 +40,12 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 return { past: [...past, present], present: next, future: future.slice(1) };
             }
 
-            if (action.type === 'SET_STATE') {
-                return { past: [], present: action.payload, future: [] };
-            }
-
             const newPresent = kanbanReducer(present, action);
             if (newPresent === present) return h;
+
+            if (action.type === 'SET_STATE') {
+                return { past: [], present: newPresent, future: [] };
+            }
 
             return {
                 past: [...past, present],
@@ -69,12 +69,10 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const loadBoardData = async () => {
             setIsSyncing(true);
             try {
-                console.log('Fetching boards...');
                 const response = await api.get('/boards');
                 let board;
 
                 if (response.data.length === 0) {
-                    console.log('No boards found, creating default...');
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
                     
@@ -93,13 +91,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     board = refreshed.data;
                 } else {
                     board = response.data[0];
-                    console.log('Board found:', board.id);
                 }
 
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
                 
-                // Enhance mapped state with WIP limits (client-side only for now)
                 if (mappedState.columns['inprogress']) mappedState.columns['inprogress'].wipLimit = 3;
                 if (mappedState.columns['review']) mappedState.columns['review'].wipLimit = 2;
                 if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
@@ -116,17 +112,40 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loadBoardData();
     }, [isAuthenticated]);
 
+    const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
+        for (const cl of checklists) {
+            let checklistId = cl.id;
+            // 1. Create or Update Checklist
+            if (cl.id.length > 36) { // Client-side UUID is usually 36, but let's check for "temp" or length
+                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title });
+                checklistId = res.data.id;
+            } else {
+                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+            }
+
+            // 2. Sync Items
+            for (const item of cl.items) {
+                if (item.id.length > 36) {
+                    await api.post('/subtasks', {
+                        content: item.title,
+                        checklistId: checklistId,
+                    });
+                } else {
+                    await api.patch(`/subtasks/${item.id}`, {
+                        content: item.title,
+                        completed: item.isCompleted,
+                    });
+                }
+            }
+        }
+    };
+
     // Async Synchronizer
     const wrappedDispatch = useCallback(async (action: KanbanAction) => {
-        // 1. Optimistic Update
         setHistory(action);
 
-        if (!activeBoardId || !isHydrated) {
-            console.warn('Action skipped sync: Board not hydrated or ID missing');
-            return;
-        }
+        if (!activeBoardId || !isHydrated) return;
 
-        // 2. Persistence
         try {
             switch (action.type) {
                 case 'ADD_TASK': {
@@ -139,25 +158,16 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         order: stateRef.current.columns[columnId]?.taskIds.length || 0,
                     });
                     
-                    // Replace temp ID with real ID in the state
                     const realId = response.data.id;
-                    const updatedTasks = { ...stateRef.current.tasks, [realId]: { ...task, id: realId } };
-                    delete updatedTasks[task.id];
+                    
+                    // Sync Checklists for new task
+                    if (task.checklists?.length > 0) {
+                        await syncChecklistsForTask(realId, task.checklists);
+                    }
 
-                    const updatedColumns = { ...stateRef.current.columns };
-                    updatedColumns[columnId] = {
-                        ...updatedColumns[columnId],
-                        taskIds: updatedColumns[columnId].taskIds.map(id => id === task.id ? realId : id)
-                    };
-
-                    setHistory({
-                        type: 'SET_STATE',
-                        payload: {
-                            ...stateRef.current,
-                            tasks: updatedTasks,
-                            columns: updatedColumns
-                        }
-                    });
+                    // Update local state with real IDs from DB
+                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
+                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
                 }
                 case 'UPDATE_TASK': {
@@ -167,6 +177,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         description: task.description,
                         priority: task.priority.toUpperCase(),
                     });
+
+                    // Sync Checklists
+                    if (task.checklists?.length > 0) {
+                        await syncChecklistsForTask(task.id, task.checklists);
+                    }
                     break;
                 }
                 case 'DELETE_TASK': {
@@ -189,7 +204,6 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         order: stateRef.current.columnOrder.length,
                     });
 
-                    // Replace temp ID with real ID
                     const realId = response.data.id;
                     const updatedColumns = { ...stateRef.current.columns, [realId]: { ...column, id: realId } };
                     delete updatedColumns[column.id];
@@ -213,10 +227,61 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'REORDER_COLUMN': {
-                    console.log('Syncing column reorder:', { boardId: activeBoardId, columnIds: action.payload.columnOrder });
                     await api.post(`/boards/${activeBoardId}/columns/reorder`, {
                         columnIds: action.payload.columnOrder,
                     });
+                    break;
+                }
+                case 'ADD_CHECKLIST': {
+                    const { taskId, checklist } = action.payload;
+                    const response = await api.post(`/tasks/${taskId}/checklists`, {
+                        title: checklist.title,
+                    });
+                    
+                    const realId = response.data.id;
+                    const task = stateRef.current.tasks[taskId];
+                    const updatedChecklists = task.checklists.map(cl => 
+                        cl.id === checklist.id ? { ...cl, id: realId } : cl
+                    );
+
+                    setHistory({
+                        type: 'UPDATE_TASK',
+                        payload: { task: { ...task, checklists: updatedChecklists } }
+                    });
+                    break;
+                }
+                case 'DELETE_CHECKLIST': {
+                    await api.delete(`/checklists/${action.payload.checklistId}`);
+                    break;
+                }
+                case 'UPDATE_CHECKLIST': {
+                    const { checklist, taskId } = action.payload;
+                    await api.patch(`/checklists/${checklist.id}`, {
+                        title: checklist.title,
+                    });
+                    
+                    // Sync items
+                    const task = stateRef.current.tasks[taskId];
+                    const localChecklist = task.checklists.find(cl => cl.id === checklist.id);
+                    if (localChecklist) {
+                        for (const item of localChecklist.items) {
+                            if (item.id.length > 36) {
+                                await api.post('/subtasks', {
+                                    content: item.title,
+                                    checklistId: checklist.id,
+                                });
+                            } else {
+                                await api.patch(`/subtasks/${item.id}`, {
+                                    content: item.title,
+                                    completed: item.isCompleted,
+                                });
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'SET_VIEW_MODE': {
+                    localStorage.setItem('flowforce_view_mode', action.payload);
                     break;
                 }
             }

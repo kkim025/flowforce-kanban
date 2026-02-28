@@ -36,7 +36,7 @@ const Column: React.FC<ColumnProps> = ({ column, tasks, index, onAddTask, onEdit
                     <div 
                         {...provided.draggableProps}
                         ref={provided.innerRef}
-                        className={`flex flex-col w-80 h-full max-h-full flex-shrink-0 glass rounded-3xl overflow-hidden border-t-4 ${getColumnColor(column.id)} ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-accent-blue/20' : ''}`}
+                        className={`flex flex-col w-80 h-full max-h-full flex-shrink-0 glass rounded-3xl overflow-hidden border-t-4 ${getColumnColor(column.id)} ${snapshot.isDragging ? 'shadow-lg ring-2 ring-accent-blue/20' : ''}`}
                         style={provided.draggableProps.style}
                     >
                         {/* Sticky Header */}

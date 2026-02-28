@@ -3,6 +3,7 @@ import { Draggable } from '@hello-pangea/dnd';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { CheckSquare } from 'lucide-react';
 
 interface TaskCardProps {
     task: Task;
@@ -87,7 +88,38 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
                                 ))}
                             </div>
 
-                            {task.subTasks.length > 0 && (
+                            {/* Multiple Checklist Progress */}
+                            {task.checklists && task.checklists.length > 0 && (
+                                <div className="mt-4 space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
+                                    {task.checklists.map(cl => {
+                                        const completed = cl.items.filter(i => i.isCompleted).length;
+                                        const total = cl.items.length;
+                                        const progress = total > 0 ? (completed / total) * 100 : 0;
+                                        
+                                        return (
+                                            <div key={cl.id}>
+                                                <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">
+                                                    <span className="flex items-center gap-1.5 truncate pr-2">
+                                                        <CheckSquare className="w-2.5 h-2.5" />
+                                                        {cl.title}
+                                                    </span>
+                                                    <span className="flex-shrink-0">{completed}/{total}</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${progress}%` }}
+                                                        className={`h-full ${progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Legacy Subtasks Fallback */}
+                            {!task.checklists?.length && task.subTasks && task.subTasks.length > 0 && (
                                 <div className="mt-3">
                                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
                                         <span>Progress</span>

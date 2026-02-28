@@ -10,15 +10,15 @@ export class SubtasksController {
 
   @Post()
   create(
-    @GetUser('sub') userId: string,
-    @Body() body: { content: string; taskId: string },
+    @GetUser('id') userId: string,
+    @Body() body: { content: string; taskId?: string; checklistId?: string },
   ) {
     return this.subtasksService.create(userId, body);
   }
 
   @Patch(':id')
   update(
-    @GetUser('sub') userId: string,
+    @GetUser('id') userId: string,
     @Param('id') id: string,
     @Body() body: { content?: string; completed?: boolean },
   ) {
@@ -26,7 +26,7 @@ export class SubtasksController {
   }
 
   @Delete(':id')
-  remove(@GetUser('sub') userId: string, @Param('id') id: string) {
+  remove(@GetUser('id') userId: string, @Param('id') id: string) {
     return this.subtasksService.remove(userId, id);
   }
 }

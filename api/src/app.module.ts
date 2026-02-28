@@ -9,6 +9,7 @@ import { BoardsModule } from './modules/boards/boards.module';
 import { ColumnsModule } from './modules/columns/columns.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { SubtasksModule } from './modules/subtasks/subtasks.module';
+import { ChecklistsModule } from './modules/checklists/checklists.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { SubtasksModule } from './modules/subtasks/subtasks.module';
     BoardsModule,
     ColumnsModule,
     TasksModule,
-    SubtasksModule
+    SubtasksModule,
+    ChecklistsModule
   ],
   controllers: [AppController],
   providers: [AppService],

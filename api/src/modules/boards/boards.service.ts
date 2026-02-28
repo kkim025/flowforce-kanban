@@ -26,6 +26,11 @@ export class BoardsService {
           include: {
             tasks: {
               include: {
+                checklists: {
+                  include: {
+                    items: true,
+                  },
+                },
                 subtasks: true,
               },
             },
@@ -45,6 +50,11 @@ export class BoardsService {
             tasks: {
               orderBy: { order: 'asc' },
               include: {
+                checklists: {
+                  include: {
+                    items: true,
+                  },
+                },
                 subtasks: true,
               },
             },

@@ -3,11 +3,15 @@ import { TasksService } from './tasks.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { Priority } from '@prisma/client';
+import { ChecklistsService } from '../checklists/checklists.service';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly checklistsService: ChecklistsService,
+  ) {}
 
   @Post()
   create(
@@ -34,5 +38,14 @@ export class TasksController {
   @Delete(':id')
   remove(@GetUser('sub') userId: string, @Param('id') id: string) {
     return this.tasksService.remove(userId, id);
+  }
+
+  @Post(':taskId/checklists')
+  createChecklist(
+    @GetUser('sub') userId: string,
+    @Param('taskId') taskId: string,
+    @Body() data: { title: string },
+  ) {
+    return this.checklistsService.create(userId, { ...data, taskId });
   }
 }

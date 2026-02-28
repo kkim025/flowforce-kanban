@@ -78,9 +78,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
                     
-                    const columnTitles = ['To Do', 'In Progress', 'Done'];
-                    for (let i = 0; i < columnTitles.length; i++) {
-                        await api.post('/columns', { title: columnTitles[i], boardId: board.id, order: i });
+                    const columns = [
+                        { title: 'Backlog', order: 0 },
+                        { title: 'To Do', order: 1 },
+                        { title: 'In Progress', order: 2 },
+                        { title: 'Review', order: 3 },
+                        { title: 'Done', order: 4 }
+                    ];
+                    for (let i = 0; i < columns.length; i++) {
+                        await api.post('/columns', { title: columns[i].title, boardId: board.id, order: i });
                     }
                     
                     const refreshed = await api.get(`/boards/${board.id}`);

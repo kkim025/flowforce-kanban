@@ -15,6 +15,17 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: (config) => {
+        const requiredVars = ['DATABASE_URL', 'JWT_SECRET'];
+        const missingVars = requiredVars.filter((varName) => !config[varName]);
+
+        if (missingVars.length > 0) {
+          throw new Error(
+            `Missing environment variables: ${missingVars.join(', ')}. Please check your .env file in the api folder.`,
+          );
+        }
+        return config;
+      },
     }),
     PrismaModule,
     AuthModule,

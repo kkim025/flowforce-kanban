@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const api_url = import.meta.env.VITE_API_URL;
+
+if (!api_url) {
+  throw new Error('VITE_API_URL is not defined in environment variables. Please create a .env file in the web folder.');
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: api_url,
 });
 
 // Add a request interceptor to add the JWT token to headers

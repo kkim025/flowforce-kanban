@@ -16,8 +16,14 @@ export class ChecklistsController {
   ) {}
 
   @Post()
-  create(@GetUser("sub") userId: string, @Body() dto: AddChecklistDto) {
-    return this.addChecklistUseCase.execute(userId, dto);
+  async create(@GetUser("sub") userId: string, @Body() dto: AddChecklistDto) {
+    const checklist = await this.addChecklistUseCase.execute(userId, dto);
+    return {
+      id: checklist.id,
+      title: checklist.title,
+      taskId: dto.taskId,
+      items: []
+    };
   }
 
   @Patch(":id")

@@ -6,9 +6,8 @@ import { Priority } from "@prisma/client";
 import { ChecklistsService } from "../checklists/checklists.service";
 import { CreateTaskUseCase } from "./application/use-cases/create-task.use-case";
 import { MoveTaskUseCase } from "./application/use-cases/move-task.use-case";
-import { AddChecklistUseCase } from "./application/use-cases/add-checklist.use-case";
 import { CreateTaskDto } from "./application/dto/create-task.dto";
-import { AddChecklistDto } from "./application/dto/add-checklist.dto";
+import { AddChecklistUseCase } from "./application/use-cases/add-checklist.use-case";
 
 @Controller("tasks")
 @UseGuards(JwtAuthGuard)
@@ -22,13 +21,29 @@ export class TasksController {
   ) {}
 
   @Post()
-  create(@GetUser("sub") userId: string, @Body() dto: CreateTaskDto) {
-    return this.createTaskUseCase.execute(dto);
+  async create(@GetUser("sub") userId: string, @Body() dto: CreateTaskDto) {
+    const task = await this.createTaskUseCase.execute(dto);
+    return {
+      id: task.id,
+      content: task.content,
+      description: task.description,
+      priority: task.priority,
+      order: task.order,
+      columnId: task.columnId,
+      subtasks: [],
+      checklists: []
+    };
   }
 
   @Put(":id/move")
-  move(@GetUser("sub") userId: string, @Param("id") id: string, @Body() body: { columnId: string; order: number }) {
-    return this.moveTaskUseCase.execute(id, body.columnId, body.order);
+  async move(@GetUser("sub") userId: string, @Param("id") id: string, @Body() body: { columnId: string; order: number }) {
+    const task = await this.moveTaskUseCase.execute(id, body.columnId, body.order);
+    return {
+      id: task.id,
+      content: task.content,
+      order: task.order,
+      columnId: task.columnId
+    };
   }
 
   @Get()
@@ -54,7 +69,13 @@ export class TasksController {
   }
 
   @Post(":taskId/checklists")
-  createChecklist(@GetUser("sub") userId: string, @Param("taskId") taskId: string, @Body() data: { title: string }) {
-    return this.addChecklistUseCase.execute(userId, { ...data, taskId });
+  async createChecklist(@GetUser("sub") userId: string, @Param("taskId") taskId: string, @Body() data: { title: string }) {
+    const checklist = await this.addChecklistUseCase.execute(userId, { ...data, taskId });
+    return {
+      id: checklist.id,
+      title: checklist.title,
+      taskId: taskId,
+      items: []
+    };
   }
 }

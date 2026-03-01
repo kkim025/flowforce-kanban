@@ -21,6 +21,10 @@ export class Board extends AggregateRoot<BoardProps> {
     return this.props.columns || [];
   }
 
+  get columnOrder(): string[] {
+    return this.columns.map(c => c.id);
+  }
+
   private constructor(props: BoardProps, id?: string) {
     super(props, id);
   }

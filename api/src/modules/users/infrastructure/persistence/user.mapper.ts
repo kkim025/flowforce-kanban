@@ -1,5 +1,4 @@
-
-import { User as PrismaUser } from "@prisma/client";
+import { User as PrismaUser, Prisma } from "@prisma/client";
 import { User } from "../../domain/user.entity";
 import { Email } from "../../domain/email.value-object";
 
@@ -22,7 +21,7 @@ export class UserMapper {
     return userResult.getValue();
   }
 
-  public static toPersistence(user: User): any {
+  public static toPersistence(user: User): Prisma.UserCreateInput {
     return {
       id: user.id,
       email: user.email.value,

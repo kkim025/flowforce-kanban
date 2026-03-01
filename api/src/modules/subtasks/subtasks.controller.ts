@@ -21,8 +21,13 @@ export class SubtasksController {
   }
 
   @Patch(":id")
-  update(@GetUser("sub") userId: string, @Param("id") id: string, @Body() dto: UpdateSubtaskDto) {
-    return this.updateSubtaskUseCase.execute(userId, id, dto);
+  async update(@GetUser("sub") userId: string, @Param("id") id: string, @Body() dto: UpdateSubtaskDto) {
+    const subtask = await this.updateSubtaskUseCase.execute(userId, id, dto);
+    return {
+      id: subtask.id,
+      content: subtask.content,
+      completed: subtask.completed
+    };
   }
 
   @Delete(":id")

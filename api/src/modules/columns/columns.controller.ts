@@ -18,8 +18,15 @@ export class ColumnsController {
   ) {}
 
   @Post()
-  create(@GetUser("sub") userId: string, @Body() dto: AddColumnDto) {
-    return this.addColumnUseCase.execute(userId, dto);
+  async create(@GetUser("sub") userId: string, @Body() dto: AddColumnDto) {
+    const column = await this.addColumnUseCase.execute(userId, dto);
+    return {
+      id: column.id,
+      title: column.title,
+      order: column.order,
+      boardId: dto.boardId,
+      tasks: []
+    };
   }
 
   @Put("reorder")

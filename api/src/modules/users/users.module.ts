@@ -1,4 +1,3 @@
-
 import { Module } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { UsersController } from "./users.controller";
@@ -9,26 +8,28 @@ import { RegisterUserUseCase } from "./application/use-cases/register-user.use-c
 import { ValidateUserUseCase } from "./application/use-cases/validate-user.use-case";
 import { LoginUserUseCase } from "./application/use-cases/login-user.use-case";
 import { JwtModule } from "@nestjs/jwt";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 
 @Module({
   imports: [
     PrismaModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || "secret",
-      signOptions: { expiresIn: "1d" },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>("JWT_SECRET"),
+        signOptions: { expiresIn: "1d" },
+      }),
     }),
   ],
   controllers: [UsersController],
   providers: [
     UsersService,
-    RegisterUserUseCase,
-    ValidateUserUseCase,
     LoginUserUseCase,
     {
       provide: "IUserRepository",
       useClass: PrismaUserRepository,
     },
-    // We can also alias them for convenience
     {
       provide: RegisterUserUseCase,
       useFactory: (repo: IUserRepository) => new RegisterUserUseCase(repo),

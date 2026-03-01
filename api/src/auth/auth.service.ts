@@ -6,6 +6,7 @@ import { RegisterUserDto } from "../modules/users/application/dto/register-user.
 import { UserDto } from "../modules/users/application/dto/user.dto";
 import { LoginResponseDto } from "../modules/users/application/dto/login-response.dto";
 import { User } from "../modules/users/domain/user.entity";
+import { Email } from "../modules/users/domain/email.value-object";
 
 @Injectable()
 export class AuthService {
@@ -28,16 +29,21 @@ export class AuthService {
   }
 
   async login(userDto: UserDto): Promise<LoginResponseDto> {
-    // We create a partial/mock user that satisfies the LoginUserUseCase requirement
-    // or we could fetch the full entity. For performance, we'll cast carefully.
-    // LoginUserUseCase needs user.id and user.email.value
-    const userPayload = {
-      id: userDto.id,
-      email: { value: userDto.email },
-      name: userDto.name,
-    } as unknown as User;
+    const emailResult = Email.create(userDto.email);
+    if (emailResult.isFailure) {
+      throw new Error("Invalid email in userDto");
+    }
 
-    return this.loginUserUseCase.execute(userPayload);
+    const userResult = User.create(
+      {
+        email: emailResult.getValue(),
+        password: "", // Password not needed for login token generation
+        name: userDto.name,
+      },
+      userDto.id
+    );
+
+    return this.loginUserUseCase.execute(userResult.getValue());
   }
 
   async register(data: RegisterUserDto): Promise<LoginResponseDto> {

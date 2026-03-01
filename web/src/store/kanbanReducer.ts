@@ -17,15 +17,15 @@ export interface HistoryState {
 
 export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardState => {
     switch (action.type) {
-        // ... (rest of cases)
         case 'SET_SEARCH_QUERY':
             return { ...state, searchQuery: action.payload };
-        // ...
+
         case 'MOVE_TASK': {
             const { taskId, sourceColId, destinationColId, sourceIndex, destinationIndex } = action.payload;
 
             if (sourceColId === destinationColId) {
                 const column = state.columns[sourceColId];
+                if (!column) return state;
                 const newTaskIds = Array.from(column.taskIds);
                 newTaskIds.splice(sourceIndex, 1);
                 newTaskIds.splice(destinationIndex, 0, taskId);
@@ -41,6 +41,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
             const start = state.columns[sourceColId];
             const finish = state.columns[destinationColId];
+            if (!start || !finish) return state;
             const startTaskIds = Array.from(start.taskIds);
             startTaskIds.splice(sourceIndex, 1);
             const finishTaskIds = Array.from(finish.taskIds);
@@ -58,14 +59,16 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'ADD_TASK': {
             const { columnId, task } = action.payload;
+            const column = state.columns[columnId];
+            if (!column) return state;
             return {
                 ...state,
                 tasks: { ...state.tasks, [task.id]: task },
                 columns: {
                     ...state.columns,
                     [columnId]: {
-                        ...state.columns[columnId],
-                        taskIds: [...state.columns[columnId].taskIds, task.id],
+                        ...column,
+                        taskIds: [...column.taskIds, task.id],
                     },
                 },
             };
@@ -84,14 +87,17 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             const newTasks = { ...state.tasks };
             delete newTasks[taskId];
 
+            const column = state.columns[columnId];
+            if (!column) return { ...state, tasks: newTasks };
+
             return {
                 ...state,
                 tasks: newTasks,
                 columns: {
                     ...state.columns,
                     [columnId]: {
-                        ...state.columns[columnId],
-                        taskIds: state.columns[columnId].taskIds.filter(id => id !== taskId),
+                        ...column,
+                        taskIds: column.taskIds.filter(id => id !== taskId),
                     },
                 },
             };
@@ -150,13 +156,12 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                 ...initialState,
                 ...action.payload, 
                 selectedTaskIds: [],
-                // Preserve current search query if the payload doesn't have one (payload is usually from API board mapping)
                 searchQuery: action.payload.searchQuery !== undefined ? action.payload.searchQuery : state.searchQuery,
                 viewMode: action.payload.viewMode !== undefined ? action.payload.viewMode : state.viewMode
             };
 
         case 'TOGGLE_SELECT_TASK': {
-            const { taskId, multiSelect } = (action as any).payload;
+            const { taskId, multiSelect } = action.payload;
             if (!multiSelect) {
                 return { ...state, selectedTaskIds: [taskId] };
             }
@@ -178,6 +183,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'ADD_CHECKLIST': {
             const { taskId, checklist } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
@@ -193,13 +199,14 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'DELETE_CHECKLIST': {
             const { taskId, checklistId } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
                     ...state.tasks,
                     [taskId]: {
                         ...task,
-                        checklists: task.checklists.filter(cl => cl.id !== checklistId),
+                        checklists: (task.checklists || []).filter(cl => cl.id !== checklistId),
                     },
                 },
             };
@@ -208,13 +215,14 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'UPDATE_CHECKLIST': {
             const { taskId, checklist } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
                     ...state.tasks,
                     [taskId]: {
                         ...task,
-                        checklists: task.checklists.map(cl => cl.id === checklist.id ? checklist : cl),
+                        checklists: (task.checklists || []).map(cl => cl.id === checklist.id ? checklist : cl),
                     },
                 },
             };

@@ -77,17 +77,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
                     
-                    const columns = [
-                        { title: 'Backlog', order: 0 },
-                        { title: 'To Do', order: 1 },
-                        { title: 'In Progress', order: 2 },
-                        { title: 'Review', order: 3 },
-                        { title: 'Done', order: 4 }
-                    ];
-                    for (let i = 0; i < columns.length; i++) {
-                        await api.post('/columns', { title: columns[i].title, boardId: board.id, order: i });
-                    }
-                    
+                    // Note: CreateBoardUseCase already adds default columns: To Do, In Progress, Done
+                    // But we might want the specific ones from the frontend template
+                    // For now, let's just use what's returned
                     const refreshed = await api.get(`/boards/${board.id}`);
                     board = refreshed.data;
                 } else {
@@ -97,6 +89,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
                 
+                // Set default WIP limits if they exist in state
                 if (mappedState.columns['inprogress']) mappedState.columns['inprogress'].wipLimit = 3;
                 if (mappedState.columns['review']) mappedState.columns['review'].wipLimit = 2;
                 if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
@@ -117,8 +110,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         for (const cl of checklists) {
             let checklistId = cl.id;
             // 1. Create or Update Checklist
-            if (cl.id.length > 36) { // Client-side UUID is usually 36, but let's check for "temp" or length
-                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title });
+            if (cl.id.length > 36) { 
+                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
                 checklistId = res.data.id;
             } else {
                 await api.patch(`/checklists/${cl.id}`, { title: cl.title });
@@ -161,12 +154,10 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     
                     const realId = response.data.id;
                     
-                    // Sync Checklists for new task
                     if (task.checklists?.length > 0) {
                         await syncChecklistsForTask(realId, task.checklists);
                     }
 
-                    // Update local state with real IDs from DB
                     const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
                     setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
@@ -179,7 +170,6 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         priority: task.priority.toUpperCase(),
                     });
 
-                    // Sync Checklists
                     if (task.checklists?.length > 0) {
                         await syncChecklistsForTask(task.id, task.checklists);
                     }
@@ -191,7 +181,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
                 case 'MOVE_TASK': {
                     const { taskId, destinationColId, destinationIndex } = action.payload;
-                    await api.patch(`/tasks/${taskId}`, {
+                    // Use the specific move endpoint
+                    await api.put(`/tasks/${taskId}/move`, {
                         columnId: destinationColId,
                         order: destinationIndex,
                     });
@@ -206,21 +197,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     });
 
                     const realId = response.data.id;
-                    const updatedColumns = { ...stateRef.current.columns, [realId]: { ...column, id: realId } };
-                    delete updatedColumns[column.id];
-
-                    const updatedColumnOrder = stateRef.current.columnOrder.map(id => 
-                        id === column.id ? realId : id
-                    );
-
-                    setHistory({
-                        type: 'SET_STATE',
-                        payload: {
-                            ...stateRef.current,
-                            columns: updatedColumns,
-                            columnOrder: updatedColumnOrder
-                        }
-                    });
+                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
+                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
                 }
                 case 'DELETE_COLUMN': {
@@ -228,7 +206,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'REORDER_COLUMN': {
-                    await api.post(`/boards/${activeBoardId}/columns/reorder`, {
+                    // Correct endpoint for reordering columns
+                    await api.put(`/columns/reorder`, {
+                        boardId: activeBoardId,
                         columnIds: action.payload.columnOrder,
                     });
                     break;
@@ -237,18 +217,12 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const { taskId, checklist } = action.payload;
                     const response = await api.post(`/tasks/${taskId}/checklists`, {
                         title: checklist.title,
+                        taskId: taskId
                     });
                     
                     const realId = response.data.id;
-                    const task = stateRef.current.tasks[taskId];
-                    const updatedChecklists = task.checklists.map(cl => 
-                        cl.id === checklist.id ? { ...cl, id: realId } : cl
-                    );
-
-                    setHistory({
-                        type: 'UPDATE_TASK',
-                        payload: { task: { ...task, checklists: updatedChecklists } }
-                    });
+                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
+                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
                 }
                 case 'DELETE_CHECKLIST': {
@@ -261,9 +235,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         title: checklist.title,
                     });
                     
-                    // Sync items
                     const task = stateRef.current.tasks[taskId];
-                    const localChecklist = task.checklists.find(cl => cl.id === checklist.id);
+                    const localChecklist = task.checklists?.find(cl => cl.id === checklist.id);
                     if (localChecklist) {
                         for (const item of localChecklist.items) {
                             if (item.id.length > 36) {

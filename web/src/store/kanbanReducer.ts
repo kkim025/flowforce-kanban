@@ -2,14 +2,8 @@ import { BoardState, KanbanAction } from '../types';
 
 export const initialState: BoardState = {
     tasks: {},
-    columns: {
-        'backlog': { id: 'backlog', title: 'Backlog', taskIds: [] },
-        'todo': { id: 'todo', title: 'To Do', taskIds: [], wipLimit: 10 },
-        'inprogress': { id: 'inprogress', title: 'In Progress', taskIds: [], wipLimit: 3 },
-        'review': { id: 'review', title: 'Review', taskIds: [], wipLimit: 2 },
-        'done': { id: 'done', title: 'Done', taskIds: [] },
-    },
-    columnOrder: ['backlog', 'todo', 'inprogress', 'review', 'done'],
+    columns: {},
+    columnOrder: [],
     selectedTaskIds: [],
     viewMode: (localStorage.getItem('flowforce_view_mode') as 'board' | 'list') || 'board',
     searchQuery: '',

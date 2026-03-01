@@ -12,7 +12,7 @@ import { LogOut, Plus, X, Check, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 const Board: React.FC = () => {
-    const { state, dispatch, undo, redo, canUndo, canRedo } = useKanban();
+    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated } = useKanban();
     const { user, logout } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeTask, setActiveTask] = useState<Task | undefined>(undefined);
@@ -30,12 +30,23 @@ const Board: React.FC = () => {
 
     // Grab to scroll logic
     const [isDragging, setIsDragging] = useState(false);
+    const [isDndActive, setIsDndActive] = useState(false);
     const [startX, setStartX] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (!scrollContainerRef.current) return;
-        if ((e.target as HTMLElement).closest('button, input, textarea, [data-rbd-draggable-id]')) return;
+        if (!scrollContainerRef.current || isDndActive) return;
+
+        // Check if we are clicking on any DND related element or interactive UI
+        // We use a more comprehensive selector to ensure we don't trigger scroll when grabbing tasks/columns
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, textarea, [data-rbd-draggable-id], [data-rbd-drag-handle-draggable-id], [data-rbd-droppable-id], .glass')) {
+            // Special case: if it's the board background (the flex container), we ALLOW dragging
+            // But if it's a column (which has .glass class) or a task card, we DISALLOW.
+            if (!target.classList.contains('custom-scrollbar')) {
+                return;
+            }
+        }
         
         setIsDragging(true);
         setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
@@ -46,7 +57,7 @@ const Board: React.FC = () => {
     const handleMouseUp = () => setIsDragging(false);
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !scrollContainerRef.current) return;
+        if (!isDragging || !scrollContainerRef.current || isDndActive) return;
         e.preventDefault();
         const x = e.pageX - scrollContainerRef.current.offsetLeft;
         const walk = (x - startX) * 2;
@@ -76,7 +87,13 @@ const Board: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [undo, redo, canUndo, canRedo]);
 
+    const onDragStart = () => {
+        setIsDndActive(true);
+        setIsDragging(false); // Force stop board dragging
+    };
+
     const onDragEnd = (result: DropResult) => {
+        setIsDndActive(false);
         const { destination, source, draggableId, type } = result;
 
         if (!destination) return;
@@ -366,7 +383,18 @@ const Board: React.FC = () => {
             </header>
 
             <AnimatePresence mode="wait">
-                {state.viewMode === 'board' ? (
+                {!isHydrated ? (
+                    <motion.div
+                        key="loading"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex-1 flex flex-col items-center justify-center"
+                    >
+                        <div className="w-16 h-16 border-4 border-accent-blue/20 border-t-accent-blue rounded-full animate-spin mb-4" />
+                        <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-sm animate-pulse">Loading Board...</p>
+                    </motion.div>
+                ) : state.viewMode === 'board' ? (
                     <motion.div
                         key="board"
                         initial={{ opacity: 0, x: -20 }}

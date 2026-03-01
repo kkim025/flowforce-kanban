@@ -13,6 +13,7 @@ interface KanbanContextType {
     canUndo: boolean;
     canRedo: boolean;
     isSyncing: boolean;
+    isHydrated: boolean;
     activeBoardId: string | null;
 }
 
@@ -310,6 +311,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 canUndo: history.past.length > 0,
                 canRedo: history.future.length > 0,
                 isSyncing,
+                isHydrated,
                 activeBoardId,
             }}
         >

@@ -3,6 +3,7 @@ import { useKanban } from '../store/KanbanContext';
 import { Task, Priority } from '../types';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
@@ -16,6 +17,7 @@ interface ListViewProps {
 
 const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
     const { state } = useKanban();
+    const navigate = useNavigate();
     const [sortField, setSortField] = useState<SortField>('createdAt');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const containerRef = useRef<HTMLDivElement>(null);
@@ -42,7 +44,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
             const column = state.columns[colId];
             column.taskIds.forEach(taskId => {
                 const task = state.tasks[taskId];
-                if (task) {
+                if (task && !task.isArchived) {
                     const completed = task.checklists?.reduce((acc, cl) => acc + cl.items.filter(i => i.isCompleted).length, 0) || 
                                     (task.subTasks?.filter(st => st.isCompleted).length || 0);
                     const total = task.checklists?.reduce((acc, cl) => acc + cl.items.length, 0) || 
@@ -161,7 +163,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                         {visibleTasks.map((task) => (
                                             <div 
                                                 key={task.id} 
-                                                onClick={() => onTaskClick?.(task)}
+                                                onClick={() => navigate(`/tasks/${task.id}`)}
                                                 className="flex items-center border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                                                 style={{ height: `${ROW_HEIGHT}px` }}
                                             >

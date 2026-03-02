@@ -4,6 +4,7 @@ import { Task } from '../types';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { CheckSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TaskCardProps {
     task: Task;
@@ -15,6 +16,7 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isSelected, onSelect }) => {
+    const navigate = useNavigate();
     const priorityColors = {
         low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
         medium: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
@@ -41,7 +43,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
                                     e.stopPropagation();
                                     onSelect?.(true);
                                 } else {
-                                    onClick?.();
+                                    navigate(`/tasks/${task.id}`);
                                 }
                             }}
                             className={`

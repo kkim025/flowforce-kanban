@@ -21,7 +21,30 @@ export class TasksController {
   ) {}
 
   @Post()
-  async create(@GetUser("sub") userId: string, @Body() dto: CreateTaskDto) {
+  async create(@GetUser("sub") userId: string, @Body() dto: CreateTaskDto & { id?: string }) {
+    // If ID is provided, use service directly to bypass use case which might not handle ID
+    // Or update use case. For now, let's use service directly if ID is present for simplicity in this refactor
+    if (dto.id) {
+        const task = await this.tasksService.create(userId, {
+            id: dto.id,
+            content: dto.content,
+            columnId: dto.columnId,
+            order: dto.order,
+            priority: dto.priority,
+            description: dto.description
+        });
+        return {
+            id: task.id,
+            content: task.content,
+            description: task.description,
+            priority: task.priority,
+            order: task.order,
+            columnId: task.columnId,
+            subtasks: [],
+            checklists: []
+        };
+    }
+
     const task = await this.createTaskUseCase.execute(dto);
     return {
       id: task.id,
@@ -55,7 +78,7 @@ export class TasksController {
   update(
     @GetUser("sub") userId: string,
     @Param("id") id: string,
-    @Body() body: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string }
+    @Body() body: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string }
   ) {
     if (body.columnId !== undefined && body.order !== undefined) {
       return this.moveTaskUseCase.execute(id, body.columnId, body.order);

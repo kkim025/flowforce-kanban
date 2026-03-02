@@ -1,6 +1,13 @@
 export type Priority = 'low' | 'medium' | 'high';
 export type ViewMode = 'board' | 'list';
 
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+}
+
 export interface SubTask {
     id: string;
     title: string;
@@ -21,10 +28,12 @@ export interface Task {
     description: string;
     priority: Priority;
     tags: string[];
+    assigneeId?: string;
     dueDate?: string;
     subTasks: SubTask[]; // Keeping for backward compatibility or simple lists
     checklists: Checklist[];
     createdAt: string;
+    isArchived?: boolean;
 }
 
 export interface Column {

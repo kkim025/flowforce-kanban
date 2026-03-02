@@ -16,11 +16,12 @@ export class TasksService {
     return column;
   }
 
-  async create(userId: string, data: { content: string; columnId: string; order: number; priority?: Priority; description?: string }): Promise<Task> {
+  async create(userId: string, data: { id?: string; content: string; columnId: string; order: number; priority?: Priority; description?: string }): Promise<Task> {
     await this.checkColumnOwnership(userId, data.columnId);
 
     return this.prisma.task.create({
       data: {
+        id: data.id, // Optional ID from frontend
         content: data.content,
         columnId: data.columnId,
         order: data.order,
@@ -33,13 +34,16 @@ export class TasksService {
   async findAll(userId: string, columnId: string): Promise<Task[]> {
     await this.checkColumnOwnership(userId, columnId);
     return this.prisma.task.findMany({
-      where: { columnId },
+      where: { 
+        columnId,
+        archived: false
+      },
       orderBy: { order: 'asc' },
       include: { subtasks: true },
     });
   }
 
-  async update(userId: string, id: string, data: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string }): Promise<Task> {
+  async update(userId: string, id: string, data: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string }): Promise<Task> {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: { column: { include: { board: true } } },
@@ -61,6 +65,8 @@ export class TasksService {
         order: data.order,
         priority: data.priority,
         description: data.description,
+        archived: data.archived,
+        assigneeId: data.assigneeId,
       },
     });
   }

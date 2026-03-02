@@ -15,6 +15,8 @@ export interface TaskProps extends Record<string, unknown> {
   priority: Priority;
   order: number;
   columnId: string;
+  archived?: boolean;
+  assigneeId?: string;
   checklists?: Checklist[];
   subtasks?: Subtask[];
 }
@@ -40,6 +42,14 @@ export class Task extends AggregateRoot<TaskProps> {
     return this.props.columnId;
   }
 
+  get archived(): boolean {
+    return this.props.archived || false;
+  }
+
+  get assigneeId(): string | undefined {
+    return this.props.assigneeId;
+  }
+
   get checklists(): Checklist[] {
     return this.props.checklists || [];
   }
@@ -63,6 +73,7 @@ export class Task extends AggregateRoot<TaskProps> {
     const task = new Task(
       {
         ...props,
+        archived: props.archived || false,
         checklists: props.checklists || [],
         subtasks: props.subtasks || [],
       },
@@ -87,5 +98,13 @@ export class Task extends AggregateRoot<TaskProps> {
   public move(columnId: string, order: number): void {
     this.props.columnId = columnId;
     this.props.order = order;
+  }
+
+  public archive(): void {
+    this.props.archived = true;
+  }
+
+  public setAssignee(assigneeId: string | undefined): void {
+    this.props.assigneeId = assigneeId;
   }
 }

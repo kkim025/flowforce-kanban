@@ -15,6 +15,8 @@ export class TaskMapper {
         priority: raw.priority as unknown as Priority,
         order: raw.order,
         columnId: raw.columnId,
+        archived: raw.archived,
+        assigneeId: raw.assigneeId || undefined,
         subtasks: subtasks,
         checklists: checklists,
       },
@@ -70,6 +72,8 @@ export class TaskMapper {
       priority: task.priority as unknown as PrismaPriority,
       order: task.order,
       columnId: task.columnId,
+      archived: task.archived,
+      assigneeId: task.assigneeId || null,
     };
   }
 

@@ -3,20 +3,18 @@ import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
 import { useAuth } from '../store/AuthContext';
 import Column from './Column';
-import TaskModal from './TaskModal';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated } = useKanban();
     const { user, logout } = useAuth();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeTask, setActiveTask] = useState<Task | undefined>(undefined);
-    const [targetColumnId, setTargetColumnId] = useState('todo');
+    const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
     const searchInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,11 +36,8 @@ const Board: React.FC = () => {
         if (!scrollContainerRef.current || isDndActive) return;
 
         // Check if we are clicking on any DND related element or interactive UI
-        // We use a more comprehensive selector to ensure we don't trigger scroll when grabbing tasks/columns
         const target = e.target as HTMLElement;
         if (target.closest('button, input, textarea, [data-rbd-draggable-id], [data-rbd-drag-handle-draggable-id], [data-rbd-droppable-id], .glass')) {
-            // Special case: if it's the board background (the flex container), we ALLOW dragging
-            // But if it's a column (which has .glass class) or a task card, we DISALLOW.
             if (!target.classList.contains('custom-scrollbar')) {
                 return;
             }
@@ -75,7 +70,7 @@ const Board: React.FC = () => {
             }
             if (e.key === 'n' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
                 e.preventDefault();
-                openCreateModal();
+                openCreateView();
             }
             if (e.key === '/' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
                 e.preventDefault();
@@ -129,25 +124,13 @@ const Board: React.FC = () => {
         });
     };
 
-    const handleSaveTask = (task: Task) => {
-        if (activeTask) {
-            dispatch({ type: 'UPDATE_TASK', payload: { task } });
-        } else {
-            dispatch({ type: 'ADD_TASK', payload: { columnId: targetColumnId, task } });
-        }
-    };
-
-    const openCreateModal = (columnId?: string) => {
-        // Use the provided columnId, or fall back to the first column, or finally 'todo' if the board is empty
+    const openCreateView = (columnId?: string) => {
         const finalColumnId = columnId || state.columnOrder[0] || 'todo';
-        setTargetColumnId(finalColumnId);
-        setActiveTask(undefined);
-        setIsModalOpen(true);
+        navigate(`/tasks/new?columnId=${finalColumnId}`);
     };
 
-    const openEditModal = (task: Task) => {
-        setActiveTask(task);
-        setIsModalOpen(true);
+    const openEditView = (task: Task) => {
+        navigate(`/tasks/${task.id}`);
     };
 
     const handleDeleteTask = (taskId: string, columnId: string) => {
@@ -262,117 +245,124 @@ const Board: React.FC = () => {
 
     return (
         <div className="p-8 h-screen max-h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-            <header className="flex justify-between items-end mb-8 flex-shrink-0">
-                <div className="flex items-end gap-12">
+            <header className="flex flex-col gap-6 mb-8 flex-shrink-0">
+                {/* Top Row: Logo and User Profile */}
+                <div className="flex justify-between items-start w-full">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
                             FlowForce<span className="text-accent-blue">.</span>
                         </h1>
                         <p className="text-slate-500 font-medium">Streamline your workflow with precision.</p>
                     </div>
-                    <ViewToggle />
+
+                    {user && (
+                        <div className="flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-slate-900/50 border border-white/20 rounded-xl">
+                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                {user.name?.[0] || user.email[0].toUpperCase()}
+                            </div>
+                            <div className="hidden md:block text-left">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
+                                <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
+                                    <LogOut className="w-2.5 h-2.5" /> Log Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex flex-col items-end gap-6">
-                    <div className="relative group">
-                        <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            value={state.searchQuery}
-                            onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-                            placeholder="Press / to search..."
-                            aria-label="Search tasks"
-                            className="bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2 w-64 focus:w-80 outline-none focus:ring-2 focus:ring-accent-blue/30 dark:text-white transition-all duration-300"
-                        />
+                {/* Bottom Row: ViewToggle, Actions, Search, and New Task */}
+                <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center gap-6">
+                        <ViewToggle />
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
+                                <button
+                                    onClick={toggleTheme}
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    title="Toggle Theme"
+                                    aria-label="Toggle dark mode"
+                                >
+                                    {isDarkMode ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 18v1m9-9h1M3 9h1m15.364 6.364l-.707.707M6.343 6.343l-.707.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                        </svg>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={exportData}
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    title="Export Data (JSON)"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    title="Import Data (JSON)"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".json"
+                                    onChange={importData}
+                                    className="hidden"
+                                />
+                            </div>
+
+                            <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
+                                <button
+                                    onClick={undo}
+                                    disabled={!canUndo}
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                                    title="Undo (Ctrl+Z)"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={redo}
+                                    disabled={!canRedo}
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                                    title="Redo (Ctrl+Shift+Z)"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {user && (
-                            <div className="flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-slate-900/50 border border-white/20 rounded-xl mr-2">
-                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                                    {user.name?.[0] || user.email[0].toUpperCase()}
-                                </div>
-                                <div className="hidden md:block text-left">
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
-                                    <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
-                                        <LogOut className="w-2.5 h-2.5" /> Log Out
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
-                                title="Toggle Theme"
-                                aria-label="Toggle dark mode"
-                            >
-                                {isDarkMode ? (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 18v1m9-9h1M3 9h1m15.364 6.364l-.707.707M6.343 6.343l-.707.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                ) : (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                    </svg>
-                                )}
-                            </button>
-                            <button
-                                onClick={exportData}
-                                className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
-                                title="Export Data (JSON)"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
-                                title="Import Data (JSON)"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                </svg>
-                            </button>
+                        <div className="relative group">
+                            <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                             <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".json"
-                                onChange={importData}
-                                className="hidden"
+                                ref={searchInputRef}
+                                type="text"
+                                value={state.searchQuery}
+                                onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
+                                placeholder="Press / to search..."
+                                aria-label="Search tasks"
+                                className="bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2 w-64 focus:w-80 outline-none focus:ring-2 focus:ring-accent-blue/30 dark:text-white transition-all duration-300"
                             />
                         </div>
 
-                        <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
-                            <button
-                                onClick={undo}
-                                disabled={!canUndo}
-                                className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                                title="Undo (Ctrl+Z)"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={redo}
-                                disabled={!canRedo}
-                                className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
-                                title="Redo (Ctrl+Shift+Z)"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
-                                </svg>
-                            </button>
-                        </div>
-
                         <button
-                            onClick={() => openCreateModal()}
+                            onClick={() => openCreateView()}
                             className="bg-accent-blue hover:bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-95 flex items-center gap-2"
                         >
                             <Plus className="w-5 h-5" />
@@ -423,6 +413,7 @@ const Board: React.FC = () => {
                                             const column = state.columns[columnId];
                                             const tasks = column.taskIds
                                                 .map((taskId) => state.tasks[taskId])
+                                                .filter(task => task && !task.isArchived)
                                                 .filter(task => {
                                                     if (!state.searchQuery) return true;
                                                     const query = state.searchQuery.toLowerCase();
@@ -440,8 +431,8 @@ const Board: React.FC = () => {
                                                     index={index}
                                                     column={column}
                                                     tasks={tasks}
-                                                    onAddTask={() => openCreateModal(column.id)}
-                                                    onEditTask={openEditModal}
+                                                    onAddTask={() => openCreateView(column.id)}
+                                                    onEditTask={openEditView}
                                                     onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
                                                     onDeleteColumn={() => handleDeleteColumn(column.id)}
                                                     selectedTaskIds={state.selectedTaskIds}
@@ -514,7 +505,7 @@ const Board: React.FC = () => {
                         transition={{ duration: 0.2 }}
                         className="flex-1 min-h-0"
                     >
-                        <ListView onTaskClick={openEditModal} />
+                        <ListView onTaskClick={openEditView} />
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -565,13 +556,6 @@ const Board: React.FC = () => {
                     </div>
                 </motion.div>
             )}
-
-            <TaskModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={handleSaveTask}
-                initialTask={activeTask}
-            />
         </div>
     );
 };

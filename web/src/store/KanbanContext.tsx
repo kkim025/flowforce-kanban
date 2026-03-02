@@ -145,6 +145,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 case 'ADD_TASK': {
                     const { columnId, task } = action.payload;
                     const response = await api.post('/tasks', {
+                        id: task.id, // Pass the generated ID
                         content: task.title,
                         description: task.description,
                         priority: task.priority.toUpperCase(),
@@ -168,6 +169,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         content: task.title,
                         description: task.description,
                         priority: task.priority.toUpperCase(),
+                        archived: task.isArchived,
+                        assigneeId: task.assigneeId,
                     });
 
                     if (task.checklists?.length > 0) {

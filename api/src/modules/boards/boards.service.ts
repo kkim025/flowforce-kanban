@@ -25,6 +25,7 @@ export class BoardsService {
         columns: {
           include: {
             tasks: {
+              where: { archived: false },
               include: {
                 checklists: {
                   include: {
@@ -48,6 +49,7 @@ export class BoardsService {
           orderBy: { order: 'asc' },
           include: {
             tasks: {
+              where: { archived: false },
               orderBy: { order: 'asc' },
               include: {
                 checklists: {

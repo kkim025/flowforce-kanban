@@ -24,4 +24,13 @@ export class UsersService {
       name: user.name,
     };
   }
+
+  async findAll(): Promise<UserDto[]> {
+    const users = await this.userRepository.findAll();
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email.value,
+      name: user.name,
+    }));
+  }
 }

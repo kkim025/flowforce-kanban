@@ -29,6 +29,11 @@ export class PrismaUserRepository implements IUserRepository {
     return UserMapper.toDomain(rawUser);
   }
 
+  async findAll(): Promise<User[]> {
+    const rawUsers = await this.prisma.user.findMany();
+    return rawUsers.map((user) => UserMapper.toDomain(user));
+  }
+
   async save(user: User): Promise<void> {
     const persistenceUser = UserMapper.toPersistence(user) as Prisma.UserUpsertArgs["create"];
 

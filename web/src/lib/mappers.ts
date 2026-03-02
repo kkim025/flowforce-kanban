@@ -23,6 +23,8 @@ interface ApiTask {
   order: number;
   columnId: string;
   createdAt: string;
+  archived?: boolean;
+  assigneeId?: string | null;
   subtasks?: ApiSubtask[];
   checklists?: ApiChecklist[];
 }
@@ -98,6 +100,8 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
         subTasks: subTasks,
         checklists: checklists,
         createdAt: apiTask.createdAt,
+        isArchived: apiTask.archived,
+        assigneeId: apiTask.assigneeId || undefined,
       };
     });
   });

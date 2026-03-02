@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -15,6 +14,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   boards    Board[]
+  tasks     Task[]
 }
 
 model Board {
@@ -45,11 +45,14 @@ model Task {
   priority    Priority    @default(MEDIUM)
   order       Int
   columnId    String
+  archived    Boolean     @default(false)
+  assigneeId  String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   checklists  Checklist[]
   subtasks    Subtask[]   @relation("TaskSubtasks")
   column      Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignee    User?       @relation(fields: [assigneeId], references: [id])
 }
 
 model Checklist {

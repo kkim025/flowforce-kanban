@@ -171,11 +171,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         priority: task.priority.toUpperCase(),
                         archived: task.isArchived,
                         assigneeId: task.assigneeId,
+                        tags: task.tags,
                     });
 
                     if (task.checklists?.length > 0) {
                         await syncChecklistsForTask(task.id, task.checklists);
                     }
+
+                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
+                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
                 }
                 case 'DELETE_TASK': {
@@ -263,6 +267,16 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         title: column.title,
                         wipLimit: column.wipLimit,
                     });
+                    break;
+                }
+                case 'ADD_COMMENT': {
+                    const { taskId, comment } = action.payload;
+                    await api.post(`/tasks/${taskId}/comments`, {
+                        content: comment.content,
+                    });
+
+                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
+                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
                     break;
                 }
                 case 'SET_VIEW_MODE': {

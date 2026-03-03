@@ -163,7 +163,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                         {visibleTasks.map((task) => (
                                             <div 
                                                 key={task.id} 
-                                                onClick={() => navigate(`/tasks/${task.id}`)}
+                                                onClick={() => onTaskClick ? onTaskClick(task) : navigate(`/tasks/${task.id}`)}
                                                 className="flex items-center border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                                                 style={{ height: `${ROW_HEIGHT}px` }}
                                             >

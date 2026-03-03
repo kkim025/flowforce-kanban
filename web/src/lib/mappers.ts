@@ -1,4 +1,4 @@
-import { BoardState, Column as FEColumn, Task as FETask, SubTask as FESubTask, Checklist as FEChecklist, Priority } from '../types';
+import { BoardState, Column as FEColumn, Task as FETask, SubTask as FESubTask, Checklist as FEChecklist, Priority, Comment as FEComment, Activity as FEActivity } from '../types';
 
 interface ApiSubtask {
   id: string;
@@ -15,6 +15,23 @@ interface ApiChecklist {
   items?: ApiSubtask[];
 }
 
+interface ApiComment {
+  id: string;
+  content: string;
+  taskId: string;
+  userId: string;
+  createdAt: string;
+}
+
+interface ApiActivity {
+  id: string;
+  type: string;
+  details: any;
+  taskId: string;
+  userId: string;
+  createdAt: string;
+}
+
 interface ApiTask {
   id: string;
   content: string;
@@ -27,6 +44,8 @@ interface ApiTask {
   assigneeId?: string | null;
   subtasks?: ApiSubtask[];
   checklists?: ApiChecklist[];
+  comments?: ApiComment[];
+  activities?: ApiActivity[];
 }
 
 interface ApiColumn {
@@ -91,14 +110,35 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
           isCompleted: st.completed,
         }));
 
+      // Map comments
+      const comments: FEComment[] = (apiTask.comments || []).map((c: ApiComment) => ({
+        id: c.id,
+        taskId: c.taskId,
+        userId: c.userId,
+        content: c.content,
+        createdAt: c.createdAt,
+      }));
+
+      // Map activities
+      const activities: FEActivity[] = (apiTask.activities || []).map((a: ApiActivity) => ({
+        id: a.id,
+        taskId: a.taskId,
+        userId: a.userId,
+        type: a.type as any,
+        details: a.details,
+        createdAt: a.createdAt,
+      }));
+
       tasks[apiTask.id] = {
         id: apiTask.id,
         title: apiTask.content, // DB 'content' maps to FE 'title'
         description: apiTask.description || '',
         priority: (apiTask.priority?.toLowerCase() as Priority) || 'medium',
-        tags: [],
+        tags: apiTask.tags || [],
         subTasks: subTasks,
         checklists: checklists,
+        comments: comments,
+        activities: activities,
         createdAt: apiTask.createdAt,
         isArchived: apiTask.archived,
         assigneeId: apiTask.assigneeId || undefined,

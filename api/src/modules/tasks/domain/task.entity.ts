@@ -13,6 +13,7 @@ export interface TaskProps extends Record<string, unknown> {
   content: string;
   description?: string;
   priority: Priority;
+  tags?: string[];
   order: number;
   columnId: string;
   archived?: boolean;
@@ -32,6 +33,10 @@ export class Task extends AggregateRoot<TaskProps> {
 
   get priority(): Priority {
     return this.props.priority;
+  }
+
+  get tags(): string[] {
+    return this.props.tags || [];
   }
 
   get order(): number {
@@ -73,6 +78,7 @@ export class Task extends AggregateRoot<TaskProps> {
     const task = new Task(
       {
         ...props,
+        tags: props.tags || [],
         archived: props.archived || false,
         checklists: props.checklists || [],
         subtasks: props.subtasks || [],
@@ -106,5 +112,9 @@ export class Task extends AggregateRoot<TaskProps> {
 
   public setAssignee(assigneeId: string | undefined): void {
     this.props.assigneeId = assigneeId;
+  }
+
+  public setTags(tags: string[]): void {
+    this.props.tags = tags;
   }
 }

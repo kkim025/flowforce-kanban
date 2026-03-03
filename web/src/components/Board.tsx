@@ -129,7 +129,7 @@ const Board: React.FC = () => {
         navigate(`/tasks/new?columnId=${finalColumnId}`);
     };
 
-    const openEditView = (task: Task) => {
+    const openTaskView = (task: Task) => {
         navigate(`/tasks/${task.id}`);
     };
 
@@ -436,7 +436,7 @@ const Board: React.FC = () => {
                                                     column={column}
                                                     tasks={tasks}
                                                     onAddTask={() => openCreateView(column.id)}
-                                                    onEditTask={openEditView}
+                                                    onEditTask={openTaskView}
                                                     onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
                                                     onDeleteColumn={() => handleDeleteColumn(column.id)}
                                                     onUpdateColumn={handleUpdateColumn}
@@ -510,7 +510,7 @@ const Board: React.FC = () => {
                         transition={{ duration: 0.2 }}
                         className="flex-1 min-h-0"
                     >
-                        <ListView onTaskClick={openEditView} />
+                        <ListView onTaskClick={openTaskView} />
                     </motion.div>
                 )}
             </AnimatePresence>

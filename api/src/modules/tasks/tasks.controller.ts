@@ -78,7 +78,7 @@ export class TasksController {
   update(
     @GetUser("sub") userId: string,
     @Param("id") id: string,
-    @Body() body: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string }
+    @Body() body: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string; tags?: string[] }
   ) {
     if (body.columnId !== undefined && body.order !== undefined) {
       return this.moveTaskUseCase.execute(id, body.columnId, body.order);
@@ -100,5 +100,10 @@ export class TasksController {
       taskId: taskId,
       items: []
     };
+  }
+
+  @Post(":taskId/comments")
+  async addComment(@GetUser("sub") userId: string, @Param("taskId") taskId: string, @Body() data: { content: string }) {
+    return this.tasksService.addComment(userId, taskId, data.content);
   }
 }

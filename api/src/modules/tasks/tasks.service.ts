@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Task, Priority } from '@prisma/client';
+import { Task, Priority, Comment, Activity } from '@prisma/client';
 
 @Injectable()
 export class TasksService {
@@ -16,10 +16,10 @@ export class TasksService {
     return column;
   }
 
-  async create(userId: string, data: { id?: string; content: string; columnId: string; order: number; priority?: Priority; description?: string }): Promise<Task> {
+  async create(userId: string, data: { id?: string; content: string; columnId: string; order: number; priority?: Priority; description?: string; tags?: string[] }): Promise<Task> {
     await this.checkColumnOwnership(userId, data.columnId);
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         id: data.id, // Optional ID from frontend
         content: data.content,
@@ -27,8 +27,14 @@ export class TasksService {
         order: data.order,
         priority: data.priority,
         description: data.description,
+        tags: data.tags || [],
       },
     });
+
+    // Log activity
+    await this.logActivity(userId, task.id, 'task_created');
+
+    return task;
   }
 
   async findAll(userId: string, columnId: string): Promise<Task[]> {
@@ -39,11 +45,15 @@ export class TasksService {
         archived: false
       },
       orderBy: { order: 'asc' },
-      include: { subtasks: true },
+      include: { 
+        subtasks: true,
+        comments: true,
+        activities: true
+      },
     });
   }
 
-  async update(userId: string, id: string, data: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string }): Promise<Task> {
+  async update(userId: string, id: string, data: { content?: string; columnId?: string; order?: number; priority?: Priority; description?: string; archived?: boolean; assigneeId?: string; tags?: string[] }): Promise<Task> {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: { column: { include: { board: true } } },
@@ -57,7 +67,7 @@ export class TasksService {
       await this.checkColumnOwnership(userId, data.columnId);
     }
 
-    return this.prisma.task.update({
+    const updatedTask = await this.prisma.task.update({
       where: { id },
       data: {
         content: data.content,
@@ -67,8 +77,19 @@ export class TasksService {
         description: data.description,
         archived: data.archived,
         assigneeId: data.assigneeId,
+        tags: data.tags,
       },
     });
+
+    // Log changes
+    if (data.priority && data.priority !== task.priority) {
+      await this.logActivity(userId, id, 'priority_change', { from: task.priority, to: data.priority });
+    }
+    if (data.assigneeId !== undefined && data.assigneeId !== task.assigneeId) {
+      await this.logActivity(userId, id, 'assignee_change', { from: task.assigneeId, to: data.assigneeId });
+    }
+
+    return updatedTask;
   }
 
   async remove(userId: string, id: string): Promise<Task> {
@@ -82,6 +103,39 @@ export class TasksService {
 
     return this.prisma.task.delete({
       where: { id },
+    });
+  }
+
+  async addComment(userId: string, taskId: string, content: string): Promise<Comment> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { column: { include: { board: true } } },
+    });
+
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.column.board.ownerId !== userId) throw new ForbiddenException('Access denied');
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        content,
+        taskId,
+        userId,
+      },
+    });
+
+    await this.logActivity(userId, taskId, 'comment', { text: content });
+
+    return comment;
+  }
+
+  async logActivity(userId: string, taskId: string, type: string, details?: any): Promise<Activity> {
+    return this.prisma.activity.create({
+      data: {
+        type,
+        details,
+        taskId,
+        userId,
+      },
     });
   }
 }

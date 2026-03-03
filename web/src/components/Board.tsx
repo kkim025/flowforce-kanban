@@ -5,7 +5,7 @@ import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
-import { Task } from '../types';
+import { Task, Column as ColumnType } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -237,6 +237,10 @@ const Board: React.FC = () => {
         }
     };
 
+    const handleUpdateColumn = (column: ColumnType) => {
+        dispatch({ type: 'UPDATE_COLUMN', payload: { column } });
+    };
+
     useEffect(() => {
         if (isAddingColumn) {
             addColumnInputRef.current?.focus();
@@ -435,6 +439,7 @@ const Board: React.FC = () => {
                                                     onEditTask={openEditView}
                                                     onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
                                                     onDeleteColumn={() => handleDeleteColumn(column.id)}
+                                                    onUpdateColumn={handleUpdateColumn}
                                                     selectedTaskIds={state.selectedTaskIds}
                                                     onSelectTask={handleSelectTask}
                                                 />

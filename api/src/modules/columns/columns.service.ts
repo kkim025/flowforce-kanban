@@ -20,7 +20,7 @@ export class ColumnsService {
     return board;
   }
 
-  async create(userId: string, data: { title: string; boardId: string; order: number }): Promise<Column> {
+  async create(userId: string, data: { title: string; boardId: string; order: number; wipLimit?: number }): Promise<Column> {
     await this.checkBoardOwnership(userId, data.boardId);
 
     return this.prisma.column.create({
@@ -28,6 +28,7 @@ export class ColumnsService {
         title: data.title,
         boardId: data.boardId,
         order: data.order,
+        wipLimit: data.wipLimit,
       },
     });
   }
@@ -45,7 +46,7 @@ export class ColumnsService {
     });
   }
 
-  async update(userId: string, id: string, data: { title?: string; order?: number }): Promise<Column> {
+  async update(userId: string, id: string, data: { title?: string; order?: number; wipLimit?: number }): Promise<Column> {
     const column = await this.prisma.column.findUnique({
       where: { id },
       include: { board: true },
@@ -59,6 +60,7 @@ export class ColumnsService {
       data: {
         title: data.title,
         order: data.order,
+        wipLimit: data.wipLimit,
       },
     });
   }

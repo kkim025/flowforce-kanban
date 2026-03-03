@@ -31,6 +31,7 @@ model Column {
   id        String   @id @default(uuid())
   title     String
   order     Int
+  wipLimit  Int?
   boardId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

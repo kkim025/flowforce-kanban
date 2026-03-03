@@ -261,6 +261,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const { column } = action.payload;
                     await api.patch(`/columns/${column.id}`, {
                         title: column.title,
+                        wipLimit: column.wipLimit,
                     });
                     break;
                 }

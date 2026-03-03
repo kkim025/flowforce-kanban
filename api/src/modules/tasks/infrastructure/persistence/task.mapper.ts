@@ -13,8 +13,11 @@ export class TaskMapper {
         content: raw.content,
         description: raw.description || undefined,
         priority: raw.priority as unknown as Priority,
+        tags: raw.tags,
         order: raw.order,
         columnId: raw.columnId,
+        archived: raw.archived,
+        assigneeId: raw.assigneeId || undefined,
         subtasks: subtasks,
         checklists: checklists,
       },
@@ -68,8 +71,11 @@ export class TaskMapper {
       content: task.content,
       description: task.description || null,
       priority: task.priority as unknown as PrismaPriority,
+      tags: task.tags,
       order: task.order,
       columnId: task.columnId,
+      archived: task.archived,
+      assigneeId: task.assigneeId || null,
     };
   }
 

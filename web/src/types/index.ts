@@ -1,6 +1,13 @@
 export type Priority = 'low' | 'medium' | 'high';
 export type ViewMode = 'board' | 'list';
 
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+}
+
 export interface SubTask {
     id: string;
     title: string;
@@ -15,16 +22,50 @@ export interface Checklist {
     items: SubTask[];
 }
 
+export interface Comment {
+    id: string;
+    taskId: string;
+    userId: string;
+    content: string;
+    createdAt: string;
+}
+
+export type ActivityType = 
+    | 'comment' 
+    | 'status_change' 
+    | 'priority_change' 
+    | 'assignee_change' 
+    | 'tag_change' 
+    | 'task_created'
+    | 'checklist_added';
+
+export interface Activity {
+    id: string;
+    taskId: string;
+    userId: string;
+    type: ActivityType;
+    details?: {
+        from?: string | string[] | Priority;
+        to?: string | string[] | Priority;
+        text?: string;
+    };
+    createdAt: string;
+}
+
 export interface Task {
     id: string;
     title: string;
     description: string;
     priority: Priority;
     tags: string[];
+    assigneeId?: string;
     dueDate?: string;
-    subTasks: SubTask[]; // Keeping for backward compatibility or simple lists
+    subTasks: SubTask[];
     checklists: Checklist[];
+    comments: Comment[];
+    activities: Activity[];
     createdAt: string;
+    isArchived?: boolean;
 }
 
 export interface Column {
@@ -60,6 +101,7 @@ export type KanbanAction =
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }
     | { type: 'UPDATE_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
+    | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment; activity: Activity } }
     | { type: 'UNDO' }
     | { type: 'REDO' }
     | { type: 'INTERNAL_UNDO' }

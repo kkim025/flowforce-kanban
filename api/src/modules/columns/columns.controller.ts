@@ -40,7 +40,7 @@ export class ColumnsController {
   }
 
   @Patch(":id")
-  update(@GetUser("sub") userId: string, @Param("id") id: string, @Body() body: { title?: string; order?: number }) {
+  update(@GetUser("sub") userId: string, @Param("id") id: string, @Body() body: { title?: string; order?: number; wipLimit?: number }) {
     return this.columnsService.update(userId, id, body);
   }
 

@@ -228,6 +228,23 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             };
         }
 
+        case 'ADD_COMMENT': {
+            const { taskId, comment, activity } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: [...(task.comments || []), comment],
+                        activities: [...(task.activities || []), activity],
+                    },
+                },
+            };
+        }
+
         default:
             return state;
     }

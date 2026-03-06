@@ -215,7 +215,7 @@ const TaskViewer: React.FC = () => {
     const timelineItems: TimelineItem[] = [
         ...(task.activities || []).filter(a => a.type !== 'comment'),
         ...(task.comments || []).map(c => ({ ...c, type: 'comment' as const }))
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const getInitials = (userId: string) => {
         const u = users.find(user => user.id === userId);

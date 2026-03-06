@@ -53,8 +53,10 @@ FlowForce is a premium, high-performance Kanban board application designed for p
 3. **Set up the Backend**:
    ```bash
    cd api
+   cp .env.example .env    # Create environment file (Ensure DATABASE_URL and JWT_SECRET are set)
    npm install
-   npx prisma migrate dev  # Sync database schema
+   npx prisma migrate dev  # Apply migrations and sync database schema
+   npx prisma generate     # Generate Prisma Client
    npm run start:dev       # API will run on http://localhost:3000
    ```
 

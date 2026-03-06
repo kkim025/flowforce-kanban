@@ -40,6 +40,7 @@ interface ApiTask {
   order: number;
   columnId: string;
   createdAt: string;
+  tags?: string[];
   archived?: boolean;
   assigneeId?: string | null;
   subtasks?: ApiSubtask[];

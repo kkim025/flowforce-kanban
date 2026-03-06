@@ -40,6 +40,8 @@ describe('kanbanReducer', () => {
             tags: [],
             subTasks: [],
             checklists: [],
+            comments: [],
+            activities: [],
             createdAt: '',
         };
 

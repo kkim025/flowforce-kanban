@@ -17,10 +17,11 @@ const App: React.FC = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Board />} />
-          <Route path="/tasks/new" element={<TaskEditor />} />
-          <Route path="/tasks/:taskId" element={<TaskViewer />} />
-          <Route path="/tasks/:taskId/edit" element={<TaskEditor />} />
+          <Route path="/" element={<Board />}>
+            <Route path="tasks/new" element={<TaskEditor />} />
+            <Route path="tasks/:taskId" element={<TaskViewer />} />
+            <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
+          </Route>
         </Route>
 
         {/* Fallback */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
 import { useAuth } from '../store/AuthContext';
@@ -9,16 +9,21 @@ import { Task, Column as ColumnType } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import Drawer from './Drawer';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated } = useKanban();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
     const searchInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Drawer state
+    const isDrawerOpen = useMemo(() => location.pathname.includes('/tasks/'), [location.pathname]);
 
     // Column Management
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -561,6 +566,11 @@ const Board: React.FC = () => {
                     </div>
                 </motion.div>
             )}
+
+            {/* Task Drawer */}
+            <Drawer isOpen={isDrawerOpen} onClose={() => navigate('/')}>
+                <Outlet />
+            </Drawer>
         </div>
     );
 };

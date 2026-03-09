@@ -43,6 +43,7 @@ describe("BoardsService", () => {
           columns: {
             include: {
               tasks: {
+                where: { archived: false },
                 include: {
                   checklists: {
                     include: {
@@ -50,6 +51,8 @@ describe("BoardsService", () => {
                     },
                   },
                   subtasks: true,
+                  activities: true,
+                  comments: true,
                 },
               },
             },

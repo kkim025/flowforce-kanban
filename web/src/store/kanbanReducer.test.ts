@@ -32,6 +32,13 @@ describe('kanbanReducer', () => {
     });
 
     it('should handle ADD_TASK', () => {
+        const state: BoardState = {
+            ...initialState,
+            columns: {
+                'todo': { id: 'todo', title: 'To Do', taskIds: [] },
+            },
+        };
+
         const newTask: Task = {
             id: '3',
             title: 'Task 3',
@@ -53,7 +60,7 @@ describe('kanbanReducer', () => {
             },
         };
 
-        const newState = kanbanReducer(initialState, action);
+        const newState = kanbanReducer(state, action);
         expect(newState.tasks['3']).toEqual(newTask);
         expect(newState.columns['todo'].taskIds).toContain('3');
     });

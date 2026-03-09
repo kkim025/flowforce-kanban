@@ -37,6 +37,7 @@ const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose, children }) => {
                 <>
                     {/* Backdrop */}
                     <motion.div
+                        data-testid="drawer-backdrop"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}

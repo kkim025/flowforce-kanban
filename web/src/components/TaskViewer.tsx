@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
@@ -28,7 +28,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-import { Task, Priority, Comment, Activity, ActivityType } from '../types';
+import { Task, Priority, Comment, Activity } from '../types';
+import { getSortedTimeline } from '../lib/utils';
 
 const TaskViewer: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
@@ -212,10 +213,9 @@ const TaskViewer: React.FC = () => {
     // Correctly typed timeline item union
     type TimelineItem = (Activity | (Comment & { type: 'comment' }));
 
-    const timelineItems: TimelineItem[] = [
-        ...(task.activities || []).filter(a => a.type !== 'comment'),
-        ...(task.comments || []).map(c => ({ ...c, type: 'comment' as const }))
-    ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const timelineItems = useMemo(() => 
+        getSortedTimeline(task.activities, task.comments),
+    [task.activities, task.comments]);
 
     const getInitials = (userId: string) => {
         const u = users.find(user => user.id === userId);

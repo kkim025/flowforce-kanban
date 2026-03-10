@@ -48,6 +48,7 @@ export interface Activity {
         from?: string | string[] | Priority;
         to?: string | string[] | Priority;
         text?: string;
+        commentId?: string;
     };
     createdAt: string;
 }
@@ -101,7 +102,9 @@ export type KanbanAction =
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }
     | { type: 'UPDATE_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
-    | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment; activity: Activity } }
+    | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment } }
+    | { type: 'UPDATE_COMMENT'; payload: { taskId: string; comment: Comment } }
+    | { type: 'DELETE_COMMENT'; payload: { taskId: string; commentId: string; userId: string } }
     | { type: 'UNDO' }
     | { type: 'REDO' }
     | { type: 'INTERNAL_UNDO' }

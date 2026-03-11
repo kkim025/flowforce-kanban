@@ -292,7 +292,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                     [taskId]: {
                         ...task,
                         comments: (task.comments || []).filter(c => c.id !== commentId),
-                        activities: (task.activities || []).filter(a => a.details?.commentId !== commentId),
+                        activities: (task.activities || []).filter(a => !(a.type === 'comment' && a.details.commentId === commentId)),
                     },
                 },
             };

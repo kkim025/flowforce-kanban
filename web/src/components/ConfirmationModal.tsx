@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, X } from 'lucide-react';
+import { UI_LABELS } from '../lib/constants';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -17,8 +18,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     isOpen,
     title,
     message,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel = UI_LABELS.CONFIRM,
+    cancelLabel = UI_LABELS.CANCEL,
     onConfirm,
     onCancel,
     variant = 'danger'

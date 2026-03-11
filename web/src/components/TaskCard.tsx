@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { CheckSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 
 interface TaskCardProps {
     task: Task;
@@ -77,9 +80,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
                             </h3>
 
                             {task.description && (
-                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">
-                                    {task.description}
-                                </p>
+                                <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 prose prose-slate dark:prose-invert prose-xs">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                                        {task.description}
+                                    </ReactMarkdown>
+                                </div>
                             )}
 
                             <div className="flex flex-wrap gap-1 mt-auto">

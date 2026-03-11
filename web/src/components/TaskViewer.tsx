@@ -15,19 +15,21 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { v4 as uuidv4 } from 'uuid';
-import { Priority, Comment, Activity } from '../types';
+import { Priority, Comment } from '../types';
 import { getSortedTimeline } from '../lib/utils';
+import { UI_LABELS } from '../lib/constants';
 import ConfirmationModal from './ConfirmationModal';
 import ChecklistSection from './ChecklistSection';
-import ActivityTimeline from './ActivityTimeline';
-import CommentInput from './CommentInput';
-import SidebarControls from './SidebarControls';
+import TaskTimeline from './TaskTimeline';
+import CommentForm from './CommentForm';
+import TaskSidebar from './TaskSidebar';
 
 const TaskViewer: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
     const { state, dispatch } = useKanban();
-    const { users } = useUsers();
+    const { users, getInitials, getUserName } = useUsers();
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -45,12 +47,12 @@ const TaskViewer: React.FC = () => {
     if (!task) {
         return (
             <div className="p-12 flex flex-col items-center justify-center h-full">
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-4">Task not found</h1>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-4">{UI_LABELS.TASK_NOT_FOUND}</h1>
                 <button 
                     onClick={() => navigate('/')}
                     className="text-accent-blue hover:underline font-bold text-sm uppercase tracking-widest"
                 >
-                    Back to board
+                    {UI_LABELS.BACK_TO_BOARD}
                 </button>
             </div>
         );
@@ -189,18 +191,6 @@ const TaskViewer: React.FC = () => {
         }
     };
 
-    const getInitials = (userId: string) => {
-        const u = users.find(user => user.id === userId);
-        if (u) return u.name?.[0] || u.email?.[0]?.toUpperCase() || '?';
-        return '?';
-    };
-
-    const getUserName = (userId: string | null | undefined) => {
-        if (!userId) return 'Unknown User';
-        const u = users.find(user => user.id === userId);
-        return u?.name || u?.email?.split('@')[0] || 'Unknown User';
-    };
-
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Action Bar */}
@@ -216,7 +206,7 @@ const TaskViewer: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-xs"
                     >
                         <Edit3 className="w-3.5 h-3.5" />
-                        Edit
+                        {UI_LABELS.EDIT}
                     </button>
                     <div className="h-4 w-px bg-slate-200 dark:bg-white/10 mx-1" />
                     <button 
@@ -270,15 +260,15 @@ const TaskViewer: React.FC = () => {
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                 <MessageSquare className="w-4 h-4" />
-                                Description
+                                {UI_LABELS.DESCRIPTION}
                             </div>
                             <div className="prose prose-slate dark:prose-invert max-w-none">
                                 {task.description ? (
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                                         {task.description}
                                     </ReactMarkdown>
                                 ) : (
-                                    <p className="text-slate-400 italic text-sm">No description provided.</p>
+                                    <p className="text-slate-400 italic text-sm">{UI_LABELS.NO_DESCRIPTION}</p>
                                 )}
                             </div>
                         </div>
@@ -291,29 +281,24 @@ const TaskViewer: React.FC = () => {
 
                         {/* Activity & Comments Section */}
                         <div>
-                            <ActivityTimeline 
+                            <TaskTimeline 
                                 timelineItems={timelineItems}
                                 user={user}
-                                users={users}
-                                getInitials={getInitials}
-                                getUserName={getUserName}
                                 onUpdateComment={handleUpdateComment}
                                 onDeleteComment={setDeletingCommentId}
                             />
 
                             {/* New Comment Input */}
-                            <CommentInput 
+                            <CommentForm 
                                 user={user}
-                                getInitials={getInitials}
                                 onAddComment={handleAddComment}
                             />
                         </div>
                     </div>
 
                     {/* Right Column - Sidebar */}
-                    <SidebarControls 
+                    <TaskSidebar 
                         task={task}
-                        users={users}
                         onUpdateAssignee={updateAssignee}
                         onUpdatePriority={updatePriority}
                         onAddTag={addTag}

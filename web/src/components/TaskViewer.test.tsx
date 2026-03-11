@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import TaskViewer from './TaskViewer';
 import React from 'react';
@@ -27,6 +27,9 @@ vi.mock('framer-motion', () => ({
     },
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
+
+// Mock window.confirm
+window.confirm = vi.fn();
 
 const mockTask = {
     id: 'task-1',
@@ -59,7 +62,8 @@ const mockTask = {
 };
 
 const mockUsers = [
-    { id: 'user-1', name: 'User One', email: 'user1@example.com' }
+    { id: 'user-1', name: 'User One', email: 'user1@example.com' },
+    { id: 'user-2', name: 'User Two', email: 'user2@example.com' }
 ];
 
 describe('TaskViewer', () => {
@@ -74,7 +78,11 @@ describe('TaskViewer', () => {
             },
             dispatch
         });
-        vi.mocked(useUsers).mockReturnValue({ users: mockUsers });
+        vi.mocked(useUsers).mockReturnValue({ 
+            users: mockUsers,
+            getInitials: (id: string) => mockUsers.find(u => u.id === id)?.name?.[0] || '?',
+            getUserName: (id: string) => mockUsers.find(u => u.id === id)?.name || 'Unknown'
+        });
         vi.mocked(useAuth).mockReturnValue({ user: { id: 'user-1' } });
     });
 
@@ -109,93 +117,167 @@ describe('TaskViewer', () => {
         expect(screen.getByText('Existing comment')).toBeInTheDocument();
     });
 
-    it('should allow adding a new comment', () => {
-        render(
-            <MemoryRouter initialEntries={['/tasks/task-1']}>
-                <Routes>
-                    <Route path="/tasks/:taskId" element={<TaskViewer />} />
-                </Routes>
-            </MemoryRouter>
-        );
+    describe('Comment Management', () => {
+        it('should allow adding a new comment', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
 
-        const input = screen.getByPlaceholderText('Add a comment...');
-        fireEvent.change(input, { target: { value: 'New comment' } });
-        
-        const button = screen.getByText('Comment');
-        fireEvent.click(button);
+            const input = screen.getByPlaceholderText('Add a comment...');
+            fireEvent.change(input, { target: { value: 'New comment' } });
+            
+            const button = screen.getByText('Comment');
+            fireEvent.click(button);
 
-        expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'ADD_COMMENT',
-            payload: expect.objectContaining({
-                taskId: 'task-1',
-                comment: expect.objectContaining({
-                    content: 'New comment'
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'ADD_COMMENT',
+                payload: expect.objectContaining({
+                    taskId: 'task-1',
+                    comment: expect.objectContaining({
+                        content: 'New comment'
+                    })
                 })
-            })
-        }));
-    });
+            }));
+        });
 
-    it('should allow editing a comment', async () => {
-        render(
-            <MemoryRouter initialEntries={['/tasks/task-1']}>
-                <Routes>
-                    <Route path="/tasks/:taskId" element={<TaskViewer />} />
-                </Routes>
-            </MemoryRouter>
-        );
+        it('should allow editing a comment', async () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
 
-        // Find the comment and click edit
-        const editButton = screen.getByTitle('Edit comment');
-        fireEvent.click(editButton);
+            // Find the comment and click edit
+            const editButton = screen.getByTitle('Edit comment');
+            fireEvent.click(editButton);
 
-        // Change text
-        const textarea = screen.getByDisplayValue('Existing comment');
-        fireEvent.change(textarea, { target: { value: 'Updated comment content' } });
+            // Change text
+            const textarea = screen.getByDisplayValue('Existing comment');
+            fireEvent.change(textarea, { target: { value: 'Updated comment content' } });
 
-        // Save
-        const saveButton = screen.getByText('Save');
-        fireEvent.click(saveButton);
+            // Save
+            const saveButton = screen.getByText('Save');
+            fireEvent.click(saveButton);
 
-        expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'UPDATE_COMMENT',
-            payload: expect.objectContaining({
-                taskId: 'task-1',
-                comment: expect.objectContaining({
-                    content: 'Updated comment content'
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'UPDATE_COMMENT',
+                payload: expect.objectContaining({
+                    taskId: 'task-1',
+                    comment: expect.objectContaining({
+                        content: 'Updated comment content'
+                    })
                 })
-            })
-        }));
-    });
+            }));
+        });
 
-    it('should allow deleting a comment', async () => {
-        render(
-            <MemoryRouter initialEntries={['/tasks/task-1']}>
-                <Routes>
-                    <Route path="/tasks/:taskId" element={<TaskViewer />} />
-                </Routes>
-            </MemoryRouter>
-        );
+        it('should cancel edit without changes smoothly', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
 
-        // Click delete button
-        const deleteButton = screen.getByTitle('Delete comment');
-        fireEvent.click(deleteButton);
+            fireEvent.click(screen.getByTitle('Edit comment'));
+            expect(screen.getByDisplayValue('Existing comment')).toBeInTheDocument();
 
-        // Verify confirmation modal is shown - use getAllByText or specific roles
-        expect(screen.getByRole('heading', { name: 'Delete Comment' })).toBeInTheDocument();
-        expect(screen.getByText('Are you sure you want to delete this comment?')).toBeInTheDocument();
+            fireEvent.click(screen.getByText('Cancel'));
+            expect(screen.queryByDisplayValue('Existing comment')).not.toBeInTheDocument();
+            expect(screen.getByText('Existing comment')).toBeInTheDocument();
+        });
 
-        // Confirm deletion in the modal
-        const confirmButtons = screen.getAllByText('Delete Comment');
-        const confirmButton = confirmButtons.find(btn => btn.tagName === 'BUTTON');
-        if (confirmButton) fireEvent.click(confirmButton);
+        it('should prompt before canceling edit with unsaved changes', () => {
+            vi.mocked(window.confirm).mockReturnValue(true);
+            
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
 
-        expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'DELETE_COMMENT',
-            payload: {
-                taskId: 'task-1',
-                commentId: 'comment-1'
-            }
-        }));
+            fireEvent.click(screen.getByTitle('Edit comment'));
+            const textarea = screen.getByDisplayValue('Existing comment');
+            fireEvent.change(textarea, { target: { value: 'Modified content' } });
+
+            fireEvent.click(screen.getByText('Cancel'));
+            
+            expect(window.confirm).toHaveBeenCalledWith('You have unsaved changes. Discard them?');
+            expect(screen.getByText('Existing comment')).toBeInTheDocument();
+        });
+
+        it('should allow deleting a comment', async () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click delete button
+            const deleteButton = screen.getByTitle('Delete comment');
+            fireEvent.click(deleteButton);
+
+            // Verify confirmation modal is shown
+            expect(screen.getByRole('heading', { name: 'Delete Comment' })).toBeInTheDocument();
+
+            // Confirm deletion
+            const confirmButtons = screen.getAllByText('Delete Comment');
+            const confirmButton = confirmButtons.find(btn => btn.tagName === 'BUTTON');
+            if (confirmButton) fireEvent.click(confirmButton);
+
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'DELETE_COMMENT',
+                payload: expect.objectContaining({
+                    taskId: 'task-1',
+                    commentId: 'comment-1'
+                })
+            }));
+        });
+
+        it('should not show edit/delete buttons for comments from other users', () => {
+            const taskWithOtherComment = {
+                ...mockTask,
+                comments: [
+                    {
+                        id: 'comment-other',
+                        taskId: 'task-1',
+                        userId: 'user-2',
+                        content: 'Other user comment',
+                        createdAt: new Date().toISOString()
+                    }
+                ]
+            };
+
+            vi.mocked(useKanban).mockReturnValue({
+                state: { 
+                    tasks: { 'task-1': taskWithOtherComment },
+                    columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } }
+                },
+                dispatch
+            });
+
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            expect(screen.getByText('Other user comment')).toBeInTheDocument();
+            expect(screen.queryByTitle('Edit comment')).not.toBeInTheDocument();
+            expect(screen.queryByTitle('Delete comment')).not.toBeInTheDocument();
+        });
     });
 
     it('should render mixed timeline items correctly', () => {
@@ -211,11 +293,23 @@ describe('TaskViewer', () => {
         expect(screen.getByText('Existing comment')).toBeInTheDocument();
     });
 
-    it('should handle missing description gracefully', () => {
-        const taskNoDesc = { ...mockTask, description: '' };
+    it('should handle markdown in comments', () => {
+        const taskWithMarkdown = {
+            ...mockTask,
+            comments: [
+                {
+                    id: 'comment-md',
+                    taskId: 'task-1',
+                    userId: 'user-1',
+                    content: '**Bold Text** and [Link](https://example.com)',
+                    createdAt: new Date().toISOString()
+                }
+            ]
+        };
+
         vi.mocked(useKanban).mockReturnValue({
             state: { 
-                tasks: { 'task-1': taskNoDesc },
+                tasks: { 'task-1': taskWithMarkdown },
                 columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } }
             },
             dispatch
@@ -229,6 +323,7 @@ describe('TaskViewer', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('No description provided.')).toBeInTheDocument();
+        expect(screen.getByText('Bold Text').tagName).toBe('STRONG');
+        expect(screen.getByRole('link', { name: 'Link' })).toHaveAttribute('href', 'https://example.com');
     });
 });

@@ -18,6 +18,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import MarkdownEditor from './MarkdownEditor';
 import { Priority, Task, Checklist, SubTask, Activity } from '../types';
+import { UI_LABELS } from '../lib/constants';
 
 const TaskEditor: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
@@ -196,7 +197,7 @@ const TaskEditor: React.FC = () => {
             <div className="sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                        {isEditing ? 'Edit Task' : 'Create New Task'}
+                        {isEditing ? UI_LABELS.EDIT_TASK : UI_LABELS.CREATE_TASK}
                     </h1>
                 </div>
 
@@ -207,13 +208,13 @@ const TaskEditor: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-accent-blue text-white shadow-lg shadow-accent-blue/20 hover:shadow-accent-blue/40 transition-all text-xs disabled:opacity-50"
                     >
                         <Save className="w-3.5 h-3.5" />
-                        Save Task
+                        {UI_LABELS.SAVE_TASK}
                     </button>
                     <div className="h-4 w-px bg-slate-200 dark:bg-white/10 mx-1" />
                     <button 
                         onClick={() => navigate('/')}
                         className="p-2 text-slate-400 hover:text-accent-blue transition-colors"
-                        title="Close Drawer"
+                        title={UI_LABELS.CLOSE}
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -227,7 +228,7 @@ const TaskEditor: React.FC = () => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Layout className="w-3.5 h-3.5" />
-                                Task Title
+                                {UI_LABELS.TASK_TITLE}
                             </label>
                             <input 
                                 autoFocus
@@ -242,13 +243,13 @@ const TaskEditor: React.FC = () => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <AlignLeft className="w-3.5 h-3.5" />
-                                Description
+                                {UI_LABELS.DESCRIPTION}
                             </label>
                             <div className="glass rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-accent-blue/20 transition-all duration-300">
                                 <MarkdownEditor 
                                     value={description}
                                     onChange={setDescription}
-                                    placeholder="Add more details... (Markdown supported)"
+                                    placeholder={UI_LABELS.ADD_DETAILS}
                                 />
                             </div>
                         </div>
@@ -257,13 +258,13 @@ const TaskEditor: React.FC = () => {
                             <div className="flex items-center justify-between">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                     <CheckSquare className="w-3.5 h-3.5" />
-                                    Checklists
+                                    {UI_LABELS.CHECKLISTS}
                                 </label>
                                 <button 
                                     onClick={addChecklist}
                                     className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-[10px] font-bold text-slate-600 dark:text-slate-400 transition-all"
                                 >
-                                    <Plus className="w-3 h-3" /> Add Checklist
+                                    <Plus className="w-3 h-3" /> {UI_LABELS.ADD_CHECKLIST}
                                 </button>
                             </div>
 
@@ -307,7 +308,7 @@ const TaskEditor: React.FC = () => {
                                                 onClick={() => addSubTask(cl.id)}
                                                 className="flex items-center gap-2 text-xs font-bold text-accent-blue hover:underline mt-2"
                                             >
-                                                <Plus className="w-3.5 h-3.5" /> Add an item
+                                                <Plus className="w-3.5 h-3.5" /> {UI_LABELS.ADD_ITEM}
                                             </button>
                                         </div>
                                     </div>
@@ -320,14 +321,14 @@ const TaskEditor: React.FC = () => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <UserIcon className="w-3.5 h-3.5" />
-                                Assignee
+                                {UI_LABELS.ASSIGNEE}
                             </label>
                             <select 
                                 value={assigneeId || ''}
                                 onChange={(e) => setAssigneeId(e.target.value || undefined)}
                                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent-blue/30 transition-all"
                             >
-                                <option value="">Unassigned</option>
+                                <option value="">{UI_LABELS.UNASSIGNED}</option>
                                 {users.map(u => (
                                     <option key={u.id} value={u.id}>{u.name || u.email}</option>
                                 ))}
@@ -337,7 +338,7 @@ const TaskEditor: React.FC = () => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <BarChart2 className="w-3.5 h-3.5" />
-                                Priority
+                                {UI_LABELS.PRIORITY}
                             </label>
                             <div className="grid grid-cols-3 gap-2">
                                 {(['low', 'medium', 'high'] as Priority[]).map((p) => (
@@ -360,7 +361,7 @@ const TaskEditor: React.FC = () => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Tag className="w-3.5 h-3.5" />
-                                Labels
+                                {UI_LABELS.LABELS}
                             </label>
                             <div className="space-y-3">
                                 <input 
@@ -368,7 +369,7 @@ const TaskEditor: React.FC = () => {
                                     value={tagInput}
                                     onChange={(e) => setTagInput(e.target.value)}
                                     onKeyDown={addTag}
-                                    placeholder="Press enter to add..."
+                                    placeholder={UI_LABELS.ADD_TAG}
                                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent-blue/30 transition-all"
                                 />
                                 <div className="flex flex-wrap gap-2">

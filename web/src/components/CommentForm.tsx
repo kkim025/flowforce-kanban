@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import { User } from '../types';
+import { useUsers } from '../store/UserContext';
+import { UI_LABELS } from '../lib/constants';
 
-interface CommentInputProps {
+interface CommentFormProps {
     user: User | null;
-    getInitials: (userId: string) => string;
     onAddComment: (content: string) => void;
 }
 
-const CommentInput: React.FC<CommentInputProps> = ({ user, getInitials, onAddComment }) => {
+const CommentForm: React.FC<CommentFormProps> = ({
+    user,
+    onAddComment
+}) => {
+    const { getInitials } = useUsers();
     const [commentInput, setCommentInput] = useState('');
 
     const handleAddComment = () => {
@@ -36,7 +41,7 @@ const CommentInput: React.FC<CommentInputProps> = ({ user, getInitials, onAddCom
                         className="flex items-center gap-2 px-4 py-1.5 rounded-lg font-bold bg-accent-blue text-white transition-all text-[11px] disabled:opacity-50"
                     >
                         <Send className="w-3 h-3" />
-                        Comment
+                        {UI_LABELS.COMMENT}
                     </button>
                 </div>
             </div>
@@ -44,4 +49,4 @@ const CommentInput: React.FC<CommentInputProps> = ({ user, getInitials, onAddCom
     );
 };
 
-export default CommentInput;
+export default CommentForm;

@@ -24,11 +24,15 @@ export class RegisterUserUseCase {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const userCount = await this.userRepository.count();
+    const role = userCount === 0 ? "ADMIN" : "MEMBER";
 
     const userResult = User.create({
       email: emailResult.getValue(),
       password: hashedPassword,
       name: dto.name,
+      role: role,
+      status: "ACTIVE",
     });
 
     const user = userResult.getValue();

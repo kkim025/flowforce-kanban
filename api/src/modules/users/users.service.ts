@@ -22,6 +22,8 @@ export class UsersService {
       id: user.id,
       email: user.email.value,
       name: user.name,
+      role: user.role,
+      status: user.status,
     };
   }
 
@@ -31,6 +33,8 @@ export class UsersService {
       id: user.id,
       email: user.email.value,
       name: user.name,
+      role: user.role,
+      status: user.status,
     }));
   }
 }

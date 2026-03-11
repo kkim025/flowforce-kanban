@@ -5,7 +5,7 @@ import { LoginUserUseCase } from "../modules/users/application/use-cases/login-u
 import { RegisterUserDto } from "../modules/users/application/dto/register-user.dto";
 import { UserDto } from "../modules/users/application/dto/user.dto";
 import { LoginResponseDto } from "../modules/users/application/dto/login-response.dto";
-import { User } from "../modules/users/domain/user.entity";
+import { User, UserRole, UserStatus } from "../modules/users/domain/user.entity";
 import { Email } from "../modules/users/domain/email.value-object";
 
 @Injectable()
@@ -23,6 +23,8 @@ export class AuthService {
         id: user.id,
         email: user.email.value,
         name: user.name,
+        role: user.role,
+        status: user.status,
       };
     }
     return null;
@@ -39,6 +41,8 @@ export class AuthService {
         email: emailResult.getValue(),
         password: "", // Password not needed for login token generation
         name: userDto.name,
+        role: userDto.role as UserRole,
+        status: userDto.status as UserStatus,
       },
       userDto.id
     );
@@ -52,6 +56,8 @@ export class AuthService {
       id: user.id,
       email: user.email.value,
       name: user.name,
+      role: user.role,
+      status: user.status,
     };
     return this.login(userDto);
   }

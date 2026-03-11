@@ -7,6 +7,7 @@ import { UsersService } from '../modules/users/users.service';
 interface JwtPayload {
   sub: string;
   email: string;
+  role: string;
   iat?: number;
   exp?: number;
 }
@@ -46,6 +47,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     
     this.logger.log(`User validated: ${user.email}`);
-    return { id: payload.sub, sub: payload.sub, email: payload.email };
+    return { id: payload.sub, sub: payload.sub, email: payload.email, role: payload.role };
   }
 }

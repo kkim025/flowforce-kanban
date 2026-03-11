@@ -1,5 +1,5 @@
-import { User as PrismaUser, Prisma } from "@prisma/client";
-import { User } from "../../domain/user.entity";
+import { User as PrismaUser, Prisma, Role, UserStatus } from "@prisma/client";
+import { User, UserRole, UserStatus as DomainUserStatus } from "../../domain/user.entity";
 import { Email } from "../../domain/email.value-object";
 
 export class UserMapper {
@@ -14,6 +14,8 @@ export class UserMapper {
         email: emailResult.getValue(),
         password: raw.password,
         name: raw.name || undefined,
+        role: raw.role as UserRole,
+        status: raw.status as DomainUserStatus,
       },
       raw.id
     );
@@ -27,6 +29,8 @@ export class UserMapper {
       email: user.email.value,
       password: user.password,
       name: user.name || null,
+      role: user.role as Role,
+      status: user.status as UserStatus,
     };
   }
 }

@@ -2,10 +2,15 @@ import { AggregateRoot } from "../../../common/domain/aggregate-root";
 import { Result } from "../../../common/domain/result";
 import { Email } from "./email.value-object";
 
+export type UserRole = "ADMIN" | "MEMBER";
+export type UserStatus = "ACTIVE" | "PENDING" | "INACTIVE";
+
 export interface UserProps extends Record<string, unknown> {
   email: Email;
   password: string;
   name?: string;
+  role: UserRole;
+  status: UserStatus;
 }
 
 export class User extends AggregateRoot<UserProps> {
@@ -19,6 +24,14 @@ export class User extends AggregateRoot<UserProps> {
 
   get name(): string | undefined {
     return this.props.name;
+  }
+
+  get role(): UserRole {
+    return this.props.role;
+  }
+
+  get status(): UserStatus {
+    return this.props.status;
   }
 
   private constructor(props: UserProps, id?: string) {

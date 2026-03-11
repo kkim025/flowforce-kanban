@@ -90,6 +90,18 @@ npm test
 .\test-all.ps1     # Windows (PowerShell)
 ```
 
+#### Testing Architecture
+- **Root**: `npm test` runs both suites.
+- **Backend (API)**: Jest unit tests.
+- **Frontend (Web)**: Vitest + React Testing Library + JSDom.
+
+#### Key Test Suites:
+- `api/test/unit/modules/checklists/checklists.service.spec.ts` (Ownership & Deletion logic)
+- `web/src/store/kanbanReducer.test.ts` (State transitions)
+- `web/src/components/Drawer.test.tsx` (UI Interactions)
+- `web/src/components/TaskViewer.test.tsx` (Hook stability & Task rendering)
+- `web/src/lib/utils.test.ts` (Timeline sorting)
+
 #### Why this approach?
 - **Centralization**: A single command from the root ensures all layers of the application are validated without navigating subdirectories.
 - **Cross-Platform Support**: We provide both `.sh` and `.ps1` scripts to ensure a consistent experience across Windows, macOS, and Linux.

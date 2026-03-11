@@ -1,13 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User } from '../types';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
 
 interface UserContextType {
     users: User[];
+    userMap: Map<string, User>;
     isLoading: boolean;
     error: string | null;
     refreshUsers: () => Promise<void>;
+    getUserName: (userId: string | null | undefined) => string;
+    getInitials: (userId: string | null | undefined) => string;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -42,8 +45,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [isAuthenticated, refreshUsers]);
 
+    const userMap = useMemo(() => {
+        return new Map(users.map(u => [u.id, u]));
+    }, [users]);
+
+    const getUserName = useCallback((userId: string | null | undefined) => {
+        if (!userId) return 'Unknown User';
+        const u = userMap.get(userId);
+        if (!u) return 'Unknown User';
+        return u.name || u.email?.split('@')[0] || 'Unknown User';
+    }, [userMap]);
+
+    const getInitials = useCallback((userId: string | null | undefined) => {
+        if (!userId) return '?';
+        const u = userMap.get(userId);
+        if (!u) return '?';
+        return u.name?.[0] || u.email?.[0]?.toUpperCase() || '?';
+    }, [userMap]);
+
     return (
-        <UserContext.Provider value={{ users, isLoading, error, refreshUsers }}>
+        <UserContext.Provider value={{ users, userMap, isLoading, error, refreshUsers, getUserName, getInitials }}>
             {children}
         </UserContext.Provider>
     );

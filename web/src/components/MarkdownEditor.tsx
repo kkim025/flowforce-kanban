@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Bold, 
@@ -147,7 +148,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, placeh
                             className="flex-1 w-full p-6 text-slate-700 dark:text-slate-200 overflow-y-auto custom-scrollbar prose prose-slate dark:prose-invert max-w-none"
                         >
                             {value ? (
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
                                     {value}
                                 </ReactMarkdown>
                             ) : (

@@ -30,27 +30,21 @@ export interface Comment {
     createdAt: string;
 }
 
-export type ActivityType = 
-    | 'comment' 
-    | 'status_change' 
-    | 'priority_change' 
-    | 'assignee_change' 
-    | 'tag_change' 
-    | 'task_created'
-    | 'checklist_added';
-
-export interface Activity {
+export type ActivityBase = {
     id: string;
     taskId: string;
     userId: string;
-    type: ActivityType;
-    details?: {
-        from?: string | string[] | Priority;
-        to?: string | string[] | Priority;
-        text?: string;
-    };
     createdAt: string;
-}
+};
+
+export type Activity = 
+    | (ActivityBase & { type: 'comment'; details: { text: string; commentId: string } })
+    | (ActivityBase & { type: 'status_change'; details: { from: string; to: string } })
+    | (ActivityBase & { type: 'priority_change'; details: { from: Priority; to: Priority } })
+    | (ActivityBase & { type: 'assignee_change'; details: { from?: string; to?: string } })
+    | (ActivityBase & { type: 'tag_change'; details: { text: string } })
+    | (ActivityBase & { type: 'task_created'; details?: never })
+    | (ActivityBase & { type: 'checklist_added'; details: { title: string } });
 
 export interface Task {
     id: string;
@@ -101,7 +95,9 @@ export type KanbanAction =
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }
     | { type: 'UPDATE_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
-    | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment; activity: Activity } }
+    | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment } }
+    | { type: 'UPDATE_COMMENT'; payload: { taskId: string; comment: Comment } }
+    | { type: 'DELETE_COMMENT'; payload: { taskId: string; commentId: string; userId: string } }
     | { type: 'UNDO' }
     | { type: 'REDO' }
     | { type: 'INTERNAL_UNDO' }

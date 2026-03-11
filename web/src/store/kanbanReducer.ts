@@ -1,4 +1,5 @@
-import { BoardState, KanbanAction } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+import { BoardState, KanbanAction, Activity } from '../types';
 
 export const initialState: BoardState = {
     tasks: {},
@@ -229,9 +230,22 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         }
 
         case 'ADD_COMMENT': {
-            const { taskId, comment, activity } = action.payload;
+            const { taskId, comment } = action.payload;
             const task = state.tasks[taskId];
             if (!task) return state;
+
+            const activity: Activity = {
+                id: uuidv4(),
+                taskId,
+                userId: comment.userId,
+                type: 'comment',
+                details: { 
+                    text: comment.content,
+                    commentId: comment.id
+                },
+                createdAt: comment.createdAt
+            };
+
             return {
                 ...state,
                 tasks: {
@@ -245,7 +259,47 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             };
         }
 
+        case 'UPDATE_COMMENT': {
+            const { taskId, comment } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: (task.comments || []).map(c => c.id === comment.id ? comment : c),
+                    },
+                },
+            };
+        }
+
+        case 'DELETE_COMMENT': {
+            const { taskId, commentId, userId } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+
+            const comment = task.comments?.find(c => c.id === commentId);
+            if (!comment || comment.userId !== userId) {
+                return state; // Unauthorized or comment not found
+            }
+
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: (task.comments || []).filter(c => c.id !== commentId),
+                        activities: (task.activities || []).filter(a => !(a.type === 'comment' && a.details.commentId === commentId)),
+                    },
+                },
+            };
+        }
+
         default:
+            console.warn(`Unhandled action type: ${(action as any).type}`);
             return state;
     }
 };

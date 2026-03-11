@@ -6,6 +6,7 @@ import TaskEditor from './components/TaskEditor';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import UserManagement from './components/admin/UserManagement';
 
 const App: React.FC = () => {
   return (
@@ -21,6 +22,9 @@ const App: React.FC = () => {
             <Route path="tasks/new" element={<TaskEditor />} />
             <Route path="tasks/:taskId" element={<TaskViewer />} />
             <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
+            
+            {/* Admin Routes */}
+            <Route path="admin/users" element={<UserManagement />} />
           </Route>
         </Route>
 

@@ -1,11 +1,15 @@
 export type Priority = 'low' | 'medium' | 'high';
 export type ViewMode = 'board' | 'list';
+export type UserRole = 'ADMIN' | 'MEMBER';
+export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
 
 export interface User {
     id: string;
     name: string;
     email: string;
     avatar?: string;
+    role: UserRole;
+    status: UserStatus;
 }
 
 export interface SubTask {

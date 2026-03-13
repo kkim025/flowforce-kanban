@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, NotFoundException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from "@nestjs/common";
 import { RegisterUserUseCase } from "../modules/users/application/use-cases/register-user.use-case";
 import { ValidateUserUseCase } from "../modules/users/application/use-cases/validate-user.use-case";
 import { LoginUserUseCase } from "../modules/users/application/use-cases/login-user.use-case";
@@ -37,7 +37,7 @@ export class AuthService {
   async login(userDto: UserDto): Promise<LoginResponseDto> {
     const emailResult = Email.create(userDto.email);
     if (emailResult.isFailure) {
-      throw new Error("Invalid email in userDto");
+      throw new BadRequestException("Invalid email in userDto");
     }
 
     const userResult = User.create(
@@ -81,6 +81,10 @@ export class AuthService {
     }
 
     const emailResult = Email.create(invitation.email);
+    if (emailResult.isFailure) {
+      throw new BadRequestException(String(emailResult.error));
+    }
+
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     const userResult = User.create({
@@ -90,6 +94,10 @@ export class AuthService {
       role: invitation.role,
       status: "ACTIVE",
     });
+
+    if (userResult.isFailure) {
+      throw new BadRequestException(String(userResult.error));
+    }
 
     const user = userResult.getValue();
 

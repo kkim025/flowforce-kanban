@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Inject } from "@nestjs/common";
+import { Injectable, ConflictException, BadRequestException, Inject } from "@nestjs/common";
 import type { IUserRepository } from "../../domain/user.repository.interface";
 import { RegisterUserDto } from "../dto/register-user.dto";
 import { User } from "../../domain/user.entity";
@@ -20,7 +20,7 @@ export class RegisterUserUseCase {
 
     const emailResult = Email.create(dto.email);
     if (emailResult.isFailure) {
-      throw new Error(String(emailResult.error));
+      throw new BadRequestException(String(emailResult.error));
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);

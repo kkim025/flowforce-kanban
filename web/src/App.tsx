@@ -7,10 +7,12 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import UserManagement from './components/admin/UserManagement';
+import { ToastProvider } from './context/ToastContext';
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <ToastProvider>
+      <Router>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginForm />} />
@@ -31,7 +33,8 @@ const App: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+      </Router>
+    </ToastProvider>
   );
 };
 

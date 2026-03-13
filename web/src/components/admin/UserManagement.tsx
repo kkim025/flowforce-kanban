@@ -1,26 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { getUsers, inviteUser, deleteUser } from '../../lib/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { getUsers, inviteUser, deleteUser, updateUserRole } from '../../lib/api';
 import { User, UserRole } from '../../types';
-import { 
-    UserPlus, 
-    Trash2, 
-    Shield, 
-    User as UserIcon, 
-    Mail, 
-    Clock, 
-    X, 
-    CheckCircle2, 
+import {
+    UserPlus,
+    Trash2,
+    Shield,
+    User as UserIcon,
+    Mail,
+    Clock,
+    X,
+    CheckCircle2,
     AlertCircle,
-    Loader2
+    Loader2,
+    RefreshCw,
+    ChevronDown,
+    Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../ConfirmationModal';
-import { UI_LABELS } from '../../lib/constants';
+import { useToast } from '../../context/ToastContext';
+
+const RoleDropdownPortal: React.FC<{
+    user: User;
+    anchorRect: DOMRect | null;
+    onClose: () => void;
+    onUpdateRole: (user: User, newRole: UserRole) => void;
+}> = ({ user, anchorRect, onClose, onUpdateRole }) => {
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    if (!anchorRect) return null;
+
+    // Position relative to viewport, accounting for any scroll offset
+    const top = anchorRect.bottom + 8;
+    const left = anchorRect.left;
+
+    return createPortal(
+        <motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            style={{ 
+                position: 'absolute', 
+                top, 
+                left,
+                width: '12rem',
+                zIndex: 9999
+            }}
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 py-2 overflow-hidden"
+        >
+            {(['MEMBER', 'ADMIN'] as UserRole[]).map((role) => (
+                <button
+                    key={role}
+                    onClick={() => onUpdateRole(user, role)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                        user.role === role 
+                            ? 'bg-accent-blue/5 text-accent-blue' 
+                            : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                    <div className="flex items-center gap-2">
+                        {role === 'ADMIN' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                        {role}
+                    </div>
+                    {user.role === role && <Check className="w-3.5 h-3.5" />}
+                </button>
+            ))}
+            <div className="px-4 py-2 mt-1 border-t border-slate-100 dark:border-white/5">
+                <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    {user.role === 'ADMIN' 
+                        ? 'Administrators can manage users, settings, and all boards.' 
+                        : 'Members can view and edit boards they are assigned to.'}
+                </p>
+            </div>
+        </motion.div>,
+        document.body
+    );
+};
 
 const UserManagement: React.FC = () => {
+    const { showToast } = useToast();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [dropdownUserId, setDropdownUserId] = useState<string | null>(null);
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     
     // Invite Modal State
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -58,12 +134,10 @@ const UserManagement: React.FC = () => {
             setShowInviteModal(false);
             setInviteEmail('');
             setInviteRole('MEMBER');
-            // Re-fetch users to show the new one (if they are immediately visible as PENDING)
-            // Note: In our current implementation, invited users only appear after they accept.
-            // We might want to show Invitations separately later.
             fetchUsers();
+            showToast('Invitation sent successfully', 'success');
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to send invitation');
+            showToast(err.response?.data?.message || 'Failed to send invitation', 'error');
         } finally {
             setIsInviting(false);
         }
@@ -76,8 +150,39 @@ const UserManagement: React.FC = () => {
             await deleteUser(deletingUserId);
             setUsers(users.filter(u => u.id !== deletingUserId));
             setDeletingUserId(null);
+            showToast('User removed successfully', 'success');
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to delete user');
+            showToast(err.response?.data?.message || 'Failed to delete user', 'error');
+        }
+    };
+
+    const handleUpdateRole = async (user: User, newRole: UserRole) => {
+        if (user.role === newRole) {
+            setDropdownUserId(null);
+            return;
+        }
+
+        try {
+            setUpdatingUserId(user.id);
+            setDropdownUserId(null);
+            await updateUserRole(user.id, newRole);
+            setUsers(users.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+            showToast('User role updated successfully', 'success');
+        } catch (err: any) {
+            showToast(err.response?.data?.message || 'Failed to update user role', 'error');
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
+    const toggleDropdown = (e: React.MouseEvent, userId: string) => {
+        if (dropdownUserId === userId) {
+            setDropdownUserId(null);
+            setAnchorRect(null);
+        } else {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setAnchorRect(rect);
+            setDropdownUserId(userId);
         }
     };
 
@@ -140,20 +245,47 @@ const UserManagement: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                            u.role === 'ADMIN' 
-                                                ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' 
-                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-white/5'
-                                        }`}>
-                                            {u.role === 'ADMIN' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                                        <button 
+                                            onClick={(e) => toggleDropdown(e, u.id)}
+                                            disabled={updatingUserId === u.id}
+                                            className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50 ${
+                                                u.role === 'ADMIN' 
+                                                    ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20 hover:bg-purple-500/20' 
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
+                                            }`}
+                                        >
+                                            {updatingUserId === u.id ? (
+                                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                            ) : (
+                                                u.role === 'ADMIN' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />
+                                            )}
                                             {u.role}
-                                        </div>
+                                            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${dropdownUserId === u.id ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {dropdownUserId === u.id && (
+                                                <RoleDropdownPortal
+                                                    user={u}
+                                                    anchorRect={anchorRect}
+                                                    onClose={() => setDropdownUserId(null)}
+                                                    onUpdateRole={handleUpdateRole}
+                                                />
+                                            )}
+                                        </AnimatePresence>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest ${
-                                            u.status === 'ACTIVE' ? 'text-emerald-500' : 
-                                            u.status === 'PENDING' ? 'text-amber-500' : 'text-slate-400'
-                                        }`}>
+                                        <div 
+                                            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest ${
+                                                u.status === 'ACTIVE' ? 'text-emerald-500' : 
+                                                u.status === 'PENDING' ? 'text-amber-500' : 'text-slate-400'
+                                            }`}
+                                            title={
+                                                u.status === 'ACTIVE' ? 'Account verified and active' : 
+                                                u.status === 'PENDING' ? 'Waiting for user to accept invitation' : 
+                                                'Account deactivated'
+                                            }
+                                        >
                                             {u.status === 'ACTIVE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                             {u.status}
                                         </div>

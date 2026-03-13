@@ -55,4 +55,9 @@ export const deleteUser = async (id: string) => {
   return response.data;
 };
 
+export const updateUserRole = async (id: string, role: UserRole) => {
+  const response = await api.post(`/users/${id}/role`, { role });
+  return response.data;
+};
+
 export default api;

@@ -6,6 +6,7 @@ import { Roles } from "../../auth/roles.decorator";
 import { GetUser } from "../../common/decorators/get-user.decorator";
 import { UserDto } from "./application/dto/user.dto";
 import { InviteUserDto } from "./application/dto/invite-user.dto";
+import { UpdateUserRoleDto } from "./application/dto/update-user-role.dto";
 
 @Controller("users")
 export class UsersController {
@@ -36,5 +37,15 @@ export class UsersController {
   @Delete(":id")
   async remove(@Param("id") id: string) {
     return this.usersService.removeUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Post(":id/role")
+  async updateRole(
+    @Param("id") id: string,
+    @Body() dto: UpdateUserRoleDto
+  ) {
+    return this.usersService.updateUserRole(id, dto.role);
   }
 }

@@ -97,4 +97,27 @@ export class UsersService {
 
     return { success: true };
   }
+
+  async updateUserRole(id: string, role: "ADMIN" | "MEMBER") {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    // If demoting an admin, check if it's the last one
+    if (user.role === "ADMIN" && role === "MEMBER") {
+      const users = await this.userRepository.findAll();
+      const adminCount = users.filter((u) => u.role === "ADMIN").length;
+      if (adminCount <= 1) {
+        throw new ConflictException("Cannot demote the last administrator");
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+
+    return { success: true };
+  }
 }

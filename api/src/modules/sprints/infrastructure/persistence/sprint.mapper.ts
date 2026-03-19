@@ -27,7 +27,9 @@ export class SprintMapper {
     return result.getValue();
   }
 
-  static toPersistence(sprint: Sprint): Omit<PrismaSprint, 'id' | 'createdAt' | 'updatedAt'> {
+  static toPersistence(
+    sprint: Sprint,
+  ): Omit<PrismaSprint, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       name: sprint.name,
       startDate: sprint.startDate,

@@ -20,7 +20,7 @@ export class PrismaSprintRepository implements ISprintRepository {
       where: { boardId },
       orderBy: { startDate: 'asc' },
     });
-    return rawSprints.map(SprintMapper.toDomain);
+    return rawSprints.map((raw) => SprintMapper.toDomain(raw));
   }
 
   async findActiveByBoardId(boardId: string): Promise<Sprint | null> {
@@ -33,7 +33,9 @@ export class PrismaSprintRepository implements ISprintRepository {
 
   async save(sprint: Sprint): Promise<void> {
     const data = SprintMapper.toPersistence(sprint);
-    const existing = await this.prisma.sprint.findUnique({ where: { id: sprint.id } });
+    const existing = await this.prisma.sprint.findUnique({
+      where: { id: sprint.id },
+    });
     if (existing) {
       await this.prisma.sprint.update({
         where: { id: sprint.id },

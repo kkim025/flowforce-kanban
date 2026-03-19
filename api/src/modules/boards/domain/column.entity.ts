@@ -1,5 +1,5 @@
-import { Entity } from "../../../common/domain/entity";
-import { Result } from "../../../common/domain/result";
+import { Entity } from '../../../common/domain/entity';
+import { Result } from '../../../common/domain/result';
 
 export interface ColumnProps extends Record<string, unknown> {
   title: string;
@@ -21,7 +21,7 @@ export class Column extends Entity<ColumnProps> {
 
   public static create(props: ColumnProps, id?: string): Result<Column> {
     if (!props.title) {
-      return Result.fail<Column>("Column title is required");
+      return Result.fail<Column>('Column title is required');
     }
     return Result.ok<Column>(new Column(props, id));
   }

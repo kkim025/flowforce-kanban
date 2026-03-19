@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../../../common/prisma/prisma.service";
-import { ITaskRepository } from "../../domain/tasks.repository.interface";
-import { Task } from "../../domain/task.entity";
-import { Checklist } from "../../domain/checklist.entity";
-import { Subtask } from "../../domain/subtask.entity";
-import { TaskMapper } from "./task.mapper";
-import { Prisma } from "@prisma/client";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../../common/prisma/prisma.service';
+import { ITaskRepository } from '../../domain/tasks.repository.interface';
+import { Task } from '../../domain/task.entity';
+import { Checklist } from '../../domain/checklist.entity';
+import { Subtask } from '../../domain/subtask.entity';
+import { TaskMapper } from './task.mapper';
+import { Prisma } from '@prisma/client';
 
 type PrismaTaskWithRelations = Prisma.TaskGetPayload<{
   include: {
@@ -59,11 +59,15 @@ export class PrismaTaskRepository implements ITaskRepository {
       },
     });
 
-    return rawTasks.map((task) => TaskMapper.toDomain(task as PrismaTaskWithRelations));
+    return rawTasks.map((task) =>
+      TaskMapper.toDomain(task as PrismaTaskWithRelations),
+    );
   }
 
   async save(task: Task): Promise<void> {
-    const persistenceTask = TaskMapper.toPersistence(task) as Prisma.TaskUncheckedCreateInput;
+    const persistenceTask = TaskMapper.toPersistence(
+      task,
+    ) as Prisma.TaskUncheckedCreateInput;
 
     await this.prisma.task.upsert({
       where: { id: task.id },
@@ -86,11 +90,16 @@ export class PrismaTaskRepository implements ITaskRepository {
 
     if (!rawChecklist) return null;
 
-    return TaskMapper.checklistToDomain(rawChecklist as PrismaChecklistWithItems);
+    return TaskMapper.checklistToDomain(
+      rawChecklist as PrismaChecklistWithItems,
+    );
   }
 
   async saveChecklist(taskId: string, checklist: Checklist): Promise<void> {
-    const persistenceChecklist = TaskMapper.checklistToPersistence(checklist, taskId) as Prisma.ChecklistUncheckedCreateInput;
+    const persistenceChecklist = TaskMapper.checklistToPersistence(
+      checklist,
+      taskId,
+    ) as Prisma.ChecklistUncheckedCreateInput;
 
     await this.prisma.checklist.upsert({
       where: { id: checklist.id },
@@ -115,8 +124,16 @@ export class PrismaTaskRepository implements ITaskRepository {
     return TaskMapper.subtaskToDomain(rawSubtask);
   }
 
-  async saveSubtask(taskId: string | null, checklistId: string | null, subtask: Subtask): Promise<void> {
-    const persistenceSubtask = TaskMapper.subtaskToPersistence(subtask, taskId, checklistId) as Prisma.SubtaskUncheckedCreateInput;
+  async saveSubtask(
+    taskId: string | null,
+    checklistId: string | null,
+    subtask: Subtask,
+  ): Promise<void> {
+    const persistenceSubtask = TaskMapper.subtaskToPersistence(
+      subtask,
+      taskId,
+      checklistId,
+    ) as Prisma.SubtaskUncheckedCreateInput;
 
     await this.prisma.subtask.upsert({
       where: { id: subtask.id },

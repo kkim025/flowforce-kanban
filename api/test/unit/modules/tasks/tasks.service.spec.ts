@@ -1,9 +1,9 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { TasksService } from "src/modules/tasks/tasks.service";
-import { PrismaService } from "src/common/prisma/prisma.service";
-import { NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Test, TestingModule } from '@nestjs/testing';
+import { TasksService } from 'src/modules/tasks/tasks.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
-describe("TasksService", () => {
+describe('TasksService', () => {
   let service: TasksService;
   let prisma: any;
 
@@ -18,14 +18,17 @@ describe("TasksService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TasksService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        TasksService,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
 
     service = module.get<TasksService>(TasksService);
     prisma = module.get(PrismaService);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 });

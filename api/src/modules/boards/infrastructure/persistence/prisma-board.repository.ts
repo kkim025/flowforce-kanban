@@ -1,10 +1,10 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../../../common/prisma/prisma.service";
-import { IBoardRepository } from "../../domain/boards.repository.interface";
-import { Board } from "../../domain/board.entity";
-import { Column } from "../../domain/column.entity";
-import { BoardMapper } from "./board.mapper";
-import { Prisma } from "@prisma/client";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../../common/prisma/prisma.service';
+import { IBoardRepository } from '../../domain/boards.repository.interface';
+import { Board } from '../../domain/board.entity';
+import { Column } from '../../domain/column.entity';
+import { BoardMapper } from './board.mapper';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaBoardRepository implements IBoardRepository {
@@ -31,7 +31,9 @@ export class PrismaBoardRepository implements IBoardRepository {
   }
 
   async save(board: Board): Promise<void> {
-    const persistenceBoard = BoardMapper.toPersistence(board) as Prisma.BoardUncheckedCreateInput;
+    const persistenceBoard = BoardMapper.toPersistence(
+      board,
+    ) as Prisma.BoardUncheckedCreateInput;
 
     await this.prisma.board.upsert({
       where: { id: board.id },
@@ -57,7 +59,10 @@ export class PrismaBoardRepository implements IBoardRepository {
   }
 
   async saveColumn(boardId: string, column: Column): Promise<void> {
-    const persistenceColumn = BoardMapper.columnToPersistence(column, boardId) as Prisma.ColumnUncheckedCreateInput;
+    const persistenceColumn = BoardMapper.columnToPersistence(
+      column,
+      boardId,
+    ) as Prisma.ColumnUncheckedCreateInput;
 
     await this.prisma.column.upsert({
       where: { id: column.id },

@@ -1,14 +1,14 @@
-import { Injectable, Inject } from "@nestjs/common";
-import type { IBoardRepository } from "../../domain/boards.repository.interface";
-import { CreateBoardDto } from "../dto/create-board.dto";
-import { Board } from "../../domain/board.entity";
-import { Column } from "../../domain/column.entity";
+import { Injectable, Inject } from '@nestjs/common';
+import type { IBoardRepository } from '../../domain/boards.repository.interface';
+import { CreateBoardDto } from '../dto/create-board.dto';
+import { Board } from '../../domain/board.entity';
+import { Column } from '../../domain/column.entity';
 
 @Injectable()
 export class CreateBoardUseCase {
   constructor(
-    @Inject("IBoardRepository")
-    private boardRepository: IBoardRepository
+    @Inject('IBoardRepository')
+    private boardRepository: IBoardRepository,
   ) {}
 
   async execute(dto: CreateBoardDto, ownerId: string): Promise<Board> {
@@ -25,7 +25,7 @@ export class CreateBoardUseCase {
     const board = boardResult.getValue();
 
     // Add default columns
-    const defaultColumns = ["To Do", "In Progress", "Done"];
+    const defaultColumns = ['To Do', 'In Progress', 'Done'];
     defaultColumns.forEach((title, index) => {
       const columnResult = Column.create({
         title,

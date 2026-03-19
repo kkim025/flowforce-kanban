@@ -39,6 +39,7 @@ const mockTask = {
     priority: 'medium' as const,
     assigneeId: 'user-1',
     tags: ['bug'],
+    subTasks: [],
     checklists: [],
     comments: [
         {
@@ -55,6 +56,7 @@ const mockTask = {
             taskId: 'task-1',
             userId: 'user-1',
             type: 'task_created',
+            details: undefined,
             createdAt: new Date().toISOString()
         }
     ],
@@ -62,8 +64,8 @@ const mockTask = {
 };
 
 const mockUsers = [
-    { id: 'user-1', name: 'User One', email: 'user1@example.com' },
-    { id: 'user-2', name: 'User Two', email: 'user2@example.com' }
+    { id: 'user-1', name: 'User One', email: 'user1@example.com', role: 'MEMBER' as const, status: 'ACTIVE' as const },
+    { id: 'user-2', name: 'User Two', email: 'user2@example.com', role: 'MEMBER' as const, status: 'ACTIVE' as const }
 ];
 
 describe('TaskViewer', () => {
@@ -72,24 +74,40 @@ describe('TaskViewer', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(useKanban).mockReturnValue({
-            state: { 
+            state: {
                 tasks: { 'task-1': mockTask },
-                columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } }
+                columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } },
+                columnOrder: ['col-1'],
+                selectedTaskIds: [],
+                viewMode: 'board' as const,
+                searchQuery: ''
             },
-            dispatch
+            dispatch,
+            undo: [],
+            redo: [],
+            canUndo: false,
+            canRedo: false
         });
-        vi.mocked(useUsers).mockReturnValue({ 
+        vi.mocked(useUsers).mockReturnValue({
             users: mockUsers,
-            getInitials: (id: string) => mockUsers.find(u => u.id === id)?.name?.[0] || '?',
-            getUserName: (id: string) => mockUsers.find(u => u.id === id)?.name || 'Unknown'
+            getInitials: (id: string | null | undefined) => id ? mockUsers.find(u => u.id === id)?.name?.[0] || '?' : '?',
+            getUserName: (id: string | null | undefined) => id ? mockUsers.find(u => u.id === id)?.name || 'Unknown' : 'Unknown',
+            userMap: new Map(mockUsers.map(u => [u.id, u])),
+            isLoading: false,
+            error: null,
+            refreshUsers: vi.fn()
         });
-        vi.mocked(useAuth).mockReturnValue({ user: { id: 'user-1' } });
+        vi.mocked(useAuth).mockReturnValue({ user: { id: 'user-1', name: 'User One', email: 'user1@example.com', role: 'MEMBER' as const, status: 'ACTIVE' as const }, token: 'test-token', loading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn(), isAuthenticated: true });
     });
 
     it('should show "Task not found" when taskId is invalid', () => {
         vi.mocked(useKanban).mockReturnValue({
-            state: { tasks: {}, columns: {} },
-            dispatch: vi.fn()
+            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '' },
+            dispatch: vi.fn(),
+            undo: [],
+            redo: [],
+            canUndo: false,
+            canRedo: false
         });
 
         render(
@@ -259,11 +277,19 @@ describe('TaskViewer', () => {
             };
 
             vi.mocked(useKanban).mockReturnValue({
-                state: { 
+                state: {
                     tasks: { 'task-1': taskWithOtherComment },
-                    columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } }
+                    columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } },
+                    columnOrder: ['col-1'],
+                    selectedTaskIds: [],
+                    viewMode: 'board' as const,
+                    searchQuery: ''
                 },
-                dispatch
+                dispatch,
+                undo: [],
+                redo: [],
+                canUndo: false,
+                canRedo: false
             });
 
             render(
@@ -308,11 +334,19 @@ describe('TaskViewer', () => {
         };
 
         vi.mocked(useKanban).mockReturnValue({
-            state: { 
+            state: {
                 tasks: { 'task-1': taskWithMarkdown },
-                columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } }
+                columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } },
+                columnOrder: ['col-1'],
+                selectedTaskIds: [],
+                viewMode: 'board' as const,
+                searchQuery: ''
             },
-            dispatch
+            dispatch,
+            undo: [],
+            redo: [],
+            canUndo: false,
+            canRedo: false
         });
 
         render(

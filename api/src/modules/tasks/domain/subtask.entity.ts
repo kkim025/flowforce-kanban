@@ -1,5 +1,5 @@
-import { Entity } from "../../../common/domain/entity";
-import { Result } from "../../../common/domain/result";
+import { Entity } from '../../../common/domain/entity';
+import { Result } from '../../../common/domain/result';
 
 interface SubtaskProps {
   content: string;
@@ -21,7 +21,7 @@ export class Subtask extends Entity<SubtaskProps> {
 
   public static create(props: SubtaskProps, id?: string): Result<Subtask> {
     if (!props.content) {
-      return Result.fail<Subtask>("Subtask content is required");
+      return Result.fail<Subtask>('Subtask content is required');
     }
     return Result.ok<Subtask>(new Subtask(props, id));
   }

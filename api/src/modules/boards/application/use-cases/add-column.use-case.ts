@@ -1,13 +1,18 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from "@nestjs/common";
-import type { IBoardRepository } from "../../domain/boards.repository.interface";
-import { AddColumnDto } from "../dto/add-column.dto";
-import { Column } from "../../domain/column.entity";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import type { IBoardRepository } from '../../domain/boards.repository.interface';
+import { AddColumnDto } from '../dto/add-column.dto';
+import { Column } from '../../domain/column.entity';
 
 @Injectable()
 export class AddColumnUseCase {
   constructor(
-    @Inject("IBoardRepository")
-    private boardRepository: IBoardRepository
+    @Inject('IBoardRepository')
+    private boardRepository: IBoardRepository,
   ) {}
 
   async execute(userId: string, dto: AddColumnDto): Promise<Column> {
@@ -17,7 +22,7 @@ export class AddColumnUseCase {
     }
 
     if (board.ownerId !== userId) {
-      throw new ForbiddenException("Access denied");
+      throw new ForbiddenException('Access denied');
     }
 
     const columnResult = Column.create({

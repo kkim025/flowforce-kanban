@@ -1,5 +1,12 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
-import { Priority } from "../../domain/task.entity";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { Priority } from '../../domain/task.entity';
 
 export class CreateTaskDto {
   @IsString()

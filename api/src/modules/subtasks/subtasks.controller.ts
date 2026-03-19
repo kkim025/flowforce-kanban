@@ -1,37 +1,53 @@
-import { Controller, Post, Body, Patch, Param, Delete, UseGuards, Logger } from "@nestjs/common";
-import { SubtasksService } from "./subtasks.service";
-import { JwtAuthGuard } from "../../auth/jwt-auth.guard";
-import { GetUser } from "../../common/decorators/get-user.decorator";
-import { UpdateSubtaskUseCase } from "../tasks/application/use-cases/update-subtask.use-case";
-import { UpdateSubtaskDto } from "../tasks/application/dto/update-subtask.dto";
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
+import { SubtasksService } from './subtasks.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { GetUser } from '../../common/decorators/get-user.decorator';
+import { UpdateSubtaskUseCase } from '../tasks/application/use-cases/update-subtask.use-case';
+import { UpdateSubtaskDto } from '../tasks/application/dto/update-subtask.dto';
 
-@Controller("subtasks")
+@Controller('subtasks')
 @UseGuards(JwtAuthGuard)
 export class SubtasksController {
   private readonly logger = new Logger(SubtasksController.name);
 
   constructor(
     private readonly subtasksService: SubtasksService,
-    private readonly updateSubtaskUseCase: UpdateSubtaskUseCase
+    private readonly updateSubtaskUseCase: UpdateSubtaskUseCase,
   ) {}
 
   @Post()
-  create(@GetUser("sub") userId: string, @Body() body: { content: string; taskId?: string; checklistId?: string }) {
+  create(
+    @GetUser('sub') userId: string,
+    @Body() body: { content: string; taskId?: string; checklistId?: string },
+  ) {
     return this.subtasksService.create(userId, body);
   }
 
-  @Patch(":id")
-  async update(@GetUser("sub") userId: string, @Param("id") id: string, @Body() dto: UpdateSubtaskDto) {
+  @Patch(':id')
+  async update(
+    @GetUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateSubtaskDto,
+  ) {
     const subtask = await this.updateSubtaskUseCase.execute(userId, id, dto);
     return {
       id: subtask.id,
       content: subtask.content,
-      completed: subtask.completed
+      completed: subtask.completed,
     };
   }
 
-  @Delete(":id")
-  remove(@GetUser("sub") userId: string, @Param("id") id: string) {
+  @Delete(':id')
+  remove(@GetUser('sub') userId: string, @Param('id') id: string) {
     return this.subtasksService.remove(userId, id);
   }
 }

@@ -31,43 +31,49 @@ describe('Boards (e2e)', () => {
     const regRes = await request(app.getHttpServer())
       .post('/auth/register')
       .send(testUser);
-    
+
     accessToken = regRes.body.access_token;
     userId = regRes.body.user.id;
 
     // 2. Setup Board, Column, Task
     const board = await prisma.board.create({
-      data: { title: 'Test Board', ownerId: userId }
+      data: { title: 'Test Board', ownerId: userId },
     });
     const column = await prisma.column.create({
-      data: { title: 'Test Col', boardId: board.id, order: 0 }
+      data: { title: 'Test Col', boardId: board.id, order: 0 },
     });
     const task = await prisma.task.create({
-      data: { content: 'Test Task', columnId: column.id, order: 0 }
+      data: { content: 'Test Task', columnId: column.id, order: 0 },
     });
     const checklist = await prisma.checklist.create({
-      data: { title: 'Test Checklist', taskId: task.id }
+      data: { title: 'Test Checklist', taskId: task.id },
     });
     await prisma.subtask.create({
-      data: { content: 'Task Subtask', taskId: task.id }
+      data: { content: 'Task Subtask', taskId: task.id },
     });
     await prisma.subtask.create({
-      data: { content: 'Checklist Item', checklistId: checklist.id }
+      data: { content: 'Checklist Item', checklistId: checklist.id },
     });
   });
 
   afterAll(async () => {
     if (userId) {
-      const boards = await prisma.board.findMany({ where: { ownerId: userId } });
+      const boards = await prisma.board.findMany({
+        where: { ownerId: userId },
+      });
       for (const board of boards) {
-        const columns = await prisma.column.findMany({ where: { boardId: board.id } });
+        const columns = await prisma.column.findMany({
+          where: { boardId: board.id },
+        });
         for (const col of columns) {
-            const tasks = await prisma.task.findMany({ where: { columnId: col.id } });
-            for (const task of tasks) {
-                await prisma.checklist.deleteMany({ where: { taskId: task.id } });
-                await prisma.subtask.deleteMany({ where: { taskId: task.id } });
-            }
-            await prisma.task.deleteMany({ where: { columnId: col.id } });
+          const tasks = await prisma.task.findMany({
+            where: { columnId: col.id },
+          });
+          for (const task of tasks) {
+            await prisma.checklist.deleteMany({ where: { taskId: task.id } });
+            await prisma.subtask.deleteMany({ where: { taskId: task.id } });
+          }
+          await prisma.task.deleteMany({ where: { columnId: col.id } });
         }
         await prisma.column.deleteMany({ where: { boardId: board.id } });
         await prisma.board.delete({ where: { id: board.id } });
@@ -86,7 +92,7 @@ describe('Boards (e2e)', () => {
 
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
-    
+
     // Check nested data
     const board = res.body[0];
     expect(board.columns).toBeDefined();
@@ -100,7 +106,7 @@ describe('Boards (e2e)', () => {
     const boardsRes = await request(app.getHttpServer())
       .get('/boards')
       .set('Authorization', `Bearer ${accessToken}`);
-    
+
     const boardId = boardsRes.body[0].id;
 
     const res = await request(app.getHttpServer())

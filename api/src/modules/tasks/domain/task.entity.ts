@@ -1,12 +1,12 @@
-import { AggregateRoot } from "../../../common/domain/aggregate-root";
-import { Result } from "../../../common/domain/result";
-import { Checklist } from "./checklist.entity";
-import { Subtask } from "./subtask.entity";
+import { AggregateRoot } from '../../../common/domain/aggregate-root';
+import { Result } from '../../../common/domain/result';
+import { Checklist } from './checklist.entity';
+import { Subtask } from './subtask.entity';
 
 export enum Priority {
-  LOW = "LOW",
-  MEDIUM = "MEDIUM",
-  HIGH = "HIGH",
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
 }
 
 export interface TaskProps extends Record<string, unknown> {
@@ -69,10 +69,10 @@ export class Task extends AggregateRoot<TaskProps> {
 
   public static create(props: TaskProps, id?: string): Result<Task> {
     if (!props.content) {
-      return Result.fail<Task>("Task content is required");
+      return Result.fail<Task>('Task content is required');
     }
     if (!props.columnId) {
-      return Result.fail<Task>("Task columnId is required");
+      return Result.fail<Task>('Task columnId is required');
     }
 
     const task = new Task(
@@ -83,7 +83,7 @@ export class Task extends AggregateRoot<TaskProps> {
         checklists: props.checklists || [],
         subtasks: props.subtasks || [],
       },
-      id
+      id,
     );
 
     return Result.ok<Task>(task);

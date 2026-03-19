@@ -1,16 +1,21 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from "@nestjs/common";
-import type { ITaskRepository } from "../../domain/tasks.repository.interface";
-import type { IBoardRepository } from "../../../boards/domain/boards.repository.interface";
-import { AddChecklistDto } from "../dto/add-checklist.dto";
-import { Checklist } from "../../domain/checklist.entity";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import type { ITaskRepository } from '../../domain/tasks.repository.interface';
+import type { IBoardRepository } from '../../../boards/domain/boards.repository.interface';
+import { AddChecklistDto } from '../dto/add-checklist.dto';
+import { Checklist } from '../../domain/checklist.entity';
 
 @Injectable()
 export class AddChecklistUseCase {
   constructor(
-    @Inject("ITaskRepository")
+    @Inject('ITaskRepository')
     private taskRepository: ITaskRepository,
-    @Inject("IBoardRepository")
-    private boardRepository: IBoardRepository
+    @Inject('IBoardRepository')
+    private boardRepository: IBoardRepository,
   ) {}
 
   async execute(userId: string, dto: AddChecklistDto): Promise<Checklist> {
@@ -20,7 +25,7 @@ export class AddChecklistUseCase {
     }
 
     const column = await this.boardRepository.findColumnById(task.columnId);
-    if (!column) throw new NotFoundException("Column not found");
+    if (!column) throw new NotFoundException('Column not found');
 
     // Using Record<string, unknown> to avoid 'any'
     const columnProps = column.props as Record<string, unknown>;
@@ -28,7 +33,7 @@ export class AddChecklistUseCase {
 
     const board = await this.boardRepository.findById(boardId);
     if (!board || board.ownerId !== userId) {
-      throw new ForbiddenException("Access denied");
+      throw new ForbiddenException('Access denied');
     }
 
     const checklistResult = Checklist.create({

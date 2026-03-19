@@ -1,10 +1,10 @@
-import { Module, forwardRef } from "@nestjs/common";
-import { BoardsService } from "./boards.service";
-import { BoardsController } from "./boards.controller";
-import { PrismaModule } from "../../common/prisma/prisma.module";
-import { PrismaBoardRepository } from "./infrastructure/persistence/prisma-board.repository";
-import { CreateBoardUseCase } from "./application/use-cases/create-board.use-case";
-import { ColumnsModule } from "../columns/columns.module";
+import { Module, forwardRef } from '@nestjs/common';
+import { BoardsService } from './boards.service';
+import { BoardsController } from './boards.controller';
+import { PrismaModule } from '../../common/prisma/prisma.module';
+import { PrismaBoardRepository } from './infrastructure/persistence/prisma-board.repository';
+import { CreateBoardUseCase } from './application/use-cases/create-board.use-case';
+import { ColumnsModule } from '../columns/columns.module';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => ColumnsModule)],
@@ -12,16 +12,16 @@ import { ColumnsModule } from "../columns/columns.module";
   providers: [
     BoardsService,
     {
-      provide: "IBoardRepository",
+      provide: 'IBoardRepository',
       useClass: PrismaBoardRepository,
     },
     // Explicit injection for use case
     {
       provide: CreateBoardUseCase,
       useFactory: (repo: PrismaBoardRepository) => new CreateBoardUseCase(repo),
-      inject: ["IBoardRepository"],
+      inject: ['IBoardRepository'],
     },
   ],
-  exports: [BoardsService, "IBoardRepository", CreateBoardUseCase],
+  exports: [BoardsService, 'IBoardRepository', CreateBoardUseCase],
 })
 export class BoardsModule {}

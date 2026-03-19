@@ -1,8 +1,8 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { SubtasksService } from "src/modules/subtasks/subtasks.service";
-import { PrismaService } from "src/common/prisma/prisma.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { SubtasksService } from 'src/modules/subtasks/subtasks.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 
-describe("SubtasksService", () => {
+describe('SubtasksService', () => {
   let service: SubtasksService;
   let prisma: any;
 
@@ -17,14 +17,17 @@ describe("SubtasksService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SubtasksService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        SubtasksService,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
 
     service = module.get<SubtasksService>(SubtasksService);
     prisma = module.get(PrismaService);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 });

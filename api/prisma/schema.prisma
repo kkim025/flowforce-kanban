@@ -11,12 +11,34 @@ model User {
   email     String   @unique
   password  String
   name      String?
+  role      Role     @default(MEMBER)
+  status    UserStatus @default(ACTIVE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   boards    Board[]
   tasks     Task[]
   comments  Comment[]
   activities Activity[]
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  token     String   @unique
+  role      Role     @default(MEMBER)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
 }
 
 model Board {

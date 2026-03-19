@@ -7,9 +7,9 @@ import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task, Column as ColumnType } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Plus, X, Check, Trash2 } from 'lucide-react';
+import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
 import Drawer from './Drawer';
 
 const Board: React.FC = () => {
@@ -23,7 +23,7 @@ const Board: React.FC = () => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Drawer state
-    const isDrawerOpen = useMemo(() => location.pathname.includes('/tasks/'), [location.pathname]);
+    const isDrawerOpen = useMemo(() => location.pathname.includes('/tasks/') || location.pathname.includes('/admin/'), [location.pathname]);
 
     // Column Management
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -265,15 +265,31 @@ const Board: React.FC = () => {
                     </div>
 
                     {user && (
-                        <div className="flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-slate-900/50 border border-white/20 rounded-xl">
-                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                                {user.name?.[0] || user.email[0].toUpperCase()}
-                            </div>
-                            <div className="hidden md:block text-left">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
-                                <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
-                                    <LogOut className="w-2.5 h-2.5" /> Log Out
-                                </button>
+                        <div className="flex items-center gap-6">
+                            {user.role === 'ADMIN' && (
+                                <Link 
+                                    to="/admin/users" 
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                                        location.pathname.includes('/admin/users') 
+                                            ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20' 
+                                            : 'bg-white/50 dark:bg-slate-900/50 border border-white/20 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <Users className="w-4 h-4" />
+                                    Team
+                                </Link>
+                            )}
+                            
+                            <div className="flex items-center gap-3 px-4 py-2 bg-white/50 dark:bg-slate-900/50 border border-white/20 rounded-xl">
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                    {user.name?.[0] || user.email[0].toUpperCase()}
+                                </div>
+                                <div className="hidden md:block text-left">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
+                                    <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
+                                        <LogOut className="w-2.5 h-2.5" /> Log Out
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

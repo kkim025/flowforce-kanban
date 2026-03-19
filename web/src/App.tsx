@@ -6,10 +6,13 @@ import TaskEditor from './components/TaskEditor';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import UserManagement from './components/admin/UserManagement';
+import { ToastProvider } from './context/ToastContext';
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <ToastProvider>
+      <Router>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginForm />} />
@@ -21,13 +24,17 @@ const App: React.FC = () => {
             <Route path="tasks/new" element={<TaskEditor />} />
             <Route path="tasks/:taskId" element={<TaskViewer />} />
             <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
+            
+            {/* Admin Routes */}
+            <Route path="admin/users" element={<UserManagement />} />
           </Route>
         </Route>
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+      </Router>
+    </ToastProvider>
   );
 };
 

@@ -34,7 +34,7 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
     ColumnsModule,
     TasksModule,
     SubtasksModule,
-    ChecklistsModule
+    ChecklistsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

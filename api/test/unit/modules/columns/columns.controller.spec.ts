@@ -1,10 +1,10 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ColumnsController } from "src/modules/columns/columns.controller";
-import { ColumnsService } from "src/modules/columns/columns.service";
-import { AddColumnUseCase } from "src/modules/boards/application/use-cases/add-column.use-case";
-import { ReorderColumnsUseCase } from "src/modules/boards/application/use-cases/reorder-columns.use-case";
+import { Test, TestingModule } from '@nestjs/testing';
+import { ColumnsController } from 'src/modules/columns/columns.controller';
+import { ColumnsService } from 'src/modules/columns/columns.service';
+import { AddColumnUseCase } from 'src/modules/boards/application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from 'src/modules/boards/application/use-cases/reorder-columns.use-case';
 
-describe("ColumnsController", () => {
+describe('ColumnsController', () => {
   let controller: ColumnsController;
 
   beforeEach(async () => {
@@ -24,7 +24,7 @@ describe("ColumnsController", () => {
     controller = module.get<ColumnsController>(ColumnsController);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 });

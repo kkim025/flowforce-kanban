@@ -186,6 +186,17 @@ const UserManagement: React.FC = () => {
         }
     };
 
+    // Close dropdown on scroll to avoid mispositioning
+    useEffect(() => {
+        if (!dropdownUserId) return;
+        const handleScroll = () => {
+            setDropdownUserId(null);
+            setAnchorRect(null);
+        };
+        window.addEventListener('scroll', handleScroll, true);
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [dropdownUserId]);
+
     if (isLoading) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center">
@@ -239,7 +250,7 @@ const UserManagement: React.FC = () => {
                                                 {u.name?.[0] || u.email[0].toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{u.name || 'Invited User'}</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{u.name || u.email.split('@')[0]}</p>
                                                 <p className="text-xs text-slate-500 font-medium">{u.email}</p>
                                             </div>
                                         </div>

@@ -1,6 +1,6 @@
-import { AggregateRoot } from "../../../common/domain/aggregate-root";
-import { Result } from "../../../common/domain/result";
-import { Column } from "./column.entity";
+import { AggregateRoot } from '../../../common/domain/aggregate-root';
+import { Result } from '../../../common/domain/result';
+import { Column } from './column.entity';
 
 export interface BoardProps extends Record<string, unknown> {
   title: string;
@@ -22,7 +22,7 @@ export class Board extends AggregateRoot<BoardProps> {
   }
 
   get columnOrder(): string[] {
-    return this.columns.map(c => c.id);
+    return this.columns.map((c) => c.id);
   }
 
   private constructor(props: BoardProps, id?: string) {
@@ -31,18 +31,20 @@ export class Board extends AggregateRoot<BoardProps> {
 
   public static create(props: BoardProps, id?: string): Result<Board> {
     if (!props.title) {
-      return Result.fail<Board>("Board title is required");
+      return Result.fail<Board>('Board title is required');
     }
     if (!props.ownerId) {
-      return Result.fail<Board>("Board ownerId is required");
+      return Result.fail<Board>('Board ownerId is required');
     }
 
     const board = new Board(
       {
         ...props,
-        columns: props.columns ? [...props.columns].sort((a, b) => a.order - b.order) : [],
+        columns: props.columns
+          ? [...props.columns].sort((a, b) => a.order - b.order)
+          : [],
       },
-      id
+      id,
     );
 
     return Result.ok<Board>(board);

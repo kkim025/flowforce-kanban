@@ -1,10 +1,10 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { BoardsController } from "src/modules/boards/boards.controller";
-import { BoardsService } from "src/modules/boards/boards.service";
-import { ColumnsService } from "src/modules/columns/columns.service";
-import { CreateBoardUseCase } from "src/modules/boards/application/use-cases/create-board.use-case";
+import { Test, TestingModule } from '@nestjs/testing';
+import { BoardsController } from 'src/modules/boards/boards.controller';
+import { BoardsService } from 'src/modules/boards/boards.service';
+import { ColumnsService } from 'src/modules/columns/columns.service';
+import { CreateBoardUseCase } from 'src/modules/boards/application/use-cases/create-board.use-case';
 
-describe("BoardsController", () => {
+describe('BoardsController', () => {
   let controller: BoardsController;
 
   beforeEach(async () => {
@@ -23,7 +23,7 @@ describe("BoardsController", () => {
     controller = module.get<BoardsController>(BoardsController);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 });

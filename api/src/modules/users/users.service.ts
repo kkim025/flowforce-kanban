@@ -1,17 +1,22 @@
-import { Injectable, Inject, ConflictException, NotFoundException } from "@nestjs/common";
-import type { IUserRepository } from "./domain/user.repository.interface";
-import { User } from "./domain/user.entity";
-import { UserDto } from "./application/dto/user.dto";
-import { InviteUserDto } from "./application/dto/invite-user.dto";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { v4 as uuidv4 } from "uuid";
+import {
+  Injectable,
+  Inject,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import type { IUserRepository } from './domain/user.repository.interface';
+import { User } from './domain/user.entity';
+import { UserDto } from './application/dto/user.dto';
+import { InviteUserDto } from './application/dto/invite-user.dto';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject("IUserRepository")
+    @Inject('IUserRepository')
     private userRepository: IUserRepository,
-    private prisma: PrismaService
+    private prisma: PrismaService,
   ) {}
 
   async findOneByEmail(email: string): Promise<User | null> {
@@ -45,7 +50,7 @@ export class UsersService {
   async inviteUser(dto: InviteUserDto) {
     const existingUser = await this.userRepository.findByEmail(dto.email);
     if (existingUser) {
-      throw new ConflictException("User already exists");
+      throw new ConflictException('User already exists');
     }
 
     const token = uuidv4();
@@ -56,19 +61,18 @@ export class UsersService {
       where: { email: dto.email },
       update: {
         token,
-        role: dto.role || "MEMBER",
+        role: dto.role || 'MEMBER',
         expiresAt,
       },
       create: {
         email: dto.email,
         token,
-        role: dto.role || "MEMBER",
+        role: dto.role || 'MEMBER',
         expiresAt,
       },
     });
 
-    // TODO: In a real app, send an email here
-    console.log(`Invitation sent to ${dto.email} with token ${token}`);
+    // TODO: Send invitation email to dto.email with token
 
     return invitation;
   }
@@ -76,21 +80,25 @@ export class UsersService {
   async removeUser(id: string) {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     // Check if it's the last admin
-    if (user.role === "ADMIN") {
-      const users = await this.userRepository.findAll();
-      const adminCount = users.filter((u) => u.role === "ADMIN").length;
+    if (user.role === 'ADMIN') {
+      const adminCount = await this.userRepository.countByRole('ADMIN');
       if (adminCount <= 1) {
-        throw new ConflictException("Cannot delete the last administrator");
+        throw new ConflictException('Cannot delete the last administrator');
       }
     }
 
-    // Handle data dependencies (hard delete user and cascade if schema allows, 
-    // but Prisma User model doesn't have onDelete: Cascade for boards/tasks by default)
-    // For simplicity, we'll use Prisma directly to ensure cleanup
+    // Check for boards owned by this user
+    const boards = await this.prisma.board.findMany({ where: { ownerId: id } });
+    if (boards.length > 0) {
+      throw new ConflictException(
+        'Cannot delete user who owns boards. Please transfer or delete the boards first.',
+      );
+    }
+
     await this.prisma.user.delete({
       where: { id },
     });
@@ -98,18 +106,17 @@ export class UsersService {
     return { success: true };
   }
 
-  async updateUserRole(id: string, role: "ADMIN" | "MEMBER") {
+  async updateUserRole(id: string, role: 'ADMIN' | 'MEMBER') {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException('User not found');
     }
 
     // If demoting an admin, check if it's the last one
-    if (user.role === "ADMIN" && role === "MEMBER") {
-      const users = await this.userRepository.findAll();
-      const adminCount = users.filter((u) => u.role === "ADMIN").length;
+    if (user.role === 'ADMIN' && role === 'MEMBER') {
+      const adminCount = await this.userRepository.countByRole('ADMIN');
       if (adminCount <= 1) {
-        throw new ConflictException("Cannot demote the last administrator");
+        throw new ConflictException('Cannot demote the last administrator');
       }
     }
 

@@ -1,10 +1,14 @@
-import { Board as PrismaBoard, Column as PrismaColumn } from "@prisma/client";
-import { Board } from "../../domain/board.entity";
-import { Column } from "../../domain/column.entity";
+import { Board as PrismaBoard, Column as PrismaColumn } from '@prisma/client';
+import { Board } from '../../domain/board.entity';
+import { Column } from '../../domain/column.entity';
 
 export class BoardMapper {
-  public static toDomain(raw: PrismaBoard & { columns?: PrismaColumn[] }): Board {
-    const columns = raw.columns ? raw.columns.map((col) => this.columnToDomain(col)) : [];
+  public static toDomain(
+    raw: PrismaBoard & { columns?: PrismaColumn[] },
+  ): Board {
+    const columns = raw.columns
+      ? raw.columns.map((col) => this.columnToDomain(col))
+      : [];
 
     const boardResult = Board.create(
       {
@@ -12,7 +16,7 @@ export class BoardMapper {
         ownerId: raw.ownerId,
         columns: columns,
       },
-      raw.id
+      raw.id,
     );
 
     if (boardResult.isFailure) {
@@ -28,7 +32,7 @@ export class BoardMapper {
         title: raw.title,
         order: raw.order,
       },
-      raw.id
+      raw.id,
     );
 
     if (columnResult.isFailure) {
@@ -46,7 +50,10 @@ export class BoardMapper {
     };
   }
 
-  public static columnToPersistence(column: Column, boardId: string): Partial<PrismaColumn> {
+  public static columnToPersistence(
+    column: Column,
+    boardId: string,
+  ): Partial<PrismaColumn> {
     return {
       id: column.id,
       title: column.title,

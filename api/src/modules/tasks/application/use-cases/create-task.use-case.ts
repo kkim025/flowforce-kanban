@@ -1,16 +1,16 @@
-import { Injectable, Inject, NotFoundException } from "@nestjs/common";
-import type { ITaskRepository } from "../../domain/tasks.repository.interface";
-import { CreateTaskDto } from "../dto/create-task.dto";
-import { Task } from "../../domain/task.entity";
-import type { IBoardRepository } from "../../../boards/domain/boards.repository.interface";
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import type { ITaskRepository } from '../../domain/tasks.repository.interface';
+import { CreateTaskDto } from '../dto/create-task.dto';
+import { Task } from '../../domain/task.entity';
+import type { IBoardRepository } from '../../../boards/domain/boards.repository.interface';
 
 @Injectable()
 export class CreateTaskUseCase {
   constructor(
-    @Inject("ITaskRepository")
+    @Inject('ITaskRepository')
     private taskRepository: ITaskRepository,
-    @Inject("IBoardRepository")
-    private boardRepository: IBoardRepository
+    @Inject('IBoardRepository')
+    private boardRepository: IBoardRepository,
   ) {}
 
   async execute(dto: CreateTaskDto): Promise<Task> {

@@ -1,11 +1,11 @@
-import { Module, forwardRef } from "@nestjs/common";
-import { ColumnsService } from "./columns.service";
-import { ColumnsController } from "./columns.controller";
-import { PrismaModule } from "../../common/prisma/prisma.module";
-import { BoardsModule } from "../boards/boards.module";
-import { AddColumnUseCase } from "../boards/application/use-cases/add-column.use-case";
-import { ReorderColumnsUseCase } from "../boards/application/use-cases/reorder-columns.use-case";
-import { IBoardRepository } from "../boards/domain/boards.repository.interface";
+import { Module, forwardRef } from '@nestjs/common';
+import { ColumnsService } from './columns.service';
+import { ColumnsController } from './columns.controller';
+import { PrismaModule } from '../../common/prisma/prisma.module';
+import { BoardsModule } from '../boards/boards.module';
+import { AddColumnUseCase } from '../boards/application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from '../boards/application/use-cases/reorder-columns.use-case';
+import { IBoardRepository } from '../boards/domain/boards.repository.interface';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => BoardsModule)],
@@ -15,12 +15,12 @@ import { IBoardRepository } from "../boards/domain/boards.repository.interface";
     {
       provide: AddColumnUseCase,
       useFactory: (repo: IBoardRepository) => new AddColumnUseCase(repo),
-      inject: ["IBoardRepository"],
+      inject: ['IBoardRepository'],
     },
     {
       provide: ReorderColumnsUseCase,
       useFactory: (repo: IBoardRepository) => new ReorderColumnsUseCase(repo),
-      inject: ["IBoardRepository"],
+      inject: ['IBoardRepository'],
     },
   ],
   exports: [ColumnsService, AddColumnUseCase, ReorderColumnsUseCase],

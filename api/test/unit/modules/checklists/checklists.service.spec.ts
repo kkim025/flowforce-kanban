@@ -56,7 +56,10 @@ describe('ChecklistsService', () => {
       prisma.task.findUnique.mockResolvedValue(mockTask);
       prisma.checklist.create.mockResolvedValue(mockChecklist);
 
-      const result = await service.create(mockUser.id, { title: 'New List', taskId: 'task-1' });
+      const result = await service.create(mockUser.id, {
+        title: 'New List',
+        taskId: 'task-1',
+      });
 
       expect(result).toEqual(mockChecklist);
       expect(prisma.task.findUnique).toHaveBeenCalled();
@@ -69,8 +72,9 @@ describe('ChecklistsService', () => {
         column: { board: { ownerId: 'other-user' } },
       });
 
-      await expect(service.create(mockUser.id, { title: 'New List', taskId: 'task-1' }))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.create(mockUser.id, { title: 'New List', taskId: 'task-1' }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -82,14 +86,17 @@ describe('ChecklistsService', () => {
       const result = await service.remove(mockUser.id, 'cl-1');
 
       expect(result).toEqual(mockChecklist);
-      expect(prisma.checklist.delete).toHaveBeenCalledWith({ where: { id: 'cl-1' } });
+      expect(prisma.checklist.delete).toHaveBeenCalledWith({
+        where: { id: 'cl-1' },
+      });
     });
 
-    it('should throw NotFoundException if checklist doesn\'t exist', async () => {
+    it("should throw NotFoundException if checklist doesn't exist", async () => {
       prisma.checklist.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(mockUser.id, 'cl-1'))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.remove(mockUser.id, 'cl-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

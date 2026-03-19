@@ -258,7 +258,7 @@ describe('Users (e2e)', () => {
         .send({
           token: inviteToken,
           password: 'newpassword123',
-          name: 'New Member'
+          name: 'New Member',
         })
         .expect(201)
         .then((response) => {
@@ -275,7 +275,7 @@ describe('Users (e2e)', () => {
         .send({
           token: 'invalid-token',
           password: 'password123',
-          name: 'Fail User'
+          name: 'Fail User',
         })
         .expect(404);
     });

@@ -1,18 +1,22 @@
-import { Injectable, Inject, NotFoundException } from "@nestjs/common";
-import type { ITaskRepository } from "../../domain/tasks.repository.interface";
-import type { IBoardRepository } from "../../../boards/domain/boards.repository.interface";
-import { Task } from "../../domain/task.entity";
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import type { ITaskRepository } from '../../domain/tasks.repository.interface';
+import type { IBoardRepository } from '../../../boards/domain/boards.repository.interface';
+import { Task } from '../../domain/task.entity';
 
 @Injectable()
 export class MoveTaskUseCase {
   constructor(
-    @Inject("ITaskRepository")
+    @Inject('ITaskRepository')
     private taskRepository: ITaskRepository,
-    @Inject("IBoardRepository")
-    private boardRepository: IBoardRepository
+    @Inject('IBoardRepository')
+    private boardRepository: IBoardRepository,
   ) {}
 
-  async execute(taskId: string, targetColumnId: string, order: number): Promise<Task> {
+  async execute(
+    taskId: string,
+    targetColumnId: string,
+    order: number,
+  ): Promise<Task> {
     const task = await this.taskRepository.findById(taskId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);

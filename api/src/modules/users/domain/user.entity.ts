@@ -1,9 +1,9 @@
-import { AggregateRoot } from "../../../common/domain/aggregate-root";
-import { Result } from "../../../common/domain/result";
-import { Email } from "./email.value-object";
+import { AggregateRoot } from '../../../common/domain/aggregate-root';
+import { Result } from '../../../common/domain/result';
+import { Email } from './email.value-object';
 
-export type UserRole = "ADMIN" | "MEMBER";
-export type UserStatus = "ACTIVE" | "PENDING" | "INACTIVE";
+export type UserRole = 'ADMIN' | 'MEMBER';
+export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
 
 export interface UserProps extends Record<string, unknown> {
   email: Email;

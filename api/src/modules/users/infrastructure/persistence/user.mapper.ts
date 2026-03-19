@@ -1,12 +1,16 @@
-import { User as PrismaUser, Prisma, Role, UserStatus } from "@prisma/client";
-import { User, UserRole, UserStatus as DomainUserStatus } from "../../domain/user.entity";
-import { Email } from "../../domain/email.value-object";
+import { User as PrismaUser, Prisma, Role, UserStatus } from '@prisma/client';
+import {
+  User,
+  UserRole,
+  UserStatus as DomainUserStatus,
+} from '../../domain/user.entity';
+import { Email } from '../../domain/email.value-object';
 
 export class UserMapper {
   public static toDomain(raw: PrismaUser): User {
     const emailResult = Email.create(raw.email);
     if (emailResult.isFailure) {
-      throw new Error("Invalid email in database");
+      throw new Error('Invalid email in database');
     }
 
     const userResult = User.create(
@@ -17,7 +21,7 @@ export class UserMapper {
         role: raw.role as UserRole,
         status: raw.status as DomainUserStatus,
       },
-      raw.id
+      raw.id,
     );
 
     return userResult.getValue();

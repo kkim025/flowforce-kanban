@@ -1,6 +1,6 @@
-import { Entity } from "../../../common/domain/entity";
-import { Result } from "../../../common/domain/result";
-import { Subtask } from "./subtask.entity";
+import { Entity } from '../../../common/domain/entity';
+import { Result } from '../../../common/domain/result';
+import { Subtask } from './subtask.entity';
 
 export interface ChecklistProps extends Record<string, unknown> {
   title: string;
@@ -22,7 +22,7 @@ export class Checklist extends Entity<ChecklistProps> {
 
   public static create(props: ChecklistProps, id?: string): Result<Checklist> {
     if (!props.title) {
-      return Result.fail<Checklist>("Checklist title is required");
+      return Result.fail<Checklist>('Checklist title is required');
     }
     return Result.ok<Checklist>(new Checklist(props, id));
   }

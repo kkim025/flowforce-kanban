@@ -1,9 +1,9 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../../../common/prisma/prisma.service";
-import { IUserRepository } from "../../domain/user.repository.interface";
-import { User } from "../../domain/user.entity";
-import { UserMapper } from "./user.mapper";
-import { Prisma } from "@prisma/client";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../../common/prisma/prisma.service';
+import { IUserRepository } from '../../domain/user.repository.interface';
+import { User } from '../../domain/user.entity';
+import { UserMapper } from './user.mapper';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -35,7 +35,9 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async save(user: User): Promise<void> {
-    const persistenceUser = UserMapper.toPersistence(user) as Prisma.UserUpsertArgs["create"];
+    const persistenceUser = UserMapper.toPersistence(
+      user,
+    ) as Prisma.UserUpsertArgs['create'];
 
     await this.prisma.user.upsert({
       where: { id: user.id },
@@ -46,5 +48,9 @@ export class PrismaUserRepository implements IUserRepository {
 
   async count(): Promise<number> {
     return this.prisma.user.count();
+  }
+
+  async countByRole(role: 'ADMIN' | 'MEMBER'): Promise<number> {
+    return this.prisma.user.count({ where: { role } });
   }
 }

@@ -1,7 +1,7 @@
-import { IsEnum, IsNotEmpty } from "class-validator";
+import { IsEnum, IsNotEmpty } from 'class-validator';
 
 export class UpdateUserRoleDto {
-  @IsEnum(["ADMIN", "MEMBER"])
+  @IsEnum(['ADMIN', 'MEMBER'])
   @IsNotEmpty()
-  role: "ADMIN" | "MEMBER";
+  role: 'ADMIN' | 'MEMBER';
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Column } from '@prisma/client';
 
@@ -20,7 +24,10 @@ export class ColumnsService {
     return board;
   }
 
-  async create(userId: string, data: { title: string; boardId: string; order: number; wipLimit?: number }): Promise<Column> {
+  async create(
+    userId: string,
+    data: { title: string; boardId: string; order: number; wipLimit?: number },
+  ): Promise<Column> {
     await this.checkBoardOwnership(userId, data.boardId);
 
     return this.prisma.column.create({
@@ -46,14 +53,19 @@ export class ColumnsService {
     });
   }
 
-  async update(userId: string, id: string, data: { title?: string; order?: number; wipLimit?: number }): Promise<Column> {
+  async update(
+    userId: string,
+    id: string,
+    data: { title?: string; order?: number; wipLimit?: number },
+  ): Promise<Column> {
     const column = await this.prisma.column.findUnique({
       where: { id },
       include: { board: true },
     });
 
     if (!column) throw new NotFoundException('Column not found');
-    if (column.board.ownerId !== userId) throw new ForbiddenException('Access denied');
+    if (column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
 
     return this.prisma.column.update({
       where: { id },
@@ -65,7 +77,11 @@ export class ColumnsService {
     });
   }
 
-  async reorder(userId: string, boardId: string, columnIds: string[]): Promise<void> {
+  async reorder(
+    userId: string,
+    boardId: string,
+    columnIds: string[],
+  ): Promise<void> {
     await this.checkBoardOwnership(userId, boardId);
 
     await this.prisma.$transaction(
@@ -85,7 +101,8 @@ export class ColumnsService {
     });
 
     if (!column) throw new NotFoundException('Column not found');
-    if (column.board.ownerId !== userId) throw new ForbiddenException('Access denied');
+    if (column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
 
     return this.prisma.column.delete({
       where: { id },

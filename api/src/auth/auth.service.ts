@@ -1,15 +1,20 @@
-import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from "@nestjs/common";
-import { RegisterUserUseCase } from "../modules/users/application/use-cases/register-user.use-case";
-import { ValidateUserUseCase } from "../modules/users/application/use-cases/validate-user.use-case";
-import { LoginUserUseCase } from "../modules/users/application/use-cases/login-user.use-case";
-import { RegisterUserDto } from "../modules/users/application/dto/register-user.dto";
-import { UserDto } from "../modules/users/application/dto/user.dto";
-import { LoginResponseDto } from "../modules/users/application/dto/login-response.dto";
-import { AcceptInvitationDto } from "../modules/users/application/dto/accept-invitation.dto";
-import { User } from "../modules/users/domain/user.entity";
-import { Email } from "../modules/users/domain/email.value-object";
-import { PrismaService } from "../common/prisma/prisma.service";
-import * as bcrypt from "bcrypt";
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { RegisterUserUseCase } from '../modules/users/application/use-cases/register-user.use-case';
+import { ValidateUserUseCase } from '../modules/users/application/use-cases/validate-user.use-case';
+import { LoginUserUseCase } from '../modules/users/application/use-cases/login-user.use-case';
+import { RegisterUserDto } from '../modules/users/application/dto/register-user.dto';
+import { UserDto } from '../modules/users/application/dto/user.dto';
+import { LoginResponseDto } from '../modules/users/application/dto/login-response.dto';
+import { AcceptInvitationDto } from '../modules/users/application/dto/accept-invitation.dto';
+import { User } from '../modules/users/domain/user.entity';
+import { Email } from '../modules/users/domain/email.value-object';
+import { PrismaService } from '../common/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +22,7 @@ export class AuthService {
     private registerUserUseCase: RegisterUserUseCase,
     private validateUserUseCase: ValidateUserUseCase,
     private loginUserUseCase: LoginUserUseCase,
-    private prisma: PrismaService
+    private prisma: PrismaService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<UserDto | null> {
@@ -37,18 +42,30 @@ export class AuthService {
   async login(userDto: UserDto): Promise<LoginResponseDto> {
     const emailResult = Email.create(userDto.email);
     if (emailResult.isFailure) {
-      throw new BadRequestException("Invalid email in userDto");
+      throw new BadRequestException('Invalid email in userDto');
+    }
+
+    const validRoles = ['ADMIN', 'MEMBER'] as const;
+    const validStatuses = ['ACTIVE', 'PENDING', 'INACTIVE'] as const;
+
+    if (
+      !validRoles.includes(userDto.role as 'ADMIN' | 'MEMBER') ||
+      !validStatuses.includes(
+        userDto.status as 'ACTIVE' | 'PENDING' | 'INACTIVE',
+      )
+    ) {
+      throw new BadRequestException('Invalid role or status in userDto');
     }
 
     const userResult = User.create(
       {
         email: emailResult.getValue(),
-        password: "", // Password not needed for login token generation
+        password: '',
         name: userDto.name,
-        role: userDto.role as any,
-        status: userDto.status as any,
+        role: userDto.role as 'ADMIN' | 'MEMBER',
+        status: userDto.status as 'ACTIVE' | 'PENDING' | 'INACTIVE',
       },
-      userDto.id
+      userDto.id,
     );
 
     return this.loginUserUseCase.execute(userResult.getValue());
@@ -72,17 +89,17 @@ export class AuthService {
     });
 
     if (!invitation) {
-      throw new NotFoundException("Invalid or expired invitation token");
+      throw new NotFoundException('Invalid or expired invitation token');
     }
 
     if (invitation.expiresAt < new Date()) {
       await this.prisma.invitation.delete({ where: { token: dto.token } });
-      throw new UnauthorizedException("Invitation token has expired");
+      throw new UnauthorizedException('Invitation token has expired');
     }
 
     const emailResult = Email.create(invitation.email);
     if (emailResult.isFailure) {
-      throw new BadRequestException(String(emailResult.error));
+      throw new BadRequestException(String(emailResult.error as unknown));
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -92,11 +109,11 @@ export class AuthService {
       password: hashedPassword,
       name: dto.name,
       role: invitation.role,
-      status: "ACTIVE",
+      status: 'ACTIVE',
     });
 
     if (userResult.isFailure) {
-      throw new BadRequestException(String(userResult.error));
+      throw new BadRequestException(String(userResult.error as unknown));
     }
 
     const user = userResult.getValue();
@@ -110,7 +127,7 @@ export class AuthService {
           password: user.password,
           name: user.name,
           role: user.role,
-          status: "ACTIVE",
+          status: 'ACTIVE',
         },
       }),
       this.prisma.invitation.delete({
@@ -123,8 +140,7 @@ export class AuthService {
       email: user.email.value,
       name: user.name,
       role: user.role,
-      status: "ACTIVE",
+      status: 'ACTIVE',
     });
   }
 }
-

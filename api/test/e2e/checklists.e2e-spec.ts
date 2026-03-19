@@ -32,19 +32,19 @@ describe('Checklists (e2e)', () => {
     const regRes = await request(app.getHttpServer())
       .post('/auth/register')
       .send(testUser);
-    
+
     accessToken = regRes.body.access_token;
     userId = regRes.body.user.id;
 
     // 2. Setup Board, Column, Task
     const board = await prisma.board.create({
-      data: { title: 'Test Board', ownerId: userId }
+      data: { title: 'Test Board', ownerId: userId },
     });
     const column = await prisma.column.create({
-      data: { title: 'Test Col', boardId: board.id, order: 0 }
+      data: { title: 'Test Col', boardId: board.id, order: 0 },
     });
     const task = await prisma.task.create({
-      data: { content: 'Test Task', columnId: column.id, order: 0 }
+      data: { content: 'Test Task', columnId: column.id, order: 0 },
     });
     taskId = task.id;
   });
@@ -52,7 +52,9 @@ describe('Checklists (e2e)', () => {
   afterAll(async () => {
     // Delete in order to avoid FK constraints
     if (userId) {
-      const boards = await prisma.board.findMany({ where: { ownerId: userId } });
+      const boards = await prisma.board.findMany({
+        where: { ownerId: userId },
+      });
       for (const board of boards) {
         await prisma.column.deleteMany({ where: { boardId: board.id } });
         await prisma.board.delete({ where: { id: board.id } });
@@ -80,7 +82,7 @@ describe('Checklists (e2e)', () => {
       .post(`/tasks/${taskId}/checklists`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ title: 'List for items' });
-    
+
     const checklistId = clRes.body.id;
 
     const res = await request(app.getHttpServer())
@@ -98,7 +100,7 @@ describe('Checklists (e2e)', () => {
       .post(`/tasks/${taskId}/checklists`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ title: 'Old Title' });
-    
+
     const res = await request(app.getHttpServer())
       .patch(`/checklists/${clRes.body.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
@@ -113,13 +115,15 @@ describe('Checklists (e2e)', () => {
       .post(`/tasks/${taskId}/checklists`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ title: 'To Delete' });
-    
+
     await request(app.getHttpServer())
       .delete(`/checklists/${clRes.body.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    const check = await prisma.checklist.findUnique({ where: { id: clRes.body.id } });
+    const check = await prisma.checklist.findUnique({
+      where: { id: clRes.body.id },
+    });
     expect(check).toBeNull();
   });
 });

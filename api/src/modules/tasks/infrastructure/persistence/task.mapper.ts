@@ -1,12 +1,26 @@
-import { Task as PrismaTask, Subtask as PrismaSubtask, Checklist as PrismaChecklist, Priority as PrismaPriority } from "@prisma/client";
-import { Task, Priority } from "../../domain/task.entity";
-import { Subtask } from "../../domain/subtask.entity";
-import { Checklist } from "../../domain/checklist.entity";
+import {
+  Task as PrismaTask,
+  Subtask as PrismaSubtask,
+  Checklist as PrismaChecklist,
+  Priority as PrismaPriority,
+} from '@prisma/client';
+import { Task, Priority } from '../../domain/task.entity';
+import { Subtask } from '../../domain/subtask.entity';
+import { Checklist } from '../../domain/checklist.entity';
 
 export class TaskMapper {
-  public static toDomain(raw: PrismaTask & { subtasks?: PrismaSubtask[]; checklists?: (PrismaChecklist & { items?: PrismaSubtask[] })[] }): Task {
-    const subtasks = raw.subtasks ? raw.subtasks.map((st) => this.subtaskToDomain(st)) : [];
-    const checklists = raw.checklists ? raw.checklists.map((cl) => this.checklistToDomain(cl)) : [];
+  public static toDomain(
+    raw: PrismaTask & {
+      subtasks?: PrismaSubtask[];
+      checklists?: (PrismaChecklist & { items?: PrismaSubtask[] })[];
+    },
+  ): Task {
+    const subtasks = raw.subtasks
+      ? raw.subtasks.map((st) => this.subtaskToDomain(st))
+      : [];
+    const checklists = raw.checklists
+      ? raw.checklists.map((cl) => this.checklistToDomain(cl))
+      : [];
 
     const taskResult = Task.create(
       {
@@ -21,7 +35,7 @@ export class TaskMapper {
         subtasks: subtasks,
         checklists: checklists,
       },
-      raw.id
+      raw.id,
     );
 
     if (taskResult.isFailure) {
@@ -37,7 +51,7 @@ export class TaskMapper {
         content: raw.content,
         completed: raw.completed,
       },
-      raw.id
+      raw.id,
     );
 
     if (subtaskResult.isFailure) {
@@ -47,15 +61,19 @@ export class TaskMapper {
     return subtaskResult.getValue();
   }
 
-  public static checklistToDomain(raw: PrismaChecklist & { items?: PrismaSubtask[] }): Checklist {
-    const items = raw.items ? raw.items.map((st) => this.subtaskToDomain(st)) : [];
+  public static checklistToDomain(
+    raw: PrismaChecklist & { items?: PrismaSubtask[] },
+  ): Checklist {
+    const items = raw.items
+      ? raw.items.map((st) => this.subtaskToDomain(st))
+      : [];
 
     const checklistResult = Checklist.create(
       {
         title: raw.title,
         items: items,
       },
-      raw.id
+      raw.id,
     );
 
     if (checklistResult.isFailure) {
@@ -79,7 +97,11 @@ export class TaskMapper {
     };
   }
 
-  public static subtaskToPersistence(subtask: Subtask, taskId: string | null, checklistId: string | null): Partial<PrismaSubtask> {
+  public static subtaskToPersistence(
+    subtask: Subtask,
+    taskId: string | null,
+    checklistId: string | null,
+  ): Partial<PrismaSubtask> {
     return {
       id: subtask.id,
       content: subtask.content,
@@ -89,7 +111,10 @@ export class TaskMapper {
     };
   }
 
-  public static checklistToPersistence(checklist: Checklist, taskId: string): Partial<PrismaChecklist> {
+  public static checklistToPersistence(
+    checklist: Checklist,
+    taskId: string,
+  ): Partial<PrismaChecklist> {
     return {
       id: checklist.id,
       title: checklist.title,

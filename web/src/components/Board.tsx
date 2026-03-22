@@ -11,9 +11,10 @@ import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
 import Drawer from './Drawer';
+import SprintFilterBar from './sprints/SprintFilterBar';
 
 const Board: React.FC = () => {
-    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated } = useKanban();
+    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId } = useKanban();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -24,6 +25,10 @@ const Board: React.FC = () => {
 
     // Drawer state
     const isDrawerOpen = useMemo(() => location.pathname.includes('/tasks/') || location.pathname.includes('/admin/'), [location.pathname]);
+
+    // Sprint panel state
+    const [isSprintPanelOpen, setIsSprintPanelOpen] = useState(false);
+    const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
 
     // Column Management
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -397,6 +402,13 @@ const Board: React.FC = () => {
                 </div>
             </header>
 
+            {/* Sprint Filter Bar */}
+            <SprintFilterBar
+                boardId={activeBoardId || ''}
+                onOpenSprintPanel={() => setIsSprintPanelOpen(true)}
+                onOpenCreateSprint={() => setIsCreateSprintOpen(true)}
+            />
+
             <AnimatePresence mode="wait">
                 {!isHydrated ? (
                     <motion.div
@@ -440,6 +452,14 @@ const Board: React.FC = () => {
                                                 .map((taskId) => state.tasks[taskId])
                                                 .filter(task => task && !task.isArchived)
                                                 .filter(task => {
+                                                    // Sprint filtering
+                                                    if (state.activeSprintId !== null) {
+                                                        // Show tasks in active sprint or tasks with no sprint (backlog)
+                                                        if (task.sprintId && task.sprintId !== state.activeSprintId) {
+                                                            return false;
+                                                        }
+                                                    }
+                                                    // Search filtering
                                                     if (!state.searchQuery) return true;
                                                     const query = state.searchQuery.toLowerCase();
                                                     return (

@@ -76,7 +76,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (response.data.length === 0) {
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
-                    
+
                     // Note: CreateBoardUseCase already adds default columns: To Do, In Progress, Done
                     // But we might want the specific ones from the frontend template
                     // For now, let's just use what's returned
@@ -88,11 +88,32 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
-                
+
                 // Set default WIP limits if they exist in state
                 if (mappedState.columns['inprogress']) mappedState.columns['inprogress'].wipLimit = 3;
                 if (mappedState.columns['review']) mappedState.columns['review'].wipLimit = 2;
                 if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
+
+                // Load sprints
+                try {
+                    const sprintsResponse = await api.get(`/boards/${board.id}/sprints`);
+                    mappedState.sprints = sprintsResponse.data || [];
+
+                    // Restore active sprint from localStorage
+                    const savedSprintId = localStorage.getItem('flowforce_active_sprint_id');
+                    if (savedSprintId) {
+                        const sprintExists = mappedState.sprints.some((s: any) => s.id === savedSprintId);
+                        mappedState.activeSprintId = sprintExists ? savedSprintId : null;
+                    } else {
+                        // Default to active sprint if one exists
+                        const activeSprint = mappedState.sprints.find((s: any) => s.status === 'ACTIVE');
+                        mappedState.activeSprintId = activeSprint?.id || null;
+                    }
+                } catch (sprintErr) {
+                    console.warn('Could not load sprints:', sprintErr);
+                    mappedState.sprints = [];
+                    mappedState.activeSprintId = null;
+                }
 
                 setHistory({ type: 'SET_STATE', payload: mappedState });
                 setIsHydrated(true);

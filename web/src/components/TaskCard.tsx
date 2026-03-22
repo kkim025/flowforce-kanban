@@ -8,6 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
+import { useKanban } from '../store/KanbanContext';
+import { getSprintColor } from '../lib/sprint-utils';
+import SprintBadge from './sprints/SprintBadge';
 
 interface TaskCardProps {
     task: Task;
@@ -20,10 +23,25 @@ interface TaskCardProps {
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isSelected, onSelect }) => {
     const navigate = useNavigate();
+    const { state, dispatch } = useKanban();
+    const { sprints } = state;
+
+    // Find sprint for this task
+    const taskSprint = task.sprintId ? sprints.find(s => s.id === task.sprintId) : null;
+    const sprintIndex = taskSprint ? sprints.indexOf(taskSprint) : -1;
+    const sprintColor = taskSprint ? getSprintColor(sprintIndex) : null;
+
     const priorityColors = {
         low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
         medium: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
         high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    };
+
+    const handleSprintBadgeClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (taskSprint) {
+            dispatch({ type: 'SET_ACTIVE_SPRINT', payload: { sprintId: taskSprint.id } });
+        }
     };
 
     return (
@@ -56,11 +74,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
                                     ? 'rotate-[2deg] scale-[1.02] shadow-[0_20px_50px_rgba(37,99,235,0.3)] z-[1000] ring-2 ring-accent-blue/50 bg-white dark:bg-slate-900'
                                     : 'hover:shadow-lg hover:-translate-y-1 hover:ring-1 hover:ring-slate-200 dark:hover:ring-slate-700'}
               `}
+                            style={sprintColor ? { borderLeft: `3px solid ${sprintColor}` } : undefined}
                         >
                             <div className="flex justify-between items-start mb-2">
-                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${priorityColors[task.priority]}`}>
-                                    {task.priority}
-                                </span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${priorityColors[task.priority]}`}>
+                                        {task.priority}
+                                    </span>
+                                    {taskSprint && sprintIndex >= 0 && (
+                                        <SprintBadge
+                                            sprint={taskSprint}
+                                            sprintIndex={sprintIndex}
+                                            compact
+                                            onClick={handleSprintBadgeClick}
+                                        />
+                                    )}
+                                </div>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();

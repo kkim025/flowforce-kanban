@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Settings, UserPlus, X } from 'lucide-react';
 import { Task, Priority } from '../types';
 import { useUsers } from '../store/UserContext';
+import { useKanban } from '../store/KanbanContext';
 import { UI_LABELS } from '../lib/constants';
 import Dropdown from './Dropdown';
+import SprintSelector from './sprints/SprintSelector';
 
 interface TaskSidebarProps {
     task: Task;
@@ -21,6 +23,7 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
     onRemoveTag
 }) => {
     const { users, getInitials, getUserName } = useUsers();
+    const { activeBoardId } = useKanban();
     const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
     const [showPriorityMenu, setShowPriorityMenu] = useState(false);
     const [showLabelMenu, setShowLabelMenu] = useState(false);
@@ -161,6 +164,15 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
                     ))}
                 </Dropdown>
             </div>
+
+            {/* Sprint Section */}
+            {activeBoardId && (
+                <SprintSelector
+                    taskId={task.id}
+                    currentSprintId={task.sprintId}
+                    boardId={activeBoardId}
+                />
+            )}
 
             {/* Labels Section */}
             <div className="sidebar-section relative" ref={labelRef}>

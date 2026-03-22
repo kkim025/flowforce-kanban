@@ -3,22 +3,24 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
 import { useAuth } from '../store/AuthContext';
-import { 
-    Save, 
-    Plus, 
-    Layout, 
-    AlignLeft, 
-    BarChart2, 
-    Tag, 
+import {
+    Save,
+    Plus,
+    Layout,
+    AlignLeft,
+    BarChart2,
+    Tag,
     User as UserIcon,
     AlertCircle,
     CheckSquare,
-    X
+    X,
+    Calendar
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import MarkdownEditor from './MarkdownEditor';
 import { Priority, Task, Checklist, SubTask, Activity } from '../types';
 import { UI_LABELS } from '../lib/constants';
+import { getSprintColor } from '../lib/sprint-utils';
 
 const TaskEditor: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
@@ -37,6 +39,7 @@ const TaskEditor: React.FC = () => {
     const [tags, setTags] = useState<string[]>(existingTask?.tags || []);
     const [tagInput, setTagInput] = useState('');
     const [assigneeId, setAssigneeId] = useState<string | undefined>(existingTask?.assigneeId);
+    const [sprintId, setSprintId] = useState<string | undefined>(existingTask?.sprintId);
     const [checklists, setChecklists] = useState<Checklist[]>(existingTask?.checklists || []);
 
     // Get columnId from URL if creating new task
@@ -68,6 +71,7 @@ const TaskEditor: React.FC = () => {
             // CRITICAL: Rigorously preserve comments and activities
             comments: existingTask?.comments || [],
             activities: [...(existingTask?.activities || [])],
+            sprintId,
         };
 
         if (isEditing) {
@@ -356,6 +360,25 @@ const TaskEditor: React.FC = () => {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {UI_LABELS.SPRINT}
+                            </label>
+                            <select
+                                value={sprintId || ''}
+                                onChange={(e) => setSprintId(e.target.value || undefined)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent-blue/30 transition-all"
+                            >
+                                <option value="">{UI_LABELS.NO_SPRINT}</option>
+                                {state.sprints.map((sprint, index) => (
+                                    <option key={sprint.id} value={sprint.id}>
+                                        {sprint.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="space-y-3">

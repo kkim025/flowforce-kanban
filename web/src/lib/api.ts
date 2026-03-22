@@ -76,7 +76,7 @@ export interface UpdateSprintInput {
 }
 
 export const getSprints = async (boardId: string): Promise<Sprint[]> => {
-  const response = await api.get(`/boards/${boardId}/sprints`);
+  const response = await api.get(`/sprints/boards/${boardId}`);
   return response.data;
 };
 
@@ -109,7 +109,7 @@ export const assignTaskToSprint = async (taskId: string, sprintId: string | null
 };
 
 export const getActiveSprint = async (boardId: string): Promise<Sprint | null> => {
-  const response = await api.get(`/boards/${boardId}/sprints/active`);
+  const response = await api.get(`/sprints/boards/${boardId}/active`);
   return response.data;
 };
 

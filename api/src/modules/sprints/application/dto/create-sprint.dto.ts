@@ -21,4 +21,8 @@ export class CreateSprintDto {
   @IsOptional()
   @IsIn(['PLANNING', 'ACTIVE', 'COMPLETED'])
   status?: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+
+  @IsString()
+  @IsNotEmpty()
+  boardId: string;
 }

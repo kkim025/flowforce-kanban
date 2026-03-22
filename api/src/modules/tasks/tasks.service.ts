@@ -170,6 +170,36 @@ export class TasksService {
     return comment;
   }
 
+  async assignSprint(
+    userId: string,
+    taskId: string,
+    sprintId: string | null,
+  ): Promise<Task> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { column: { include: { board: true } } },
+    });
+
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
+
+    // If sprintId is provided, verify it belongs to the same board
+    if (sprintId) {
+      const sprint = await this.prisma.sprint.findUnique({
+        where: { id: sprintId },
+      });
+      if (!sprint) throw new NotFoundException('Sprint not found');
+      if (sprint.boardId !== task.column.boardId)
+        throw new ForbiddenException('Sprint does not belong to this board');
+    }
+
+    return this.prisma.task.update({
+      where: { id: taskId },
+      data: { sprintId },
+    });
+  }
+
   async logActivity(
     userId: string,
     taskId: string,

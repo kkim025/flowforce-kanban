@@ -149,4 +149,14 @@ export class TasksController {
   ) {
     return this.tasksService.addComment(userId, taskId, data.content);
   }
+
+  // PATCH /tasks/:taskId/sprint — assign/unassign task to sprint
+  @Patch(':taskId/sprint')
+  async assignSprint(
+    @GetUser('sub') userId: string,
+    @Param('taskId') taskId: string,
+    @Body() body: { sprintId: string | null },
+  ) {
+    return this.tasksService.assignSprint(userId, taskId, body.sprintId);
+  }
 }

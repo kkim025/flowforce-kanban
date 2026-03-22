@@ -34,7 +34,7 @@ export class SprintsController {
   ) {}
 
   // GET /boards/:boardId/sprints — list sprints for a board (any member)
-  @Get('board/:boardId')
+  @Get('boards/:boardId')
   async findByBoard(@Param('boardId') boardId: string) {
     return this.prisma.sprint.findMany({
       where: { boardId },
@@ -43,7 +43,7 @@ export class SprintsController {
   }
 
   // GET /boards/:boardId/sprints/active — get active sprint (any member)
-  @Get('board/:boardId/active')
+  @Get('boards/:boardId/active')
   async findActiveByBoard(@Param('boardId') boardId: string) {
     return this.prisma.sprint.findFirst({
       where: { boardId, status: 'ACTIVE' },

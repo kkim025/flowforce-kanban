@@ -96,7 +96,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 // Load sprints
                 try {
-                    const sprintsResponse = await api.get(`/boards/${board.id}/sprints`);
+                    const sprintsResponse = await api.get(`/sprints/boards/${board.id}`);
                     mappedState.sprints = sprintsResponse.data || [];
 
                     // Restore active sprint from localStorage

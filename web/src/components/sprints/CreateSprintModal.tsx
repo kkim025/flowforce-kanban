@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { Sprint, SprintStatus } from '../../types';
 import { createSprint, updateSprint } from '../../lib/api';
 import { useKanban } from '../../store/KanbanContext';
@@ -94,10 +95,10 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
         }
     };
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -196,7 +197,8 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 

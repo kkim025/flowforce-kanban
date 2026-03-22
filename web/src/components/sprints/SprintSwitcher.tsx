@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sprint } from '../../types';
 import { getSprintColor, formatSprintDateRange } from '../../lib/sprint-utils';
 import { UI_LABELS } from '../../lib/constants';
@@ -17,23 +18,38 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [focusedIndex, setFocusedIndex] = useState(-1);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const activeSprint = activeSprintId
         ? sprints.find(s => s.id === activeSprintId)
         : null;
 
     useEffect(() => {
+        if (!isOpen) return;
+
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            // Only close if clicking completely outside both button and dropdown
+            const isInsideButton = buttonRef.current?.contains(target);
+            const isInsideDropdown = dropdownRef.current?.contains(target);
+
+            if (!isInsideButton && !isInsideDropdown) {
                 setIsOpen(false);
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        // Use setTimeout to delay adding the listener slightly
+        // This prevents the listener from firing immediately when we click to open
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside);
+        }, 0);
+
+        return () => {
+            clearTimeout(timeoutId);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'ArrowDown') {
@@ -70,8 +86,88 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
         return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
     });
 
+    // Calculate dropdown position
+    const getDropdownPosition = () => {
+        if (!buttonRef.current) return { top: 0, left: 0 };
+        const rect = buttonRef.current.getBoundingClientRect();
+        return {
+            top: rect.bottom + 8,
+            left: rect.left,
+        };
+    };
+
+    const dropdownContent = isOpen ? (
+        <div
+            ref={dropdownRef}
+            className="fixed w-64 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[999999]"
+            style={getDropdownPosition()}
+        >
+            {/* All Tasks option */}
+            <button
+                onClick={() => handleSelect(null)}
+                onMouseEnter={() => setFocusedIndex(0)}
+                className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+                    focusedIndex === 0 ? 'bg-slate-800' : 'hover:bg-slate-800/50'
+                } ${!activeSprintId ? 'text-accent-blue' : 'text-white'}`}
+            >
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
+                <span className="font-medium">{UI_LABELS.ALL_TASKS}</span>
+                {!activeSprintId && <Check className="w-4 h-4 ml-auto" />}
+            </button>
+
+            {sprints.length > 0 && (
+                <div className="border-t border-white/5 my-1" />
+            )}
+
+            {/* Sprint list */}
+            {sortedSprints.map((sprint, index) => {
+                const originalIndex = sprints.indexOf(sprint);
+                const listIndex = originalIndex + 1;
+                const isActive = sprint.status === 'ACTIVE';
+                const isSelected = sprint.id === activeSprintId;
+                const color = getSprintColor(originalIndex);
+
+                return (
+                    <button
+                        key={sprint.id}
+                        onClick={() => handleSelect(sprint.id)}
+                        onMouseEnter={() => setFocusedIndex(listIndex)}
+                        className={`w-full px-4 py-2.5 text-left flex items-start gap-3 transition-colors ${
+                            focusedIndex === listIndex ? 'bg-slate-800' : 'hover:bg-slate-800/50'
+                        } ${isSelected ? 'text-accent-blue' : 'text-white'}`}
+                    >
+                        <span
+                            className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium truncate">{sprint.name}</span>
+                                {isActive && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded">
+                                        ACTIVE
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">
+                                {formatSprintDateRange(sprint.startDate, sprint.endDate)}
+                            </div>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+                    </button>
+                );
+            })}
+
+            {sprints.length === 0 && (
+                <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                    {UI_LABELS.NO_SPRINTS_YET}
+                </div>
+            )}
+        </div>
+    ) : null;
+
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative">
             <button
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
@@ -99,74 +195,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {isOpen && (
-                <div
-                    className="absolute top-full left-0 mt-2 w-64 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden"
-                    role="listbox"
-                >
-                    {/* All Tasks option */}
-                    <button
-                        onClick={() => handleSelect(null)}
-                        onMouseEnter={() => setFocusedIndex(0)}
-                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
-                            focusedIndex === 0 ? 'bg-slate-800' : 'hover:bg-slate-800/50'
-                        } ${!activeSprintId ? 'text-accent-blue' : 'text-white'}`}
-                    >
-                        <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                        <span className="font-medium">{UI_LABELS.ALL_TASKS}</span>
-                        {!activeSprintId && <Check className="w-4 h-4 ml-auto" />}
-                    </button>
-
-                    {sprints.length > 0 && (
-                        <div className="border-t border-white/5" />
-                    )}
-
-                    {/* Sprint list */}
-                    {sortedSprints.map((sprint, index) => {
-                        const originalIndex = sprints.indexOf(sprint);
-                        const listIndex = originalIndex + 1;
-                        const isActive = sprint.status === 'ACTIVE';
-                        const isSelected = sprint.id === activeSprintId;
-                        const color = getSprintColor(originalIndex);
-
-                        return (
-                            <button
-                                key={sprint.id}
-                                onClick={() => handleSelect(sprint.id)}
-                                onMouseEnter={() => setFocusedIndex(listIndex)}
-                                className={`w-full px-4 py-2.5 text-left flex items-start gap-3 transition-colors ${
-                                    focusedIndex === listIndex ? 'bg-slate-800' : 'hover:bg-slate-800/50'
-                                } ${isSelected ? 'text-accent-blue' : 'text-white'}`}
-                            >
-                                <span
-                                    className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0"
-                                    style={{ backgroundColor: color }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium truncate">{sprint.name}</span>
-                                        {isActive && (
-                                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 rounded">
-                                                ACTIVE
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-slate-400 mt-0.5">
-                                        {formatSprintDateRange(sprint.startDate, sprint.endDate)}
-                                    </div>
-                                </div>
-                                {isSelected && <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />}
-                            </button>
-                        );
-                    })}
-
-                    {sprints.length === 0 && (
-                        <div className="px-4 py-6 text-center text-slate-500 text-sm">
-                            {UI_LABELS.NO_SPRINTS_YET}
-                        </div>
-                    )}
-                </div>
-            )}
+            {createPortal(dropdownContent, document.body)}
         </div>
     );
 };

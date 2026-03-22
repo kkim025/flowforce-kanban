@@ -100,7 +100,7 @@ const SprintSelector: React.FC<SprintSelectorProps> = ({
                 )}
             </button>
 
-            <Dropdown isOpen={isOpen} onClose={() => setIsOpen(false)} className="p-1">
+            <Dropdown isOpen={isOpen} onClose={() => setIsOpen(false)} className="p-1" zIndex="z-[1000]">
                 {/* No Sprint option */}
                 <button
                     onClick={() => handleSelect(null)}

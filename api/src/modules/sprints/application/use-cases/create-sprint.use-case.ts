@@ -27,7 +27,7 @@ export class CreateSprintUseCase {
       startDate,
       endDate,
       status: dto.status || 'PLANNING',
-      boardId: (dto as any).boardId,
+      boardId: dto.boardId,
     });
 
     if (sprintResult.isFailure) {

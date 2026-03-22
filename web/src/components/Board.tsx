@@ -12,6 +12,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
 import Drawer from './Drawer';
 import SprintFilterBar from './sprints/SprintFilterBar';
+import SprintPanel from './sprints/SprintPanel';
+import CreateSprintModal from './sprints/CreateSprintModal';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId } = useKanban();
@@ -607,6 +609,21 @@ const Board: React.FC = () => {
             <Drawer isOpen={isDrawerOpen} onClose={() => navigate('/')}>
                 <Outlet />
             </Drawer>
+
+            {/* Sprint Panel */}
+            <SprintPanel
+                isOpen={isSprintPanelOpen}
+                onClose={() => setIsSprintPanelOpen(false)}
+                boardId={activeBoardId || ''}
+            />
+
+            {/* Create Sprint Modal (triggered from SprintFilterBar) */}
+            <CreateSprintModal
+                isOpen={isCreateSprintOpen}
+                onClose={() => setIsCreateSprintOpen(false)}
+                onCreated={(sprint) => {}}
+                boardId={activeBoardId || ''}
+            />
         </div>
     );
 };

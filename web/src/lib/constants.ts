@@ -27,4 +27,32 @@ export const UI_LABELS = {
     ADD_DETAILS: 'Add more details... (Markdown supported)',
     NOTHING_TO_PREVIEW: 'Nothing to preview',
     UNSAVED_CHANGES: 'You have unsaved changes. Discard them?',
+    SPRINT: 'Sprint',
+    ALL_TASKS: 'All Tasks',
+    MANAGE_SPRINTS: 'Manage Sprints',
+    CREATE_SPRINT: 'Create Sprint',
+    EDIT_SPRINT: 'Edit Sprint',
+    NO_SPRINT: 'No Sprint',
+    SPRINT_NAME: 'Sprint Name',
+    START_DATE: 'Start Date',
+    END_DATE: 'End Date',
+    ACTIVATE: 'Activate',
+    COMPLETE: 'Complete',
+    VIEW: 'View',
+    NO_SPRINTS_YET: 'No sprints yet. Create one to get started.',
+    SPRINT_COMPLETED: 'Sprint completed. Viewing all tasks.',
+    SPRINT_DELETED: 'Sprint deleted. Viewing all tasks.',
+    DAYS_LEFT: 'days left',
+    SPRINT_OVERDUE: 'Sprint overdue',
 };
+
+export const SPRINT_COLORS = [
+    '#8B5CF6', // Violet
+    '#3B82F6', // Blue
+    '#06B6D4', // Cyan
+    '#10B981', // Emerald
+    '#F59E0B', // Amber
+    '#F43F5E', // Rose
+    '#EC4899', // Pink
+    '#6366F1', // Indigo
+];

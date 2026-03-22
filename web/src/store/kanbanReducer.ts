@@ -8,6 +8,8 @@ export const initialState: BoardState = {
     selectedTaskIds: [],
     viewMode: (localStorage.getItem('flowforce_view_mode') as 'board' | 'list') || 'board',
     searchQuery: '',
+    sprints: [],
+    activeSprintId: null,
 };
 
 export interface HistoryState {
@@ -294,6 +296,51 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                         comments: (task.comments || []).filter(c => c.id !== commentId),
                         activities: (task.activities || []).filter(a => !(a.type === 'comment' && a.details.commentId === commentId)),
                     },
+                },
+            };
+        }
+
+        case 'SET_SPRINTS': {
+            const { sprints } = action.payload;
+            return { ...state, sprints };
+        }
+
+        case 'ADD_SPRINT': {
+            const { sprint } = action.payload;
+            return { ...state, sprints: [...state.sprints, sprint] };
+        }
+
+        case 'UPDATE_SPRINT': {
+            const { sprint } = action.payload;
+            return {
+                ...state,
+                sprints: state.sprints.map(s => s.id === sprint.id ? sprint : s),
+            };
+        }
+
+        case 'DELETE_SPRINT': {
+            const { sprintId } = action.payload;
+            return {
+                ...state,
+                sprints: state.sprints.filter(s => s.id !== sprintId),
+                activeSprintId: state.activeSprintId === sprintId ? null : state.activeSprintId,
+            };
+        }
+
+        case 'SET_ACTIVE_SPRINT': {
+            const { sprintId } = action.payload;
+            return { ...state, activeSprintId: sprintId };
+        }
+
+        case 'ASSIGN_TASK_TO_SPRINT': {
+            const { taskId, sprintId } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: { ...task, sprintId },
                 },
             };
         }

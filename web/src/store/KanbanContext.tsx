@@ -283,6 +283,31 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     localStorage.setItem('flowforce_view_mode', action.payload);
                     break;
                 }
+                case 'SET_SPRINTS': {
+                    // Just local state update, no API call
+                    break;
+                }
+                case 'ADD_SPRINT': {
+                    // Sprint is already added to state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'UPDATE_SPRINT': {
+                    // Sprint is already updated in state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'DELETE_SPRINT': {
+                    // Sprint is already removed from state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'SET_ACTIVE_SPRINT': {
+                    localStorage.setItem('flowforce_active_sprint_id', action.payload.sprintId || '');
+                    break;
+                }
+                case 'ASSIGN_TASK_TO_SPRINT': {
+                    const { taskId, sprintId } = action.payload;
+                    await api.patch(`/tasks/${taskId}/sprint`, { sprintId });
+                    break;
+                }
             }
         } catch (err) {
             console.error('Persistence failure:', err);

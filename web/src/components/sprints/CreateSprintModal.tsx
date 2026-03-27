@@ -4,8 +4,15 @@ import { createPortal } from 'react-dom';
 import { Sprint, SprintStatus } from '../../types';
 import { createSprint, updateSprint } from '../../lib/api';
 import { useKanban } from '../../store/KanbanContext';
-import { UI_LABELS } from '../../lib/constants';
+import { UI_LABELS, SPRINT_COLORS, DEFAULT_CUSTOM_COLOR } from '../../lib/constants';
 import { X } from 'lucide-react';
+
+interface SprintFormData {
+    name: string;
+    startDate: string;
+    endDate: string;
+    color?: string;
+}
 
 interface CreateSprintModalProps {
     isOpen: boolean;
@@ -26,6 +33,9 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
     const [name, setName] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [color, setColor] = useState<string | undefined>(undefined);
+    const [customColor, setCustomColor] = useState(DEFAULT_CUSTOM_COLOR);
+    const [showCustomColorInput, setShowCustomColorInput] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +46,11 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
             setName(editSprint.name);
             setStartDate(editSprint.startDate.split('T')[0]);
             setEndDate(editSprint.endDate.split('T')[0]);
+            setColor(editSprint.color);
+            if (editSprint.color && !SPRINT_COLORS.includes(editSprint.color)) {
+                setCustomColor(editSprint.color);
+                setShowCustomColorInput(true);
+            }
         } else {
             // Default dates: today to 2 weeks from now
             const today = new Date();
@@ -43,6 +58,9 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
             setStartDate(today.toISOString().split('T')[0]);
             setEndDate(twoWeeksLater.toISOString().split('T')[0]);
             setName('');
+            setColor(undefined);
+            setShowCustomColorInput(false);
+            setCustomColor(DEFAULT_CUSTOM_COLOR);
         }
         setError(null);
     }, [editSprint, isOpen]);
@@ -65,24 +83,34 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
             return;
         }
 
+        // Validate custom color format
+        if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+            setError('Invalid color format. Use hex format #RRGGBB');
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
             let sprint: Sprint;
 
             if (isEditing && editSprint) {
-                sprint = await updateSprint(editSprint.id, {
+                const updateData: SprintFormData = {
                     name: name.trim(),
                     startDate: startDate,
                     endDate: endDate,
-                });
+                    color: color !== undefined ? color : undefined,
+                };
+                sprint = await updateSprint(editSprint.id, updateData);
                 dispatch({ type: 'UPDATE_SPRINT', payload: { sprint } });
             } else {
-                sprint = await createSprint(boardId, {
+                const createData: SprintFormData = {
                     name: name.trim(),
                     startDate: startDate,
                     endDate: endDate,
-                });
+                    color: color !== undefined ? color : undefined,
+                };
+                sprint = await createSprint(boardId, createData);
                 dispatch({ type: 'ADD_SPRINT', payload: { sprint } });
             }
 
@@ -170,6 +198,95 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                     onChange={(e) => setEndDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Color
+                                </label>
+                                <div className="space-y-3">
+                                    {/* Auto option */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setColor(undefined);
+                                            setShowCustomColorInput(false);
+                                            setCustomColor(DEFAULT_CUSTOM_COLOR);
+                                        }}
+                                        className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                            color === undefined
+                                                ? 'bg-gradient-to-r from-violet-500 via-blue-500 to-emerald-500 text-white ring-2 ring-offset-2 ring-accent-blue dark:ring-offset-slate-900'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Auto (algorithmic)
+                                    </button>
+
+                                    {/* Predefined colors */}
+                                    <div className="grid grid-cols-8 gap-2">
+                                        {SPRINT_COLORS.map((c) => (
+                                            <button
+                                                key={c}
+                                                type="button"
+                                                onClick={() => {
+                                                    setColor(c);
+                                                    setShowCustomColorInput(false);
+                                                }}
+                                                className={`h-10 rounded-lg transition-all ${
+                                                    color === c
+                                                        ? 'ring-2 ring-offset-2 ring-accent-blue dark:ring-offset-slate-900 scale-110'
+                                                        : 'hover:scale-110'
+                                                }`}
+                                                style={{ backgroundColor: c }}
+                                                title={c}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {/* Custom color option */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCustomColorInput(!showCustomColorInput)}
+                                        className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                            showCustomColorInput && color && !SPRINT_COLORS.includes(color)
+                                                ? 'ring-2 ring-offset-2 ring-accent-blue dark:ring-offset-slate-900'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        Custom Color
+                                    </button>
+
+                                    {/* Custom color input */}
+                                    {showCustomColorInput && (
+                                        <div className="flex gap-2 items-center">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="color"
+                                                    value={customColor}
+                                                    onChange={(e) => {
+                                                        setCustomColor(e.target.value);
+                                                        setColor(e.target.value);
+                                                    }}
+                                                    className="w-full h-10 rounded-lg cursor-pointer border-0"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={customColor}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        if (/^#[0-9A-Fa-f]{6}$/.test(value) || value === '') {
+                                                            setCustomColor(value || DEFAULT_CUSTOM_COLOR);
+                                                            setColor(value || undefined);
+                                                        }
+                                                    }}
+                                                    placeholder="#RRGGBB"
+                                                    className="absolute inset-0 w-full h-10 px-2 bg-transparent rounded-lg text-xs font-mono text-center focus:outline-none"
+                                                    maxLength={7}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </form>
 

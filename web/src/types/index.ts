@@ -11,6 +11,7 @@ export interface Sprint {
     startDate: string;
     endDate: string;
     status: SprintStatus;
+    color?: string;
 }
 
 export interface User {

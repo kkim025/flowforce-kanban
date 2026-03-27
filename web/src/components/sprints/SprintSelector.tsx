@@ -87,7 +87,7 @@ const SprintSelector: React.FC<SprintSelectorProps> = ({
                     <>
                         <span
                             className="w-2.5 h-2.5 rounded-full"
-                            style={{ backgroundColor: getSprintColor(currentSprintIndex) }}
+                            style={{ backgroundColor: getSprintColor(currentSprint, sprints) }}
                         />
                         <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
                             {currentSprint.name}
@@ -116,8 +116,8 @@ const SprintSelector: React.FC<SprintSelectorProps> = ({
                 {sprints.length > 0 && <div className="border-t border-slate-100 dark:border-white/5 my-1" />}
 
                 {/* Sprint options */}
-                {sprints.map((sprint, index) => {
-                    const color = getSprintColor(index);
+                {sprints.map((sprint) => {
+                    const color = getSprintColor(sprint, sprints);
                     const isSelected = sprint.id === currentSprintId;
 
                     return (

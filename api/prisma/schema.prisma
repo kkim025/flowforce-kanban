@@ -71,6 +71,7 @@ model Sprint {
   endDate   DateTime
   status    SprintStatus @default(PLANNING)
   boardId   String
+  color     String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   board     Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsIn, Matches } from 'class-validator';
 
 export class UpdateSprintDto {
   @IsString()
@@ -17,4 +17,9 @@ export class UpdateSprintDto {
   @IsOptional()
   @IsIn(['PLANNING', 'ACTIVE', 'COMPLETED'])
   status?: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^#[0-9A-Fa-f]{6}$/)
+  color?: string;
 }

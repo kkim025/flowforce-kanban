@@ -148,8 +148,7 @@ const SprintPanel: React.FC<SprintPanelProps> = ({
                     ) : (
                         <div className="space-y-3">
                             {sortedSprints.map((sprint) => {
-                                const sprintIndex = sprints.indexOf(sprint);
-                                const color = getSprintColor(sprintIndex);
+                                const color = getSprintColor(sprint, sprints);
                                 const isActive = sprint.status === 'ACTIVE';
                                 const isCompleted = sprint.status === 'COMPLETED';
 

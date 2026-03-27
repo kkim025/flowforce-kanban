@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsOptional,
   IsIn,
+  Matches,
 } from 'class-validator';
 
 export class CreateSprintDto {
@@ -21,6 +22,11 @@ export class CreateSprintDto {
   @IsOptional()
   @IsIn(['PLANNING', 'ACTIVE', 'COMPLETED'])
   status?: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^#[0-9A-Fa-f]{6}$/)
+  color?: string;
 
   @IsString()
   @IsNotEmpty()

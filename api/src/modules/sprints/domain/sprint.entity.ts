@@ -8,6 +8,7 @@ export interface SprintProps {
   endDate: Date;
   status: SprintStatus;
   boardId: string;
+  color?: string;
 }
 
 export class Sprint extends AggregateRoot<SprintProps> {
@@ -31,6 +32,10 @@ export class Sprint extends AggregateRoot<SprintProps> {
     return this.props.boardId;
   }
 
+  get color(): string | undefined {
+    return this.props.color;
+  }
+
   isActive(): boolean {
     return this.props.status === 'ACTIVE';
   }
@@ -48,6 +53,9 @@ export class Sprint extends AggregateRoot<SprintProps> {
   }
 
   public static create(props: SprintProps, id?: string): Result<Sprint> {
+    if (props.color && !/^#[0-9A-Fa-f]{6}$/.test(props.color)) {
+      return Result.fail<Sprint>('Invalid color format. Use hex format #RRGGBB');
+    }
     const sprint = new Sprint(props, id);
     return Result.ok<Sprint>(sprint);
   }

@@ -63,6 +63,36 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         stateRef.current = history.present;
     }, [history.present]);
 
+    // Helper to build board URL with optional sprintId filter
+    const getBoardUrl = (boardId: string, sprintId?: string | null) => {
+        const url = `/boards/${boardId}`;
+        if (sprintId) {
+            return `${url}?sprintId=${sprintId}`;
+        }
+        return url;
+    };
+
+    // Helper to map API board and preserve sprint state
+    const mapBoardWithSprints = (apiBoard: Parameters<typeof mapApiBoardToState>[0]) => {
+        const baseState = mapApiBoardToState(apiBoard);
+        return {
+            ...baseState,
+            sprints: stateRef.current.sprints,
+            activeSprintId: stateRef.current.activeSprintId,
+        };
+    };
+
+    // Helper to refresh board state after API operations
+    const refreshBoardState = async (boardId: string, sprintId: string | null) => {
+        const refreshedBoard = await api.get(getBoardUrl(boardId, sprintId || undefined));
+        const newState = mapApiBoardToState(refreshedBoard.data);
+        return {
+            ...newState,
+            sprints: stateRef.current.sprints,
+            activeSprintId: sprintId,
+        };
+    };
+
     // Initial Hydration
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -95,6 +125,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
 
                 // Load sprints
+                let activeSprintId: string | null = null;
                 try {
                     const sprintsResponse = await api.get(`/sprints/boards/${board.id}`);
                     mappedState.sprints = sprintsResponse.data || [];
@@ -103,19 +134,30 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const savedSprintId = localStorage.getItem('flowforce_active_sprint_id');
                     if (savedSprintId) {
                         const sprintExists = mappedState.sprints.some((s: any) => s.id === savedSprintId);
-                        mappedState.activeSprintId = sprintExists ? savedSprintId : null;
+                        activeSprintId = sprintExists ? savedSprintId : null;
                     } else {
                         // Default to active sprint if one exists
                         const activeSprint = mappedState.sprints.find((s: any) => s.status === 'ACTIVE');
-                        mappedState.activeSprintId = activeSprint?.id || null;
+                        activeSprintId = activeSprint?.id || null;
                     }
                 } catch (sprintErr) {
                     console.warn('Could not load sprints:', sprintErr);
                     mappedState.sprints = [];
-                    mappedState.activeSprintId = null;
+                    activeSprintId = null;
                 }
 
-                setHistory({ type: 'SET_STATE', payload: mappedState });
+                // If there's an active sprint, re-fetch board with sprint filter
+                if (activeSprintId) {
+                    const newState = {
+                        ...mapApiBoardToState((await api.get(getBoardUrl(board.id, activeSprintId))).data),
+                        sprints: mappedState.sprints,
+                        activeSprintId: activeSprintId,
+                    };
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                } else {
+                    mappedState.activeSprintId = activeSprintId;
+                    setHistory({ type: 'SET_STATE', payload: mappedState });
+                }
                 setIsHydrated(true);
             } catch (err) {
                 console.error('Initial load error:', err);
@@ -165,6 +207,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             switch (action.type) {
                 case 'ADD_TASK': {
                     const { columnId, task } = action.payload;
+                    // Use the sprintId from the task payload if provided, otherwise use active sprint
+                    const sprintId = task.sprintId !== undefined ? task.sprintId : stateRef.current.activeSprintId;
                     const response = await api.post('/tasks', {
                         id: task.id, // Pass the generated ID
                         content: task.title,
@@ -172,6 +216,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         priority: task.priority.toUpperCase(),
                         columnId: columnId,
                         order: stateRef.current.columns[columnId]?.taskIds.length || 0,
+                        sprintId: sprintId,
                     });
                     
                     const realId = response.data.id;
@@ -180,8 +225,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         await syncChecklistsForTask(realId, task.checklists);
                     }
 
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'UPDATE_TASK': {
@@ -193,14 +238,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         archived: task.isArchived,
                         assigneeId: task.assigneeId,
                         tags: task.tags,
+                        sprintId: task.sprintId,
                     });
 
                     if (task.checklists?.length > 0) {
                         await syncChecklistsForTask(task.id, task.checklists);
                     }
 
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_TASK': {
@@ -225,8 +271,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     });
 
                     const realId = response.data.id;
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_COLUMN': {
@@ -247,10 +293,10 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         title: checklist.title,
                         taskId: taskId
                     });
-                    
+
                     const realId = response.data.id;
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_CHECKLIST': {
@@ -296,8 +342,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         content: comment.content,
                     });
 
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'SET_VIEW_MODE': {
@@ -321,7 +367,19 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'SET_ACTIVE_SPRINT': {
-                    localStorage.setItem('flowforce_active_sprint_id', action.payload.sprintId || '');
+                    const newSprintId = action.payload.sprintId;
+                    localStorage.setItem('flowforce_active_sprint_id', newSprintId || '');
+                    // Re-fetch board with sprint filter to get only sprint tasks
+                    if (activeBoardId) {
+                        try {
+                            const newState = await refreshBoardState(activeBoardId, newSprintId);
+                            setHistory({ type: 'SET_STATE', payload: newState });
+                        } catch (err) {
+                            console.error('Failed to set active sprint:', err);
+                            // Revert to previous sprint on failure
+                            localStorage.setItem('flowforce_active_sprint_id', stateRef.current.activeSprintId || '');
+                        }
+                    }
                     break;
                 }
                 case 'ASSIGN_TASK_TO_SPRINT': {

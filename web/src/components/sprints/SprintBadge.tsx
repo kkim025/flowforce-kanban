@@ -4,18 +4,18 @@ import { getSprintColor } from '../../lib/sprint-utils';
 
 interface SprintBadgeProps {
     sprint: Sprint;
-    sprintIndex: number;
+    allSprints: Sprint[];
     compact?: boolean;
     onClick?: () => void;
 }
 
 const SprintBadge: React.FC<SprintBadgeProps> = ({
     sprint,
-    sprintIndex,
+    allSprints,
     compact = false,
     onClick,
 }) => {
-    const color = getSprintColor(sprintIndex);
+    const color = getSprintColor(sprint, allSprints);
 
     if (compact) {
         return (

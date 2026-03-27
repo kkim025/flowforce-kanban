@@ -28,8 +28,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
 
     // Find sprint for this task
     const taskSprint = task.sprintId ? sprints.find(s => s.id === task.sprintId) : null;
-    const sprintIndex = taskSprint ? sprints.indexOf(taskSprint) : -1;
-    const sprintColor = taskSprint ? getSprintColor(sprintIndex) : null;
+    const sprintColor = taskSprint ? getSprintColor(taskSprint, sprints) : null;
 
     const priorityColors = {
         low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -37,8 +36,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
         high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     };
 
-    const handleSprintBadgeClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleSprintBadgeClick = () => {
         if (taskSprint) {
             dispatch({ type: 'SET_ACTIVE_SPRINT', payload: { sprintId: taskSprint.id } });
         }
@@ -81,13 +79,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isS
                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${priorityColors[task.priority]}`}>
                                         {task.priority}
                                     </span>
-                                    {taskSprint && sprintIndex >= 0 && (
-                                        <SprintBadge
-                                            sprint={taskSprint}
-                                            sprintIndex={sprintIndex}
-                                            compact
-                                            onClick={handleSprintBadgeClick}
-                                        />
+                                    {taskSprint && (
+                                        <span onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSprintBadgeClick();
+                                        }}>
+                                            <SprintBadge
+                                                sprint={taskSprint}
+                                                allSprints={sprints}
+                                                compact
+                                            />
+                                        </span>
                                     )}
                                 </div>
                                 <button

@@ -8,6 +8,7 @@ type PrismaSprint = {
   endDate: Date;
   status: SprintStatus;
   boardId: string;
+  color: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,6 +22,7 @@ export class SprintMapper {
         endDate: raw.endDate,
         status: raw.status,
         boardId: raw.boardId,
+        color: raw.color || undefined,
       },
       raw.id,
     );
@@ -36,6 +38,7 @@ export class SprintMapper {
       endDate: sprint.endDate,
       status: sprint.status,
       boardId: sprint.boardId,
+      color: sprint.color || null,
     };
   }
 }

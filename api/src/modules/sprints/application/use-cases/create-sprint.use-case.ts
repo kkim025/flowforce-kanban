@@ -28,6 +28,7 @@ export class CreateSprintUseCase {
       endDate,
       status: dto.status || 'PLANNING',
       boardId: dto.boardId,
+      color: dto.color || undefined,
     });
 
     if (sprintResult.isFailure) {

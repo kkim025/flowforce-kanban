@@ -46,6 +46,8 @@ export const UI_LABELS = {
     SPRINT_OVERDUE: 'Sprint overdue',
 };
 
+export const DEFAULT_CUSTOM_COLOR = '#3B82F6';
+
 export const SPRINT_COLORS = [
     '#8B5CF6', // Violet
     '#3B82F6', // Blue

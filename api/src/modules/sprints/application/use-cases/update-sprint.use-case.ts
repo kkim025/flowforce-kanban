@@ -42,6 +42,7 @@ export class UpdateSprintUseCase {
         endDate: dto.endDate ? new Date(dto.endDate) : sprint.endDate,
         status: dto.status || sprint.status,
         boardId: sprint.boardId,
+        color: dto.color !== undefined ? dto.color : sprint.color,
       },
       sprint.id,
     );

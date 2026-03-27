@@ -5,6 +5,8 @@ import { getSprintColor, formatSprintDateRange } from '../../lib/sprint-utils';
 import { UI_LABELS } from '../../lib/constants';
 import { Check, ChevronDown } from 'lucide-react';
 
+const DROPDOWN_GAP = 8;
+
 interface SprintSwitcherProps {
     sprints: Sprint[];
     activeSprintId: string | null;
@@ -20,6 +22,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const isMountedRef = useRef(true);
 
     const activeSprint = activeSprintId
         ? sprints.find(s => s.id === activeSprintId)
@@ -29,8 +32,9 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
         if (!isOpen) return;
 
         const handleClickOutside = (event: MouseEvent) => {
+            if (!isMountedRef.current) return;
+
             const target = event.target as Node;
-            // Only close if clicking completely outside both button and dropdown
             const isInsideButton = buttonRef.current?.contains(target);
             const isInsideDropdown = dropdownRef.current?.contains(target);
 
@@ -39,16 +43,18 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
             }
         };
 
-        // Use setTimeout to delay adding the listener slightly
-        // This prevents the listener from firing immediately when we click to open
-        const timeoutId = setTimeout(() => {
-            document.addEventListener('mousedown', handleClickOutside);
-        }, 0);
-
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
-            clearTimeout(timeoutId);
+            isMountedRef.current = false;
             document.removeEventListener('mousedown', handleClickOutside);
         };
+    }, [isOpen]);
+
+    // Reset mounted ref when closing
+    useEffect(() => {
+        if (!isOpen) {
+            isMountedRef.current = true;
+        }
     }, [isOpen]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -74,16 +80,21 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
     };
 
     const handleSelect = (sprintId: string | null) => {
-        onSelect(sprintId);
-        setIsOpen(false);
-        setFocusedIndex(-1);
+        try {
+            onSelect(sprintId);
+        } catch (error) {
+            console.error('Failed to select sprint:', error);
+        } finally {
+            setIsOpen(false);
+            setFocusedIndex(-1);
+        }
     };
 
-    // Sort sprints: active first, then by startDate descending (most recent first)
+    // Sort sprints: active first, then by startDate ascending (matching backend)
     const sortedSprints = [...sprints].sort((a, b) => {
         if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
         if (b.status === 'ACTIVE' && a.status !== 'ACTIVE') return 1;
-        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
 
     // Calculate dropdown position
@@ -91,7 +102,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
         if (!buttonRef.current) return { top: 0, left: 0 };
         const rect = buttonRef.current.getBoundingClientRect();
         return {
-            top: rect.bottom + 8,
+            top: rect.bottom + DROPDOWN_GAP,
             left: rect.left,
         };
     };
@@ -101,6 +112,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
             ref={dropdownRef}
             className="fixed w-64 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[999999]"
             style={getDropdownPosition()}
+            onMouseDown={(e) => e.preventDefault()}
         >
             {/* All Tasks option */}
             <button
@@ -121,11 +133,10 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
 
             {/* Sprint list */}
             {sortedSprints.map((sprint, index) => {
-                const originalIndex = sprints.indexOf(sprint);
-                const listIndex = originalIndex + 1;
+                const listIndex = index + 1;
                 const isActive = sprint.status === 'ACTIVE';
                 const isSelected = sprint.id === activeSprintId;
-                const color = getSprintColor(originalIndex);
+                const color = getSprintColor(sprint, sprints);
 
                 return (
                     <button
@@ -172,7 +183,9 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
                 onKeyDown={handleKeyDown}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-all text-sm font-medium text-white"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium text-white ${
+                    isOpen ? 'bg-slate-700' : 'bg-slate-700/50 hover:bg-slate-700'
+                }`}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
             >
@@ -181,7 +194,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
                         <>
                             <span
                                 className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: getSprintColor(sprints.indexOf(activeSprint)) }}
+                                style={{ backgroundColor: getSprintColor(activeSprint, sprints) }}
                             />
                             <span className="text-white">{activeSprint.name}</span>
                         </>

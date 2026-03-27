@@ -15,11 +15,9 @@ import { CreateSprintUseCase } from './application/use-cases/create-sprint.use-c
 import { UpdateSprintUseCase } from './application/use-cases/update-sprint.use-case';
 import { DeleteSprintUseCase } from './application/use-cases/delete-sprint.use-case';
 import { ActivateSprintUseCase } from './application/use-cases/activate-sprint.use-case';
-import { AssignTaskToSprintUseCase } from './application/use-cases/assign-task-to-sprint.use-case';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateSprintDto } from './application/dto/create-sprint.dto';
 import { UpdateSprintDto } from './application/dto/update-sprint.dto';
-import { AssignTaskSprintDto } from './application/dto/assign-task-sprint.dto';
 
 @Controller('sprints')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +27,6 @@ export class SprintsController {
     private readonly updateSprintUseCase: UpdateSprintUseCase,
     private readonly deleteSprintUseCase: DeleteSprintUseCase,
     private readonly activateSprintUseCase: ActivateSprintUseCase,
-    private readonly assignTaskToSprintUseCase: AssignTaskToSprintUseCase,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -89,20 +86,5 @@ export class SprintsController {
   async activate(@Param('id') id: string) {
     const sprint = await this.activateSprintUseCase.execute(id);
     return this.prisma.sprint.findUnique({ where: { id: sprint.id } });
-  }
-
-  // PATCH /sprints/:sprintId/tasks/:taskId — assign task to sprint (Admin only)
-  // Note: we use sprintId param here since it's SprintController
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
-  @Patch(':sprintId/tasks/:taskId')
-  async assignTask(
-    @Param('sprintId') sprintId: string,
-    @Param('taskId') taskId: string,
-    @Body() dto: AssignTaskSprintDto,
-  ) {
-    // dto.sprintId can be null to unassign, or a sprintId string
-    await this.assignTaskToSprintUseCase.execute(taskId, dto.sprintId ?? null);
-    return { success: true };
   }
 }

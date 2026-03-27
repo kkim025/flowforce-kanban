@@ -31,6 +31,7 @@ export class TasksService {
       priority?: Priority;
       description?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ): Promise<Task> {
     await this.checkColumnOwnership(userId, data.columnId);
@@ -44,6 +45,7 @@ export class TasksService {
         priority: data.priority,
         description: data.description,
         tags: data.tags || [],
+        sprintId: data.sprintId,
       },
     });
 
@@ -81,6 +83,7 @@ export class TasksService {
       archived?: boolean;
       assigneeId?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ): Promise<Task> {
     const task = await this.prisma.task.findUnique({
@@ -108,6 +111,7 @@ export class TasksService {
         archived: data.archived,
         assigneeId: data.assigneeId,
         tags: data.tags,
+        sprintId: data.sprintId,
       },
     });
 

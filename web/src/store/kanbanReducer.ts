@@ -340,7 +340,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                 ...state,
                 tasks: {
                     ...state.tasks,
-                    [taskId]: { ...task, sprintId },
+                    [taskId]: { ...task, sprintId: sprintId || undefined },
                 },
             };
         }

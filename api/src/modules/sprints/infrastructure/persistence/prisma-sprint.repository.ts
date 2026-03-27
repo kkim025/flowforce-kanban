@@ -50,6 +50,7 @@ export class PrismaSprintRepository implements ISprintRepository {
           endDate: sprint.endDate,
           status: sprint.status,
           boardId: sprint.boardId,
+          color: sprint.color || null,
         },
       });
     }

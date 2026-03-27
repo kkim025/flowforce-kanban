@@ -66,6 +66,7 @@ export interface CreateSprintInput {
   startDate: string;
   endDate: string;
   boardId: string;
+  color?: string;
 }
 
 export interface UpdateSprintInput {
@@ -73,6 +74,7 @@ export interface UpdateSprintInput {
   startDate?: string;
   endDate?: string;
   status?: SprintStatus;
+  color?: string;
 }
 
 export const getSprints = async (boardId: string): Promise<Sprint[]> => {

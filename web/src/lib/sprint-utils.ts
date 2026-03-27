@@ -2,10 +2,15 @@ import { Sprint, Task } from '../types';
 import { SPRINT_COLORS } from './constants';
 
 /**
- * Get a sprint color by index, cycling through the color palette
+ * Get a sprint color. If the sprint has a custom color, use it.
+ * Otherwise, fall back to index-based calculation from the color palette.
  */
-export const getSprintColor = (sprintIndex: number): string => {
-    return SPRINT_COLORS[sprintIndex % SPRINT_COLORS.length];
+export const getSprintColor = (sprint: Sprint, sprints: Sprint[]): string => {
+    if (sprint.color) {
+        return sprint.color;
+    }
+    const index = sprints.findIndex(s => s.id === sprint.id);
+    return SPRINT_COLORS[index % SPRINT_COLORS.length];
 };
 
 /**

@@ -46,6 +46,7 @@ export class TasksController {
         order: dto.order,
         priority: dto.priority,
         description: dto.description,
+        sprintId: dto.sprintId,
       });
       return {
         id: task.id,
@@ -110,6 +111,7 @@ export class TasksController {
       archived?: boolean;
       assigneeId?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ) {
     if (body.columnId !== undefined && body.order !== undefined) {

@@ -2,6 +2,17 @@ export type Priority = 'low' | 'medium' | 'high';
 export type ViewMode = 'board' | 'list';
 export type UserRole = 'ADMIN' | 'MEMBER';
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
+export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+
+export interface Sprint {
+    id: string;
+    boardId: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    status: SprintStatus;
+    color?: string;
+}
 
 export interface User {
     id: string;
@@ -64,6 +75,7 @@ export interface Task {
     activities: Activity[];
     createdAt: string;
     isArchived?: boolean;
+    sprintId?: string;
 }
 
 export interface Column {
@@ -80,6 +92,8 @@ export interface BoardState {
     selectedTaskIds: string[];
     viewMode: ViewMode;
     searchQuery: string;
+    sprints: Sprint[];
+    activeSprintId: string | null;
 }
 
 export type KanbanAction =
@@ -105,4 +119,10 @@ export type KanbanAction =
     | { type: 'UNDO' }
     | { type: 'REDO' }
     | { type: 'INTERNAL_UNDO' }
-    | { type: 'INTERNAL_REDO' };
+    | { type: 'INTERNAL_REDO' }
+    | { type: 'SET_SPRINTS'; payload: { sprints: Sprint[] } }
+    | { type: 'ADD_SPRINT'; payload: { sprint: Sprint } }
+    | { type: 'UPDATE_SPRINT'; payload: { sprint: Sprint } }
+    | { type: 'DELETE_SPRINT'; payload: { sprintId: string } }
+    | { type: 'SET_ACTIVE_SPRINT'; payload: { sprintId: string | null } }
+    | { type: 'ASSIGN_TASK_TO_SPRINT'; payload: { taskId: string; sprintId: string | null } };

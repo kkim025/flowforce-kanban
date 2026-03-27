@@ -31,4 +31,9 @@ export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
   columnId: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUUID()
+  sprintId?: string;
 }

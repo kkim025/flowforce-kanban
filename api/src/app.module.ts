@@ -10,6 +10,7 @@ import { ColumnsModule } from './modules/columns/columns.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { SubtasksModule } from './modules/subtasks/subtasks.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
+import { SprintsModule } from './modules/sprints/sprints.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
     TasksModule,
     SubtasksModule,
     ChecklistsModule,
+    SprintsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

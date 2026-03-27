@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   Logger,
   BadRequestException,
@@ -66,8 +67,12 @@ export class BoardsController {
   }
 
   @Get(':id')
-  findOne(@GetUser('sub') userId: string, @Param('id') id: string) {
-    return this.boardsService.findOne(userId, id);
+  findOne(
+    @GetUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query('sprintId') sprintId?: string,
+  ) {
+    return this.boardsService.findOne(userId, id, sprintId);
   }
 
   @Patch(':id')

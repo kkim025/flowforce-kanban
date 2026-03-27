@@ -47,6 +47,7 @@ interface ApiTask {
   checklists?: ApiChecklist[];
   comments?: ApiComment[];
   activities?: ApiActivity[];
+  sprintId?: string | null;
 }
 
 interface ApiColumn {
@@ -143,6 +144,7 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
         createdAt: apiTask.createdAt,
         isArchived: apiTask.archived,
         assigneeId: apiTask.assigneeId || undefined,
+        sprintId: apiTask.sprintId || undefined,
       };
     });
   });

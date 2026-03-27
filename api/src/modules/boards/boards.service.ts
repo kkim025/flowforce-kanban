@@ -47,7 +47,13 @@ export class BoardsService {
     });
   }
 
-  async findOne(userId: string, id: string): Promise<Board> {
+  async findOne(userId: string, id: string, sprintId?: string): Promise<Board> {
+    // Build task filter
+    const taskWhere: any = { archived: false };
+    if (sprintId) {
+      taskWhere.sprintId = sprintId;
+    }
+
     const board = await this.prisma.board.findUnique({
       where: { id },
       include: {
@@ -55,7 +61,7 @@ export class BoardsService {
           orderBy: { order: 'asc' },
           include: {
             tasks: {
-              where: { archived: false },
+              where: taskWhere,
               orderBy: { order: 'asc' },
               include: {
                 checklists: {

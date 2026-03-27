@@ -46,6 +46,7 @@ export class TasksController {
         order: dto.order,
         priority: dto.priority,
         description: dto.description,
+        sprintId: dto.sprintId,
       });
       return {
         id: task.id,
@@ -110,6 +111,7 @@ export class TasksController {
       archived?: boolean;
       assigneeId?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ) {
     if (body.columnId !== undefined && body.order !== undefined) {
@@ -148,5 +150,15 @@ export class TasksController {
     @Body() data: { content: string },
   ) {
     return this.tasksService.addComment(userId, taskId, data.content);
+  }
+
+  // PATCH /tasks/:taskId/sprint — assign/unassign task to sprint
+  @Patch(':taskId/sprint')
+  async assignSprint(
+    @GetUser('sub') userId: string,
+    @Param('taskId') taskId: string,
+    @Body() body: { sprintId: string | null },
+  ) {
+    return this.tasksService.assignSprint(userId, taskId, body.sprintId);
   }
 }

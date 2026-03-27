@@ -49,6 +49,7 @@ model Board {
   updatedAt DateTime @updatedAt
   owner     User     @relation(fields: [ownerId], references: [id])
   columns   Column[]
+  sprints   Sprint[]
 }
 
 model Column {
@@ -63,6 +64,20 @@ model Column {
   tasks     Task[]
 }
 
+model Sprint {
+  id        String       @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    SprintStatus @default(PLANNING)
+  boardId   String
+  color     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  board     Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
 model Task {
   id          String      @id @default(uuid())
   content     String
@@ -73,6 +88,7 @@ model Task {
   columnId    String
   archived    Boolean     @default(false)
   assigneeId  String?
+  sprintId    String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   checklists  Checklist[]
@@ -81,6 +97,7 @@ model Task {
   activities  Activity[]
   column      Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assignee    User?       @relation(fields: [assigneeId], references: [id])
+  sprint      Sprint?     @relation(fields: [sprintId], references: [id])
 }
 
 model Comment {
@@ -131,4 +148,10 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum SprintStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
 }

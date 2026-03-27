@@ -31,6 +31,7 @@ export class TasksService {
       priority?: Priority;
       description?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ): Promise<Task> {
     await this.checkColumnOwnership(userId, data.columnId);
@@ -44,6 +45,7 @@ export class TasksService {
         priority: data.priority,
         description: data.description,
         tags: data.tags || [],
+        sprintId: data.sprintId,
       },
     });
 
@@ -81,6 +83,7 @@ export class TasksService {
       archived?: boolean;
       assigneeId?: string;
       tags?: string[];
+      sprintId?: string;
     },
   ): Promise<Task> {
     const task = await this.prisma.task.findUnique({
@@ -108,6 +111,7 @@ export class TasksService {
         archived: data.archived,
         assigneeId: data.assigneeId,
         tags: data.tags,
+        sprintId: data.sprintId,
       },
     });
 
@@ -168,6 +172,36 @@ export class TasksService {
     await this.logActivity(userId, taskId, 'comment', { text: content });
 
     return comment;
+  }
+
+  async assignSprint(
+    userId: string,
+    taskId: string,
+    sprintId: string | null,
+  ): Promise<Task> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { column: { include: { board: true } } },
+    });
+
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
+
+    // If sprintId is provided, verify it belongs to the same board
+    if (sprintId) {
+      const sprint = await this.prisma.sprint.findUnique({
+        where: { id: sprintId },
+      });
+      if (!sprint) throw new NotFoundException('Sprint not found');
+      if (sprint.boardId !== task.column.boardId)
+        throw new ForbiddenException('Sprint does not belong to this board');
+    }
+
+    return this.prisma.task.update({
+      where: { id: taskId },
+      data: { sprintId },
+    });
   }
 
   async logActivity(

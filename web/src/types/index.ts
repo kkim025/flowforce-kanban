@@ -2,7 +2,7 @@ export type Priority = 'low' | 'medium' | 'high';
 export type ViewMode = 'board' | 'list';
 export type UserRole = 'ADMIN' | 'MEMBER';
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
-export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
 
 export interface Sprint {
     id: string;

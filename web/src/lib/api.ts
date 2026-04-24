@@ -106,6 +106,11 @@ export const activateSprint = async (sprintId: string): Promise<Sprint> => {
   return response.data;
 };
 
+export const archiveSprint = async (sprintId: string): Promise<Sprint> => {
+  const response = await api.post(`/sprints/${sprintId}/archive`);
+  return response.data;
+};
+
 export const assignTaskToSprint = async (taskId: string, sprintId: string | null): Promise<void> => {
   await api.patch(`/tasks/${taskId}/sprint`, { sprintId });
 };

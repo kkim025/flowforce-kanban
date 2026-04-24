@@ -15,6 +15,7 @@ import { CreateSprintUseCase } from './application/use-cases/create-sprint.use-c
 import { UpdateSprintUseCase } from './application/use-cases/update-sprint.use-case';
 import { DeleteSprintUseCase } from './application/use-cases/delete-sprint.use-case';
 import { ActivateSprintUseCase } from './application/use-cases/activate-sprint.use-case';
+import { ArchiveSprintUseCase } from './application/use-cases/archive-sprint.use-case';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateSprintDto } from './application/dto/create-sprint.dto';
 import { UpdateSprintDto } from './application/dto/update-sprint.dto';
@@ -27,6 +28,7 @@ export class SprintsController {
     private readonly updateSprintUseCase: UpdateSprintUseCase,
     private readonly deleteSprintUseCase: DeleteSprintUseCase,
     private readonly activateSprintUseCase: ActivateSprintUseCase,
+    private readonly archiveSprintUseCase: ArchiveSprintUseCase,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -85,6 +87,15 @@ export class SprintsController {
   @Post(':id/activate')
   async activate(@Param('id') id: string) {
     const sprint = await this.activateSprintUseCase.execute(id);
+    return this.prisma.sprint.findUnique({ where: { id: sprint.id } });
+  }
+
+  // POST /sprints/:id/archive — archive sprint (Admin only)
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Post(':id/archive')
+  async archive(@Param('id') id: string) {
+    const sprint = await this.archiveSprintUseCase.execute(id);
     return this.prisma.sprint.findUnique({ where: { id: sprint.id } });
   }
 }

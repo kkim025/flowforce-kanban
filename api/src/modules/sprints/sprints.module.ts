@@ -4,6 +4,7 @@ import { PrismaSprintRepository } from './infrastructure/persistence/prisma-spri
 import { CreateSprintUseCase } from './application/use-cases/create-sprint.use-case';
 import { UpdateSprintUseCase } from './application/use-cases/update-sprint.use-case';
 import { DeleteSprintUseCase } from './application/use-cases/delete-sprint.use-case';
+import { ArchiveSprintUseCase } from './application/use-cases/archive-sprint.use-case';
 import { ActivateSprintUseCase } from './application/use-cases/activate-sprint.use-case';
 import { AssignTaskToSprintUseCase } from './application/use-cases/assign-task-to-sprint.use-case';
 import { SprintsController } from './sprints.controller';
@@ -17,6 +18,7 @@ import { SprintsController } from './sprints.controller';
     DeleteSprintUseCase,
     ActivateSprintUseCase,
     AssignTaskToSprintUseCase,
+    ArchiveSprintUseCase,
     {
       provide: 'ISprintRepository',
       useClass: PrismaSprintRepository,

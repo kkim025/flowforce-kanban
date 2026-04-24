@@ -55,7 +55,7 @@ const mockTask = {
             id: 'activity-1',
             taskId: 'task-1',
             userId: 'user-1',
-            type: 'task_created',
+            type: 'task_created' as const,
             details: undefined,
             createdAt: new Date().toISOString()
         }
@@ -80,13 +80,18 @@ describe('TaskViewer', () => {
                 columnOrder: ['col-1'],
                 selectedTaskIds: [],
                 viewMode: 'board' as const,
-                searchQuery: ''
+                searchQuery: '',
+                sprints: [],
+                activeSprintId: null
             },
             dispatch,
-            undo: [],
-            redo: [],
+            undo: () => {},
+            redo: () => {},
             canUndo: false,
-            canRedo: false
+            canRedo: false,
+            isSyncing: false,
+            isHydrated: true,
+            activeBoardId: null
         });
         vi.mocked(useUsers).mockReturnValue({
             users: mockUsers,
@@ -102,12 +107,15 @@ describe('TaskViewer', () => {
 
     it('should show "Task not found" when taskId is invalid', () => {
         vi.mocked(useKanban).mockReturnValue({
-            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '' },
+            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '', sprints: [], activeSprintId: null },
             dispatch: vi.fn(),
-            undo: [],
-            redo: [],
+            undo: () => {},
+            redo: () => {},
             canUndo: false,
-            canRedo: false
+            canRedo: false,
+            isSyncing: false,
+            isHydrated: true,
+            activeBoardId: null
         });
 
         render(
@@ -283,13 +291,18 @@ describe('TaskViewer', () => {
                     columnOrder: ['col-1'],
                     selectedTaskIds: [],
                     viewMode: 'board' as const,
-                    searchQuery: ''
+                    searchQuery: '',
+                    sprints: [],
+                    activeSprintId: null
                 },
                 dispatch,
-                undo: [],
-                redo: [],
+                undo: () => {},
+                redo: () => {},
                 canUndo: false,
-                canRedo: false
+                canRedo: false,
+                isSyncing: false,
+                isHydrated: true,
+                activeBoardId: null
             });
 
             render(
@@ -340,13 +353,18 @@ describe('TaskViewer', () => {
                 columnOrder: ['col-1'],
                 selectedTaskIds: [],
                 viewMode: 'board' as const,
-                searchQuery: ''
+                searchQuery: '',
+                sprints: [],
+                activeSprintId: null
             },
             dispatch,
-            undo: [],
-            redo: [],
+            undo: () => {},
+            redo: () => {},
             canUndo: false,
-            canRedo: false
+            canRedo: false,
+            isSyncing: false,
+            isHydrated: true,
+            activeBoardId: null
         });
 
         render(

@@ -9,7 +9,7 @@ interface DropdownProps {
     zIndex?: string;
 }
 
-const Dropdown: React.FC<DropdownProps> = ({ isOpen, onClose, children, className = "", zIndex = "z-50" }) => {
+const Dropdown: React.FC<DropdownProps> = ({ isOpen, onClose: _onClose, children, className = "", zIndex = "z-50" }) => {
     return (
         <AnimatePresence>
             {isOpen && (

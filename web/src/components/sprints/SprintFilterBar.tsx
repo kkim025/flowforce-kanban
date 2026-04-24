@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useKanban } from '../../store/KanbanContext';
 import { getActiveSprint } from '../../lib/sprint-utils';
 import SprintSwitcher from './SprintSwitcher';
@@ -12,7 +12,7 @@ interface SprintFilterBarProps {
 }
 
 const SprintFilterBar: React.FC<SprintFilterBarProps> = ({
-    boardId,
+    boardId: _boardId,
     onOpenSprintPanel,
     onOpenCreateSprint,
 }) => {

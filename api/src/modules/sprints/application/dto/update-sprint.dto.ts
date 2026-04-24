@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsDateString, IsIn, Matches } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsIn,
+  Matches,
+} from 'class-validator';
 
 export class UpdateSprintDto {
   @IsString()
@@ -15,8 +21,8 @@ export class UpdateSprintDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['PLANNING', 'ACTIVE', 'COMPLETED'])
-  status?: 'PLANNING' | 'ACTIVE' | 'COMPLETED';
+  @IsIn(['PLANNING', 'ACTIVE', 'COMPLETED', 'ARCHIVED'])
+  status?: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
 
   @IsString()
   @IsOptional()

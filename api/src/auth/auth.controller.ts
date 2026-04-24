@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { RegisterUserDto } from '../modules/users/application/dto/register-user.dto';
 import { AcceptInvitationDto } from '../modules/users/application/dto/accept-invitation.dto';
+import { UserDto } from '../modules/users/application/dto/user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -10,8 +11,8 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Request() req: any) {
+    return this.authService.login(req.user as UserDto);
   }
 
   @Post('register')

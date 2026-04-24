@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { Sprint, SprintStatus } from '../../types';
+import { Sprint } from '../../types';
 import { createSprint, updateSprint } from '../../lib/api';
 import { useKanban } from '../../store/KanbanContext';
 import { UI_LABELS, SPRINT_COLORS, DEFAULT_CUSTOM_COLOR } from '../../lib/constants';
@@ -20,6 +20,7 @@ interface CreateSprintModalProps {
     onCreated: (sprint: Sprint) => void;
     boardId: string;
     editSprint?: Sprint;
+    onArchive?: (sprint: Sprint) => void;
 }
 
 const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
@@ -28,6 +29,7 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
     onCreated,
     boardId,
     editSprint,
+    onArchive,
 }) => {
     const { dispatch } = useKanban();
     const [name, setName] = useState('');
@@ -162,6 +164,12 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                 </div>
                             )}
 
+                            {isEditing && editSprint?.status === 'ARCHIVED' && (
+                                <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-400 text-sm">
+                                    Archived sprints cannot be edited.
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                                     {UI_LABELS.SPRINT_NAME}
@@ -173,6 +181,7 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                     placeholder="e.g., Sprint 1, Week 1, March Sprint"
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
                                     autoFocus
+                                    disabled={isEditing && editSprint?.status === 'ARCHIVED'}
                                 />
                             </div>
 
@@ -185,6 +194,7 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
+                                    disabled={isEditing && editSprint?.status === 'ARCHIVED'}
                                 />
                             </div>
 
@@ -197,6 +207,7 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/30"
+                                    disabled={isEditing && editSprint?.status === 'ARCHIVED'}
                                 />
                             </div>
 
@@ -310,6 +321,15 @@ const CreateSprintModal: React.FC<CreateSprintModalProps> = ({
                                     isEditing ? UI_LABELS.SAVE : UI_LABELS.CREATE_SPRINT
                                 )}
                             </button>
+                            {isEditing && editSprint?.status !== 'ARCHIVED' && onArchive && (
+                                <button
+                                    type="button"
+                                    onClick={() => onArchive(editSprint!)}
+                                    className="flex-1 px-4 py-3 rounded-2xl font-bold text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all"
+                                >
+                                    Archive Sprint
+                                </button>
+                            )}
                         </div>
                     </motion.div>
                 </div>

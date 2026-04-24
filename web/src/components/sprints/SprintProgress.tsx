@@ -19,11 +19,11 @@ const SprintProgress: React.FC<SprintProgressProps> = ({
 
     // Determine "done" columns - typically the last column(s)
     // For now, we'll use a simple heuristic: tasks in the last column are "done"
-    const doneColumnId = columnOrder[columnOrder.length - 1];
-    const inProgressColumnId = columnOrder.length > 1 ? columnOrder[columnOrder.length - 2] : null;
+    const _doneColumnId = columnOrder[columnOrder.length - 1];
+    const _inProgressColumnId = columnOrder.length > 1 ? columnOrder[columnOrder.length - 2] : null;
 
     // Count completed tasks (tasks in the last column)
-    const completedTasks = sprintTasks.filter(task => {
+    const _completedTasks = sprintTasks.filter(_task => {
         // Find which column this task is in
         // We don't have direct column reference in Task, so we use the task's position
         // For simplicity, we'll count tasks that are marked as done based on column
@@ -32,7 +32,7 @@ const SprintProgress: React.FC<SprintProgressProps> = ({
     });
 
     const totalTasks = sprintTasks.length;
-    const completedCount = 0; // Simplified - would need proper completion tracking
+    const _completedCount = 0; // Simplified - would need proper completion tracking
 
     // Get days left
     const daysLeft = getDaysLeft(sprint);

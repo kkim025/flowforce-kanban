@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
-import { BoardState, KanbanAction, Task, Checklist } from '../types';
+import { BoardState, KanbanAction, Checklist } from '../types';
 import { kanbanReducer, initialState } from './kanbanReducer';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
@@ -72,18 +72,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return url;
     };
 
-    // Helper to map API board and preserve sprint state
-    const mapBoardWithSprints = (apiBoard: Parameters<typeof mapApiBoardToState>[0]) => {
-        const baseState = mapApiBoardToState(apiBoard);
-        return {
-            ...baseState,
-            sprints: stateRef.current.sprints,
-            activeSprintId: stateRef.current.activeSprintId,
-        };
-    };
-
     // Helper to refresh board state after API operations
-    const refreshBoardState = async (boardId: string, sprintId: string | null) => {
+    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null) => {
         const refreshedBoard = await api.get(getBoardUrl(boardId, sprintId || undefined));
         const newState = mapApiBoardToState(refreshedBoard.data);
         return {
@@ -91,7 +81,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             sprints: stateRef.current.sprints,
             activeSprintId: sprintId,
         };
-    };
+    }, []);
 
     // Initial Hydration
     useEffect(() => {
@@ -219,10 +209,10 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         sprintId: sprintId,
                     });
                     
-                    const realId = response.data.id;
+                    const _realId = response.data.id;
                     
                     if (task.checklists?.length > 0) {
-                        await syncChecklistsForTask(realId, task.checklists);
+                        await syncChecklistsForTask(_realId, task.checklists);
                     }
 
                     const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
@@ -270,7 +260,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         order: stateRef.current.columnOrder.length,
                     });
 
-                    const realId = response.data.id;
+                    const _realId = response.data.id;
                     const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
                     setHistory({ type: 'SET_STATE', payload: newState });
                     break;
@@ -294,7 +284,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         taskId: taskId
                     });
 
-                    const realId = response.data.id;
+                    const _realId = response.data.id;
                     const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
                     setHistory({ type: 'SET_STATE', payload: newState });
                     break;
@@ -391,7 +381,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (err) {
             console.error('Persistence failure:', err);
         }
-    }, [activeBoardId, isHydrated]);
+    }, [activeBoardId, isHydrated, refreshBoardState]);
 
     const undo = useCallback(() => setHistory({ type: 'INTERNAL_UNDO' }), []);
     const redo = useCallback(() => setHistory({ type: 'INTERNAL_REDO' }), []);

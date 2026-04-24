@@ -156,5 +156,7 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
     selectedTaskIds: [],
     viewMode: (localStorage.getItem('flowforce_view_mode') as any) || 'board',
     searchQuery: '',
+    sprints: [],
+    activeSprintId: null,
   };
 };

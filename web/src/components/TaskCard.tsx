@@ -21,7 +21,7 @@ interface TaskCardProps {
     onSelect?: (multiSelect: boolean) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick, onDelete, isSelected, onSelect }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onDelete, isSelected, onSelect }) => {
     const navigate = useNavigate();
     const { state, dispatch } = useKanban();
     const { sprints } = state;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
 import { useAuth } from '../store/AuthContext';
@@ -92,12 +92,7 @@ const Board: React.FC = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [undo, redo, canUndo, canRedo]);
-
-    const onDragStart = () => {
-        setIsDndActive(true);
-        setIsDragging(false); // Force stop board dragging
-    };
+    }, [undo, redo, canUndo, canRedo, openCreateView]);
 
     const onDragEnd = (result: DropResult) => {
         setIsDndActive(false);
@@ -136,10 +131,11 @@ const Board: React.FC = () => {
         });
     };
 
-    const openCreateView = (columnId?: string) => {
+    /* eslint-disable react-hooks/preserve-manual-memoization */
+    const openCreateView = useCallback((columnId?: string) => {
         const finalColumnId = columnId || state.columnOrder[0] || 'todo';
         navigate(`/tasks/new?columnId=${finalColumnId}`);
-    };
+    }, [state.columnOrder, navigate]);
 
     const openTaskView = (task: Task) => {
         navigate(`/tasks/${task.id}`);
@@ -214,7 +210,7 @@ const Board: React.FC = () => {
             try {
                 const json = JSON.parse(event.target?.result as string);
                 dispatch({ type: 'SET_STATE', payload: json });
-            } catch (err) {
+            } catch {
                 alert('Invalid backup file');
             }
         };
@@ -621,7 +617,7 @@ const Board: React.FC = () => {
             <CreateSprintModal
                 isOpen={isCreateSprintOpen}
                 onClose={() => setIsCreateSprintOpen(false)}
-                onCreated={(sprint) => {}}
+                onCreated={(_sprint) => {}}
                 boardId={activeBoardId || ''}
             />
         </div>

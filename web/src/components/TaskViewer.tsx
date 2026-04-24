@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
@@ -29,6 +29,7 @@ import TaskSidebar from './TaskSidebar';
 const TaskViewer: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
     const { state, dispatch } = useKanban();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { users, getInitials, getUserName } = useUsers();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -38,7 +39,7 @@ const TaskViewer: React.FC = () => {
     const timelineItems = useMemo(() => {
         if (!task) return [];
         return getSortedTimeline(task.activities, task.comments);
-    }, [task?.id, task?.activities, task?.comments]);
+    }, [task]);
 
     // UI States
     const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);

@@ -54,7 +54,9 @@ export class Sprint extends AggregateRoot<SprintProps> {
 
   public static create(props: SprintProps, id?: string): Result<Sprint> {
     if (props.color && !/^#[0-9A-Fa-f]{6}$/.test(props.color)) {
-      return Result.fail<Sprint>('Invalid color format. Use hex format #RRGGBB');
+      return Result.fail<Sprint>(
+        'Invalid color format. Use hex format #RRGGBB',
+      );
     }
     const sprint = new Sprint(props, id);
     return Result.ok<Sprint>(sprint);

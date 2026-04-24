@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sprint } from '../../types';
 import { useKanban } from '../../store/KanbanContext';
 import { assignTaskToSprint } from '../../lib/api';
 import { getSprintColor } from '../../lib/sprint-utils';
@@ -17,7 +16,7 @@ interface SprintSelectorProps {
 const SprintSelector: React.FC<SprintSelectorProps> = ({
     taskId,
     currentSprintId,
-    boardId,
+    boardId: _boardId,
     onAssigned,
 }) => {
     const { state, dispatch } = useKanban();
@@ -27,7 +26,7 @@ const SprintSelector: React.FC<SprintSelectorProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const currentSprint = sprints.find(s => s.id === currentSprintId);
-    const currentSprintIndex = currentSprint ? sprints.indexOf(currentSprint) : -1;
+    const _currentSprintIndex = currentSprint ? sprints.indexOf(currentSprint) : -1;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

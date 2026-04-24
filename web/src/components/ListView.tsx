@@ -8,6 +8,11 @@ import { useNavigate } from 'react-router-dom';
 type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 
+const SortIcon = ({ field, sortField, sortOrder }: { field: SortField; sortField: SortField; sortOrder: SortOrder }) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 ml-1 inline" /> : <ArrowDown className="w-3 h-3 ml-1 inline" />;
+};
+
 const ROW_HEIGHT = 72; // Height of each row in pixels
 const BUFFER_ROWS = 5; // Number of rows to render above and below the visible area
 
@@ -73,7 +78,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
 
         // Sort
         return tasks.sort((a, b) => {
-            let comparison = 0;
+            let comparison: number;
             if (sortField === 'priority') {
                 const priorityWeight = { high: 3, medium: 2, low: 1 };
                 comparison = priorityWeight[a.priority] - priorityWeight[b.priority];
@@ -106,11 +111,6 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
         }
     };
 
-    const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortField !== field) return null;
-        return sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 ml-1 inline" /> : <ArrowDown className="w-3 h-3 ml-1 inline" />;
-    };
-
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         setScrollTop(e.currentTarget.scrollTop);
     };
@@ -135,19 +135,19 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                         {/* Header */}
                         <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 font-bold text-[10px] uppercase tracking-widest text-slate-400 z-10 sticky top-0">
                             <div className="flex-1 px-8 py-5 cursor-pointer hover:text-accent-blue transition-colors flex items-center" onClick={() => handleSort('title')}>
-                                Task Title <SortIcon field="title" />
+                                Task Title <SortIcon field="title" sortField={sortField} sortOrder={sortOrder} />
                             </div>
                             <div className="w-48 px-6 py-5 cursor-pointer hover:text-accent-blue transition-colors flex items-center" onClick={() => handleSort('columnTitle')}>
-                                Status <SortIcon field="columnTitle" />
+                                Status <SortIcon field="columnTitle" sortField={sortField} sortOrder={sortOrder} />
                             </div>
                             <div className="w-36 px-6 py-5 cursor-pointer hover:text-accent-blue transition-colors flex items-center" onClick={() => handleSort('priority')}>
-                                Priority <SortIcon field="priority" />
+                                Priority <SortIcon field="priority" sortField={sortField} sortOrder={sortOrder} />
                             </div>
                             <div className="w-56 px-6 py-5 cursor-pointer hover:text-accent-blue transition-colors flex items-center" onClick={() => handleSort('progress')}>
-                                Progress <SortIcon field="progress" />
+                                Progress <SortIcon field="progress" sortField={sortField} sortOrder={sortOrder} />
                             </div>
                             <div className="w-40 px-8 py-5 text-right cursor-pointer hover:text-accent-blue transition-colors flex items-center justify-end" onClick={() => handleSort('createdAt')}>
-                                Created <SortIcon field="createdAt" />
+                                Created <SortIcon field="createdAt" sortField={sortField} sortOrder={sortOrder} />
                             </div>
                         </div>
 

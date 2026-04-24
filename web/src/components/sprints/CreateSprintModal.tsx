@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { Sprint, SprintStatus } from '../../types';
+import { Sprint } from '../../types';
 import { createSprint, updateSprint } from '../../lib/api';
 import { useKanban } from '../../store/KanbanContext';
 import { UI_LABELS, SPRINT_COLORS, DEFAULT_CUSTOM_COLOR } from '../../lib/constants';

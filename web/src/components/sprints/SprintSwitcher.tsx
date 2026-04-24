@@ -113,6 +113,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
         <div
             ref={dropdownRef}
             className="fixed w-64 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[999999]"
+            /* eslint-disable react-hooks/refs */
             style={getDropdownPosition()}
             onMouseDown={(e) => e.preventDefault()}
         >

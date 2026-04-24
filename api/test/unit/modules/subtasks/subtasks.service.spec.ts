@@ -4,7 +4,6 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 
 describe('SubtasksService', () => {
   let service: SubtasksService;
-  let prisma: any;
 
   beforeEach(async () => {
     const mockPrisma = {
@@ -24,7 +23,6 @@ describe('SubtasksService', () => {
     }).compile();
 
     service = module.get<SubtasksService>(SubtasksService);
-    prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {

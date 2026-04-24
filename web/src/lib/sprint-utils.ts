@@ -46,7 +46,7 @@ export const filterTasksBySprint = (tasks: Task[], sprintId: string | null): Tas
 export const getSprintProgress = (
     sprint: Sprint,
     tasks: Task[],
-    doneColumnIds: string[] = []
+    _doneColumnIds: string[] = []
 ): { completed: number; total: number } => {
     const sprintTasks = tasks.filter(task => task.sprintId === sprint.id);
     const total = sprintTasks.length;

@@ -20,13 +20,13 @@ interface ColumnProps {
     onSelectTask: (taskId: string, multiSelect: boolean) => void;
 }
 
-const Column: React.FC<ColumnProps> = ({ 
-    column, 
-    tasks, 
-    index, 
-    onAddTask, 
-    onEditTask, 
-    onDeleteTask, 
+const Column: React.FC<ColumnProps> = ({
+    column,
+    tasks,
+    index,
+    onAddTask: _onAddTask,
+    onEditTask: _onEditTask,
+    onDeleteTask,
     onDeleteColumn,
     onUpdateColumn,
     selectedTaskIds,

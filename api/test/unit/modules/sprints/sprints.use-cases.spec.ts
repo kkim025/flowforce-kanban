@@ -372,7 +372,7 @@ describe('Sprint Use Cases', () => {
       const sprint = createMockSprint({ status: 'ARCHIVED' });
       sprintRepository.findById.mockResolvedValue(sprint);
 
-      const result = await useCase.execute('sprint-1');
+      await useCase.execute('sprint-1');
 
       expect(sprintRepository.save).not.toHaveBeenCalled();
     });

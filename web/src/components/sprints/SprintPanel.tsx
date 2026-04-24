@@ -80,7 +80,7 @@ const SprintPanel: React.FC<SprintPanelProps> = ({
         }
     };
 
-    const handleSprintCreated = (sprint: Sprint) => {
+    const handleSprintCreated = (_sprint: Sprint) => {
         // Sprint already added via dispatch in the modal
     };
 

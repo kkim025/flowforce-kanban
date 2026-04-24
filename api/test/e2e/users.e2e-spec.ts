@@ -173,7 +173,7 @@ describe('Users (e2e)', () => {
         .post('/auth/register')
         .send(adminUser2)
         .expect(201);
-      const admin2Token = admin2Res.body.access_token;
+      const _admin2Token = admin2Res.body.access_token;
       const admin2Id = admin2Res.body.user.id;
 
       // Promote member to admin first to have an extra admin

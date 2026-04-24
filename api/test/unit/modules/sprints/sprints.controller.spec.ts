@@ -5,6 +5,7 @@ import { UpdateSprintUseCase } from 'src/modules/sprints/application/use-cases/u
 import { DeleteSprintUseCase } from 'src/modules/sprints/application/use-cases/delete-sprint.use-case';
 import { ActivateSprintUseCase } from 'src/modules/sprints/application/use-cases/activate-sprint.use-case';
 import { AssignTaskToSprintUseCase } from 'src/modules/sprints/application/use-cases/assign-task-to-sprint.use-case';
+import { ArchiveSprintUseCase } from 'src/modules/sprints/application/use-cases/archive-sprint.use-case';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 
 describe('SprintsController', () => {
@@ -37,6 +38,7 @@ describe('SprintsController', () => {
           provide: AssignTaskToSprintUseCase,
           useValue: { execute: jest.fn() },
         },
+        { provide: ArchiveSprintUseCase, useValue: { execute: jest.fn() } },
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();

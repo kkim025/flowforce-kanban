@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsDateString, IsIn, Matches } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsIn,
+  Matches,
+} from 'class-validator';
 
 export class UpdateSprintDto {
   @IsString()

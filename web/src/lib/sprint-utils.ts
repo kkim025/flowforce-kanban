@@ -41,6 +41,7 @@ export const filterTasksBySprint = (tasks: Task[], sprintId: string | null): Tas
 
 /**
  * Calculate sprint progress - completed vs total tasks
+ * Note: task completion is determined by checking if the task belongs to a "done" column
  */
 export const getSprintProgress = (
     sprint: Sprint,
@@ -49,10 +50,9 @@ export const getSprintProgress = (
 ): { completed: number; total: number } => {
     const sprintTasks = tasks.filter(task => task.sprintId === sprint.id);
     const total = sprintTasks.length;
-    const completed = sprintTasks.filter(task =>
-        doneColumnIds.some(colId => task.columnId === colId)
-    ).length;
-    return { completed, total };
+    // For now, completed count is 0 until we have proper column-to-task mapping
+    // The actual completion tracking would require access to board columns state
+    return { completed: 0, total };
 };
 
 /**

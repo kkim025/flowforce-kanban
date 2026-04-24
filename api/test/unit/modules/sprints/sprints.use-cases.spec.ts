@@ -9,7 +9,7 @@ import { UpdateSprintUseCase } from 'src/modules/sprints/application/use-cases/u
 import { DeleteSprintUseCase } from 'src/modules/sprints/application/use-cases/delete-sprint.use-case';
 import { ActivateSprintUseCase } from 'src/modules/sprints/application/use-cases/activate-sprint.use-case';
 import { AssignTaskToSprintUseCase } from 'src/modules/sprints/application/use-cases/assign-task-to-sprint.use-case';
-import { ArchiveSprintUseCase } from '../../../src/modules/sprints/application/use-cases/archive-sprint.use-case';
+import { ArchiveSprintUseCase } from 'src/modules/sprints/application/use-cases/archive-sprint.use-case';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { SprintStatus } from 'src/modules/sprints/domain/sprint-status';
 
@@ -380,7 +380,9 @@ describe('Sprint Use Cases', () => {
     it('should throw NotFoundException if sprint does not exist', async () => {
       sprintRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute('sprint-1')).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute('sprint-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
@@ -402,13 +404,20 @@ function createMockSprint(
   const endDate = overrides.endDate ?? new Date('2026-04-03');
   const name = overrides.name ?? 'Sprint 1';
 
-  const sprint = {
-    id,
+  const props = {
     name,
     startDate,
     endDate,
     status,
     boardId,
+  };
+
+  const sprint = {
+    id,
+    props,
+    get boardId() {
+      return boardId;
+    },
     isActive: () => status === 'ACTIVE',
     isCompleted: () => status === 'COMPLETED',
     isPlanning: () => status === 'PLANNING',

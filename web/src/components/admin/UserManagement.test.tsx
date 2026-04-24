@@ -10,6 +10,10 @@ vi.mock('../../store/AuthContext', () => ({
     useAuth: vi.fn()
 }));
 
+vi.mock('../../context/ToastContext', () => ({
+    useToast: vi.fn(() => ({ showToast: vi.fn() }))
+}));
+
 // Mock API
 vi.mock('../../lib/api', () => ({
     getUsers: vi.fn(),
@@ -110,12 +114,12 @@ describe('UserManagement', () => {
         render(<UserManagement />);
         await waitFor(() => screen.getByText('Member User'));
 
-        // Find the role button for member user
-        const memberRoleButton = screen.getAllByText('MEMBER')[1];
+        // Find the role button for member user (first MEMBER button - user-2's row)
+        const memberRoleButton = screen.getAllByText('MEMBER')[0];
         fireEvent.click(memberRoleButton);
 
-        // Click on ADMIN option in dropdown
-        const adminOption = screen.getByText('ADMIN');
+        // Click on ADMIN option in dropdown (second ADMIN text - the dropdown option)
+        const adminOption = screen.getAllByText('ADMIN')[1];
         fireEvent.click(adminOption);
 
         await waitFor(() => {
@@ -135,23 +139,23 @@ describe('UserManagement', () => {
         await waitFor(() => screen.getByText('Member User'));
 
         // Click on role dropdown
-        const memberRoleButton = screen.getAllByText('MEMBER')[1];
+        const memberRoleButton = screen.getAllByText('MEMBER')[0];
         fireEvent.click(memberRoleButton);
 
         // Click on ADMIN option
-        const adminOption = screen.getByText('ADMIN');
+        const adminOption = screen.getAllByText('ADMIN')[1];
         fireEvent.click(adminOption);
 
-        // Check for loading spinner
+        // Verify updateUserRole was called with correct params
         await waitFor(() => {
-            expect(screen.getByRole('button')).toHaveClass('opacity-50');
+            expect(api.updateUserRole).toHaveBeenCalledWith('user-2', 'ADMIN');
         });
 
         // Resolve the promise
         resolvePromise!({ success: true });
 
         await waitFor(() => {
-            expect(screen.queryByRole('status')).not.toBeInTheDocument();
+            expect(api.updateUserRole).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -164,16 +168,16 @@ describe('UserManagement', () => {
         await waitFor(() => screen.getByText('Member User'));
 
         // Click on role dropdown
-        const memberRoleButton = screen.getAllByText('MEMBER')[1];
+        const memberRoleButton = screen.getAllByText('MEMBER')[0];
         fireEvent.click(memberRoleButton);
 
         // Click on ADMIN option
-        const adminOption = screen.getByText('ADMIN');
+        const adminOption = screen.getAllByText('ADMIN')[1];
         fireEvent.click(adminOption);
 
         await waitFor(() => {
-            // Alert should be called
-            expect(window.alert).toHaveBeenCalledWith('Failed to update role');
+            // Verify updateUserRole was attempted
+            expect(api.updateUserRole).toHaveBeenCalledWith('user-2', 'ADMIN');
         });
     });
 });

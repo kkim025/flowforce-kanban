@@ -60,7 +60,7 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setFocusedIndex(prev => Math.min(prev + 1, sprints.length));
+            setFocusedIndex(prev => Math.min(prev + 1, visibleSprints.length));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setFocusedIndex(prev => Math.max(prev - 1, -1));
@@ -91,7 +91,9 @@ const SprintSwitcher: React.FC<SprintSwitcherProps> = ({
     };
 
     // Sort sprints: active first, then by startDate ascending (matching backend)
-    const sortedSprints = [...sprints].sort((a, b) => {
+    // Filter out archived sprints from dropdown
+    const visibleSprints = sprints.filter(s => s.status !== 'ARCHIVED');
+    const sortedSprints = [...visibleSprints].sort((a, b) => {
         if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
         if (b.status === 'ACTIVE' && a.status !== 'ACTIVE') return 1;
         return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();

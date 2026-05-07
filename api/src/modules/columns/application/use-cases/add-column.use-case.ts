@@ -4,9 +4,9 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import type { IBoardRepository } from '../../domain/boards.repository.interface';
-import { AddColumnDto } from '../dto/add-column.dto';
-import { Column } from '../../domain/column.entity';
+import type { IBoardRepository } from '../../../boards/domain/boards.repository.interface';
+import { AddColumnDto } from '../../../boards/application/dto/add-column.dto';
+import { Column } from '../../../boards/domain/column.entity';
 
 @Injectable()
 export class AddColumnUseCase {

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BoardsService } from 'src/modules/boards/boards.service';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { BOARD_LIST_CONFIG } from 'src/modules/boards/boards-query.config';
 
 describe('BoardsService', () => {
   let service: BoardsService;
@@ -36,31 +37,13 @@ describe('BoardsService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all boards for a user', async () => {
+    it('should return all boards for a user with list config', async () => {
       prisma.board.findMany.mockResolvedValue([mockBoard]);
       const result = await service.findAll(mockUser.id);
       expect(result).toEqual([mockBoard]);
       expect(prisma.board.findMany).toHaveBeenCalledWith({
         where: { ownerId: mockUser.id },
-        include: {
-          columns: {
-            include: {
-              tasks: {
-                where: { archived: false },
-                include: {
-                  checklists: {
-                    include: {
-                      items: true,
-                    },
-                  },
-                  subtasks: true,
-                  activities: true,
-                  comments: true,
-                },
-              },
-            },
-          },
-        },
+        include: BOARD_LIST_CONFIG,
       });
     });
   });

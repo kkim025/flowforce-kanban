@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Board } from '@prisma/client';
+import { BOARD_LIST_CONFIG, BOARD_DETAIL_CONFIG } from './boards-query.config';
 
 @Injectable()
 export class BoardsService {
@@ -25,25 +26,7 @@ export class BoardsService {
   async findAll(userId: string): Promise<Board[]> {
     return this.prisma.board.findMany({
       where: { ownerId: userId },
-      include: {
-        columns: {
-          include: {
-            tasks: {
-              where: { archived: false },
-              include: {
-                checklists: {
-                  include: {
-                    items: true,
-                  },
-                },
-                subtasks: true,
-                comments: true,
-                activities: true,
-              },
-            },
-          },
-        },
-      },
+      include: BOARD_LIST_CONFIG,
     });
   }
 
@@ -57,22 +40,13 @@ export class BoardsService {
     const board = await this.prisma.board.findUnique({
       where: { id },
       include: {
+        ...BOARD_DETAIL_CONFIG,
         columns: {
-          orderBy: { order: 'asc' },
+          ...BOARD_DETAIL_CONFIG.columns,
           include: {
             tasks: {
+              ...BOARD_DETAIL_CONFIG.columns.include.tasks,
               where: taskWhere,
-              orderBy: { order: 'asc' },
-              include: {
-                checklists: {
-                  include: {
-                    items: true,
-                  },
-                },
-                subtasks: true,
-                comments: true,
-                activities: true,
-              },
             },
           },
         },

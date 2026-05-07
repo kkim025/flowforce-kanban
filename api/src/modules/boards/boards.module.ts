@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { BoardsController } from './boards.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
@@ -7,7 +7,7 @@ import { CreateBoardUseCase } from './application/use-cases/create-board.use-cas
 import { ColumnsModule } from '../columns/columns.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => ColumnsModule)],
+  imports: [PrismaModule, ColumnsModule],
   controllers: [BoardsController],
   providers: [
     BoardsService,
@@ -15,7 +15,6 @@ import { ColumnsModule } from '../columns/columns.module';
       provide: 'IBoardRepository',
       useClass: PrismaBoardRepository,
     },
-    // Explicit injection for use case
     {
       provide: CreateBoardUseCase,
       useFactory: (repo: PrismaBoardRepository) => new CreateBoardUseCase(repo),

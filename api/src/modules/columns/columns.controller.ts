@@ -14,8 +14,8 @@ import {
 import { ColumnsService } from './columns.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
-import { AddColumnUseCase } from '../boards/application/use-cases/add-column.use-case';
-import { ReorderColumnsUseCase } from '../boards/application/use-cases/reorder-columns.use-case';
+import { AddColumnUseCase } from './application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from './application/use-cases/reorder-columns.use-case';
 import { AddColumnDto } from '../boards/application/dto/add-column.dto';
 
 @Controller('columns')

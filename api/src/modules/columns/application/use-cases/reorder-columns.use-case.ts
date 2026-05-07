@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import type { IBoardRepository } from '../../domain/boards.repository.interface';
+import type { IBoardRepository } from '../../../boards/domain/boards.repository.interface';
 
 @Injectable()
 export class ReorderColumnsUseCase {

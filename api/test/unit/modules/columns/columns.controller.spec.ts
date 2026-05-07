@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ColumnsController } from 'src/modules/columns/columns.controller';
 import { ColumnsService } from 'src/modules/columns/columns.service';
-import { AddColumnUseCase } from 'src/modules/boards/application/use-cases/add-column.use-case';
-import { ReorderColumnsUseCase } from 'src/modules/boards/application/use-cases/reorder-columns.use-case';
+import { AddColumnUseCase } from 'src/modules/columns/application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from 'src/modules/columns/application/use-cases/reorder-columns.use-case';
 
 describe('ColumnsController', () => {
   let controller: ColumnsController;

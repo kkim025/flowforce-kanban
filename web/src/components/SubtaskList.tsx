@@ -28,7 +28,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
   const handleToggle = async () => {
     try {
       const updated = await updateSubtask(subtask.id, { completed: !subtask.isCompleted });
-      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, ...updated, isCompleted: updated.completed } } });
+      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, isCompleted: updated.isCompleted } } });
     } catch (err) {
       console.error('Toggle failed', err);
     }
@@ -41,7 +41,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
     }
     try {
       const updated = await updateSubtask(subtask.id, { content: editContent.trim() });
-      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: updated.content } } });
+      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: updated.title } } });
       setIsEditing(false);
     } catch (err) {
       console.error('Edit failed', err);

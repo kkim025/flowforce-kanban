@@ -121,6 +121,30 @@ export const getActiveSprint = async (boardId: string): Promise<Sprint | null> =
 };
 
 // Subtask API
+// Backend returns: { id, content, completed, priority, order, checklistId, createdAt, updatedAt }
+// Frontend SubTask uses: { id, title, isCompleted, checklistId, priority, order }
+export interface SubtaskApiResponse {
+  id: string;
+  content: string;
+  completed: boolean;
+  priority?: Priority;
+  order?: number;
+  checklistId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+function mapApiSubtaskToSubTask(api: SubtaskApiResponse): SubTask {
+  return {
+    id: api.id,
+    title: api.content,
+    isCompleted: api.completed,
+    checklistId: api.checklistId,
+    priority: api.priority,
+    order: api.order,
+  };
+}
+
 export interface CreateSubtaskInput {
   content: string;
   checklistId: string;
@@ -135,18 +159,18 @@ export interface UpdateSubtaskInput {
 }
 
 export const createSubtask = async (data: CreateSubtaskInput): Promise<SubTask> => {
-  const response = await api.post('/subtasks', data);
-  return response.data;
+  const response = await api.post<SubtaskApiResponse>('/subtasks', data);
+  return mapApiSubtaskToSubTask(response.data);
 };
 
 export const updateSubtask = async (id: string, data: UpdateSubtaskInput): Promise<SubTask> => {
-  const response = await api.patch(`/subtasks/${id}`, data);
-  return response.data;
+  const response = await api.patch<SubtaskApiResponse>(`/subtasks/${id}`, data);
+  return mapApiSubtaskToSubTask(response.data);
 };
 
 export const toggleSubtask = async (id: string): Promise<SubTask> => {
-  const response = await api.patch(`/subtasks/${id}/toggle`);
-  return response.data;
+  const response = await api.patch<SubtaskApiResponse>(`/subtasks/${id}/toggle`);
+  return mapApiSubtaskToSubTask(response.data);
 };
 
 export const deleteSubtask = async (id: string): Promise<void> => {
@@ -158,8 +182,8 @@ export const reorderSubtasks = async (checklistId: string, orderedIds: string[])
 };
 
 export const getSubtasksByChecklist = async (checklistId: string): Promise<SubTask[]> => {
-  const response = await api.get('/subtasks', { params: { checklistId } });
-  return response.data;
+  const response = await api.get<SubtaskApiResponse[]>('/subtasks', { params: { checklistId } });
+  return response.data.map(mapApiSubtaskToSubTask);
 };
 
 export default api;

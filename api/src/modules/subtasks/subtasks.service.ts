@@ -25,7 +25,7 @@ export class SubtasksService {
     return task;
   }
 
-  private async checkChecklistOwnership(userId: string, checklistId: string) {
+  async checkChecklistOwnership(userId: string, checklistId: string) {
     const checklist = await this.prisma.checklist.findUnique({
       where: { id: checklistId },
       include: {

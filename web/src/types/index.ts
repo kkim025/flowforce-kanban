@@ -28,6 +28,8 @@ export interface SubTask {
     title: string;
     isCompleted: boolean;
     checklistId?: string;
+    order?: number;        // for sorting within checklist
+    priority?: Priority;   // undefined/null means inherit from parent task
 }
 
 export interface Checklist {

@@ -379,6 +379,44 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     await api.patch(`/tasks/${taskId}/sprint`, { sprintId });
                     break;
                 }
+                case 'ADD_SUBTASK': {
+                    const { taskId, checklistId, subtask } = action.payload;
+                    await api.post('/subtasks', {
+                        content: subtask.title,
+                        checklistId: checklistId,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'UPDATE_SUBTASK': {
+                    const { taskId, subtask } = action.payload;
+                    await api.patch(`/subtasks/${subtask.id}`, {
+                        content: subtask.title,
+                        completed: subtask.isCompleted,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    break;
+                }
+                case 'DELETE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.delete(`/subtasks/${subtaskId}`);
+                    break;
+                }
+                case 'TOGGLE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.patch(`/subtasks/${subtaskId}/toggle`);
+                    break;
+                }
+                case 'REORDER_SUBTASKS': {
+                    const { checklistId, orderedSubtasks } = action.payload;
+                    await api.patch('/subtasks/reorder', {
+                        checklistId,
+                        orderedIds: orderedSubtasks.map((s: any) => s.id),
+                    });
+                    break;
+                }
             }
         } catch (err) {
             console.error('Persistence failure:', err);

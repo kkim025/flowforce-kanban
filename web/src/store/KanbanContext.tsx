@@ -146,7 +146,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     setHistory({ type: 'SET_STATE', payload: newState });
                 } else {
                     mappedState.activeSprintId = activeSprintId;
-                    setHistory({ type: 'SET_STATE', payload: mappedState });
+                    // Always refresh to get full board data with tasks
+                    const refreshedState = await refreshBoardState(board.id, null);
+                    setHistory({ type: 'SET_STATE', payload: refreshedState });
                 }
                 setIsHydrated(true);
             } catch (err) {

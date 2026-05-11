@@ -122,4 +122,56 @@ export class SubtasksService {
       where: { id },
     });
   }
+
+  async toggle(userId: string, id: string): Promise<Subtask> {
+    const subtask = await this.prisma.subtask.findUnique({
+      where: { id },
+      include: {
+        task: { include: { column: { include: { board: true } } } },
+        checklist: {
+          include: {
+            task: { include: { column: { include: { board: true } } } },
+          },
+        },
+      },
+    });
+
+    if (!subtask) throw new NotFoundException('Subtask not found');
+
+    const ownerId =
+      subtask.task?.column.board.ownerId ||
+      subtask.checklist?.task.column.board.ownerId;
+    if (ownerId !== userId) throw new ForbiddenException('Access denied');
+
+    return this.prisma.subtask.update({
+      where: { id },
+      data: { completed: !subtask.completed },
+    });
+  }
+
+  async reorder(
+    userId: string,
+    checklistId: string,
+    orderedIds: string[],
+  ): Promise<void> {
+    // Verify ownership via checklist chain
+    await this.checkChecklistOwnership(userId, checklistId);
+
+    // Update order for each subtask in the ordered list
+    await this.prisma.$transaction(
+      orderedIds.map((id, index) =>
+        this.prisma.subtask.update({
+          where: { id },
+          data: { order: index },
+        }),
+      ),
+    );
+  }
+
+  async findAllByChecklist(checklistId: string): Promise<Subtask[]> {
+    return this.prisma.subtask.findMany({
+      where: { checklistId },
+      orderBy: { order: 'asc' },
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
@@ -51,25 +51,30 @@ const TaskEditor: React.FC = () => {
     const priorityRef = useRef<HTMLDivElement>(null);
     const labelRef = useRef<HTMLDivElement>(null);
 
-    // Click outside to close sprint dropdown
+    // Click outside to close dropdowns/menus
+    // refs and setters are stable, so memoize the array to avoid new reference on each render
+    const dropdownHandlers = useMemo(
+        () => [
+            [sprintDropdownRef, setSprintDropdownOpen] as [React.RefObject<HTMLElement | null>, (v: boolean) => void],
+            [assigneeRef, setShowAssigneeMenu] as [React.RefObject<HTMLElement | null>, (v: boolean) => void],
+            [priorityRef, setShowPriorityMenu] as [React.RefObject<HTMLElement | null>, (v: boolean) => void],
+            [labelRef, setShowLabelMenu] as [React.RefObject<HTMLElement | null>, (v: boolean) => void],
+        ],
+        [sprintDropdownRef, assigneeRef, priorityRef, labelRef, setSprintDropdownOpen, setShowAssigneeMenu, setShowPriorityMenu, setShowLabelMenu]
+    );
+
+    const handleClickOutside = useCallback((event: MouseEvent) => {
+        for (const [ref, setOpen] of dropdownHandlers) {
+            if (ref.current && !ref.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        }
+    }, [dropdownHandlers]);
+
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (sprintDropdownRef.current && !sprintDropdownRef.current.contains(event.target as Node)) {
-                setSprintDropdownOpen(false);
-            }
-            if (assigneeRef.current && !assigneeRef.current.contains(event.target as Node)) {
-                setShowAssigneeMenu(false);
-            }
-            if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) {
-                setShowPriorityMenu(false);
-            }
-            if (labelRef.current && !labelRef.current.contains(event.target as Node)) {
-                setShowLabelMenu(false);
-            }
-        };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [handleClickOutside]);
 
     // Reset form state when taskId changes (navigating between create and edit)
     useEffect(() => {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { BoardsController } from './boards.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
@@ -7,7 +7,7 @@ import { CreateBoardUseCase } from './application/use-cases/create-board.use-cas
 import { ColumnsModule } from '../columns/columns.module';
 
 @Module({
-  imports: [PrismaModule, ColumnsModule],
+  imports: [PrismaModule, forwardRef(() => ColumnsModule)],
   controllers: [BoardsController],
   providers: [
     BoardsService,

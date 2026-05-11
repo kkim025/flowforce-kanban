@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Column as ColumnType, Task } from '../types';
 import TaskCard from './TaskCard';
@@ -55,25 +55,25 @@ const Column: React.FC<ColumnProps> = ({
         }
     }, [isEditingWipLimit]);
 
-    const handleSaveTitle = () => {
+    const handleSaveTitle = useCallback(() => {
         if (editedTitle.trim() && editedTitle !== column.title) {
             onUpdateColumn({ ...column, title: editedTitle.trim() });
         } else {
             setEditedTitle(column.title);
         }
         setIsEditingTitle(false);
-    };
+    }, [editedTitle, column, onUpdateColumn]);
 
-    const handleSaveWipLimit = () => {
+    const handleSaveWipLimit = useCallback(() => {
         const val = editedWipLimit.trim();
         const newLimit = val === '' ? undefined : parseInt(val);
         if (newLimit !== column.wipLimit) {
             onUpdateColumn({ ...column, wipLimit: newLimit });
         }
         setIsEditingWipLimit(false);
-    };
+    }, [editedWipLimit, column, onUpdateColumn]);
 
-    const handleKeyDown = (e: React.KeyboardEvent, type: 'title' | 'wip') => {
+    const handleKeyDown = useCallback((e: React.KeyboardEvent, type: 'title' | 'wip') => {
         if (e.key === 'Enter') {
             if (type === 'title') handleSaveTitle();
             else handleSaveWipLimit();
@@ -87,7 +87,7 @@ const Column: React.FC<ColumnProps> = ({
                 setIsEditingWipLimit(false);
             }
         }
-    };
+    }, [handleSaveTitle, handleSaveWipLimit, column.title, column.wipLimit]);
 
     return (
         <Draggable draggableId={column.id} index={index}>

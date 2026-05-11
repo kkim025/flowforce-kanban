@@ -1,9 +1,9 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { CheckSquare } from 'lucide-react';
+import { CheckSquare, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -11,6 +11,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { useKanban } from '../store/KanbanContext';
 import { getSprintColor } from '../lib/sprint-utils';
 import SprintBadge from './sprints/SprintBadge';
+import SubtaskPopover from './SubtaskPopover';
 
 const PRIORITY_COLORS = {
     low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -31,6 +32,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
     const navigate = useNavigate();
     const { state, dispatch } = useKanban();
     const { sprints } = state;
+    const [showSubtaskPopover, setShowSubtaskPopover] = useState(false);
 
     // Find sprint for this task
     const taskSprint = task.sprintId ? sprints.find(s => s.id === task.sprintId) : null;
@@ -131,34 +133,68 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                 ))}
                             </div>
 
-                            {/* Multiple Checklist Progress */}
+                            {/* Subtasks — only show if there are any checklists with items */}
                             {task.checklists && task.checklists.length > 0 && (
-                                <div className="mt-4 space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
-                                    {task.checklists.map(cl => {
-                                        const completed = cl.items.filter(i => i.isCompleted).length;
-                                        const total = cl.items.length;
-                                        const progress = total > 0 ? (completed / total) * 100 : 0;
-                                        
-                                        return (
-                                            <div key={cl.id}>
-                                                <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">
-                                                    <span className="flex items-center gap-1.5 truncate pr-2">
-                                                        <CheckSquare className="w-2.5 h-2.5" />
-                                                        {cl.title}
-                                                    </span>
-                                                    <span className="flex-shrink-0">{completed}/{total}</span>
-                                                </div>
-                                                <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${progress}%` }}
-                                                        className={`h-full ${progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
-                                                    />
-                                                </div>
+                                <>
+                                    {/* Per-checklist dots + overall progress */}
+                                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                {task.checklists.map(cl => {
+                                                    const total = cl.items.length;
+                                                    if (total === 0) return null;
+                                                    const completed = cl.items.filter(i => i.isCompleted).length;
+                                                    // Assign a consistent color per checklist index
+                                                    const dotColors = ['bg-purple-500', 'bg-teal-500', 'bg-amber-500', 'bg-pink-500'];
+                                                    const dotColor = dotColors[task.checklists.indexOf(cl) % dotColors.length];
+                                                    return (
+                                                        <div key={cl.id} className="flex items-center gap-1" title={`${cl.title}: ${completed}/${total}`}>
+                                                            <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                                                            <span className="text-[9px] text-slate-400">{completed}/{total}</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setShowSubtaskPopover(!showSubtaskPopover); }}
+                                                className="text-slate-400 hover:text-accent-blue transition-colors"
+                                                title="Add subtask"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Overall progress bar */}
+                                        {(() => {
+                                            const allItems = task.checklists.flatMap(cl => cl.items);
+                                            const total = allItems.length;
+                                            const completed = allItems.filter(i => i.isCompleted).length;
+                                            const progress = total > 0 ? (completed / total) * 100 : 0;
+                                            return (
+                                                <>
+                                                    <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden mb-1">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${progress}%` }}
+                                                            className={`h-full ${progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[9px] text-slate-400">{completed}/{total} done</span>
+                                                </>
+                                            );
+                                        })()}
+
+                                        {/* Inline subtask creation popover */}
+                                        {showSubtaskPopover && (
+                                            <SubtaskPopover
+                                                taskId={task.id}
+                                                checklists={task.checklists.map(cl => ({ id: cl.id, title: cl.title }))}
+                                                onClose={() => setShowSubtaskPopover(false)}
+                                                onAdded={() => {}}
+                                            />
+                                        )}
+                                    </div>
+                                </>
                             )}
 
                             {/* Legacy Subtasks Fallback */}

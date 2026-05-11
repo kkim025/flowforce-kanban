@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
-import { createSubtask, updateSubtask, deleteSubtask, reorderSubtasks } from '../lib/api';
+import { createSubtask, updateSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } from '../lib/api';
 import { SubTask, Priority } from '../types';
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -27,8 +27,8 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
 
   const handleToggle = async () => {
     try {
-      const updated = await updateSubtask(subtask.id, { completed: !subtask.isCompleted });
-      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, isCompleted: updated.isCompleted } } });
+      await toggleSubtask(subtask.id);
+      dispatch({ type: 'TOGGLE_SUBTASK', payload: { taskId, subtaskId: subtask.id } });
     } catch (err) {
       console.error('Toggle failed', err);
     }

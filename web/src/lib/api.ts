@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { User, UserRole, Sprint, SprintStatus } from '../types';
+import { User, UserRole, Sprint, SprintStatus, SubTask, Priority } from '../types';
 
 const api_url = import.meta.env.VITE_API_URL;
 
@@ -117,6 +117,48 @@ export const assignTaskToSprint = async (taskId: string, sprintId: string | null
 
 export const getActiveSprint = async (boardId: string): Promise<Sprint | null> => {
   const response = await api.get(`/sprints/boards/${boardId}/active`);
+  return response.data;
+};
+
+// Subtask API
+export interface CreateSubtaskInput {
+  content: string;
+  checklistId: string;
+  priority?: Priority;
+}
+
+export interface UpdateSubtaskInput {
+  content?: string;
+  completed?: boolean;
+  order?: number;
+  priority?: Priority | null;  // null = inherit from parent task
+}
+
+export const createSubtask = async (data: CreateSubtaskInput): Promise<SubTask> => {
+  const response = await api.post('/subtasks', data);
+  return response.data;
+};
+
+export const updateSubtask = async (id: string, data: UpdateSubtaskInput): Promise<SubTask> => {
+  const response = await api.patch(`/subtasks/${id}`, data);
+  return response.data;
+};
+
+export const toggleSubtask = async (id: string): Promise<SubTask> => {
+  const response = await api.patch(`/subtasks/${id}/toggle`);
+  return response.data;
+};
+
+export const deleteSubtask = async (id: string): Promise<void> => {
+  await api.delete(`/subtasks/${id}`);
+};
+
+export const reorderSubtasks = async (checklistId: string, orderedIds: string[]): Promise<void> => {
+  await api.patch('/subtasks/reorder', { checklistId, orderedIds });
+};
+
+export const getSubtasksByChecklist = async (checklistId: string): Promise<SubTask[]> => {
+  const response = await api.get('/subtasks', { params: { checklistId } });
   return response.data;
 };
 

@@ -15,7 +15,6 @@ import { ColumnsModule } from '../columns/columns.module';
       provide: 'IBoardRepository',
       useClass: PrismaBoardRepository,
     },
-    // Explicit injection for use case
     {
       provide: CreateBoardUseCase,
       useFactory: (repo: PrismaBoardRepository) => new CreateBoardUseCase(repo),

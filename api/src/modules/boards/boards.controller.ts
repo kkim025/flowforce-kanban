@@ -8,25 +8,28 @@ import {
   Delete,
   Query,
   UseGuards,
+  UseInterceptors,
+  ClassSerializerInterceptor,
   Logger,
   BadRequestException,
 } from '@nestjs/common';
 import { BoardsService } from './boards.service';
-import { ColumnsService } from '../columns/columns.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { CreateBoardUseCase } from './application/use-cases/create-board.use-case';
 import { CreateBoardDto } from './application/dto/create-board.dto';
+import { ReorderColumnsUseCase } from '../columns/application/use-cases/reorder-columns.use-case';
 
 @Controller('boards')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class BoardsController {
   private readonly logger = new Logger(BoardsController.name);
 
   constructor(
     private readonly boardsService: BoardsService,
-    private readonly columnsService: ColumnsService,
     private readonly createBoardUseCase: CreateBoardUseCase,
+    private readonly reorderColumnsUseCase: ReorderColumnsUseCase,
   ) {}
 
   @Post()
@@ -39,7 +42,6 @@ export class BoardsController {
         throw new BadRequestException('User ID is missing from request');
       }
       const board = await this.createBoardUseCase.execute(dto, userId);
-      // Return a plain object for frontend compatibility
       return {
         id: board.id,
         title: board.title,
@@ -48,7 +50,7 @@ export class BoardsController {
           id: col.id,
           title: col.title,
           order: col.order,
-          tasks: [], // Newly created board columns are empty
+          tasks: [],
         })),
         columnOrder: board.columnOrder,
       };
@@ -92,10 +94,10 @@ export class BoardsController {
   @Post(':id/columns/reorder')
   reorderColumns(
     @GetUser('sub') userId: string,
-    @Param('id') id: string,
+    @Param('id') boardId: string,
     @Body('columnIds') columnIds: string[],
   ) {
-    this.logger.log(`Reordering columns for board ${id}`);
-    return this.columnsService.reorder(userId, id, columnIds);
+    this.logger.log(`Reordering columns for board ${boardId}`);
+    return this.reorderColumnsUseCase.execute(userId, boardId, columnIds);
   }
 }

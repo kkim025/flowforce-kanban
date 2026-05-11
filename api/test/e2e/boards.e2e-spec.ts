@@ -83,8 +83,8 @@ describe('Boards (e2e)', () => {
     await app.close();
   });
 
-  it('should fetch all boards with complex nested relations (regression test)', async () => {
-    // This calls BoardsService.findAll which was failing with "undefined$1undefined" error
+  it('should fetch all boards (list view - columns without tasks)', async () => {
+    // findAll uses BOARD_LIST_CONFIG which excludes tasks for performance
     const res = await request(app.getHttpServer())
       .get('/boards')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -93,13 +93,11 @@ describe('Boards (e2e)', () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
 
-    // Check nested data
+    // List view should still have columns
     const board = res.body[0];
     expect(board.columns).toBeDefined();
-    expect(board.columns[0].tasks).toBeDefined();
-    expect(board.columns[0].tasks[0].checklists).toBeDefined();
-    expect(board.columns[0].tasks[0].checklists[0].items).toBeDefined();
-    expect(board.columns[0].tasks[0].subtasks).toBeDefined();
+    // But tasks are excluded in list view for performance
+    expect(board.columns[0].tasks).toBeUndefined();
   });
 
   it('should fetch single board with complex nested relations', async () => {

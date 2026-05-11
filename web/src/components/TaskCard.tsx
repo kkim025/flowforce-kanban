@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
@@ -11,6 +11,12 @@ import rehypeSanitize from 'rehype-sanitize';
 import { useKanban } from '../store/KanbanContext';
 import { getSprintColor } from '../lib/sprint-utils';
 import SprintBadge from './sprints/SprintBadge';
+
+const PRIORITY_COLORS = {
+    low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    medium: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+} as const;
 
 interface TaskCardProps {
     task: Task;
@@ -30,17 +36,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
     const taskSprint = task.sprintId ? sprints.find(s => s.id === task.sprintId) : null;
     const sprintColor = taskSprint ? getSprintColor(taskSprint, sprints) : null;
 
-    const priorityColors = {
-        low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        medium: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-        high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    };
+    const sprintBorderStyle = useMemo(
+        () => (sprintColor ? { borderLeft: `3px solid ${sprintColor}` } : undefined),
+        [sprintColor]
+    );
 
-    const handleSprintBadgeClick = () => {
+    const handleSprintBadgeClick = useCallback(() => {
         if (taskSprint) {
             dispatch({ type: 'SET_ACTIVE_SPRINT', payload: { sprintId: taskSprint.id } });
         }
-    };
+    }, [taskSprint, dispatch]);
 
     return (
         <Draggable draggableId={task.id} index={index}>
@@ -72,11 +77,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                     ? 'rotate-[2deg] scale-[1.02] shadow-[0_20px_50px_rgba(37,99,235,0.3)] z-[1000] ring-2 ring-accent-blue/50 bg-white dark:bg-slate-900'
                                     : 'hover:shadow-lg hover:-translate-y-1 hover:ring-1 hover:ring-slate-200 dark:hover:ring-slate-700'}
               `}
-                            style={sprintColor ? { borderLeft: `3px solid ${sprintColor}` } : undefined}
+                            style={sprintBorderStyle}
                         >
                             <div className="flex justify-between items-start mb-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${priorityColors[task.priority]}`}>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${PRIORITY_COLORS[task.priority]}`}>
                                         {task.priority}
                                     </span>
                                     {taskSprint && (

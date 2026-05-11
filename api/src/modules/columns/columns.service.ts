@@ -45,11 +45,6 @@ export class ColumnsService {
     return this.prisma.column.findMany({
       where: { boardId },
       orderBy: { order: 'asc' },
-      include: {
-        tasks: {
-          orderBy: { order: 'asc' },
-        },
-      },
     });
   }
 

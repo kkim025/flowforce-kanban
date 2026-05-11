@@ -66,7 +66,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             if (!column) return state;
             return {
                 ...state,
-                tasks: { ...state.tasks, [task.id]: task },
+                tasks: { ...state.tasks, [task.id]: { ...task } },
                 columns: {
                     ...state.columns,
                     [columnId]: {
@@ -79,9 +79,11 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'UPDATE_TASK': {
             const { task } = action.payload;
+            const existing = state.tasks[task.id];
+            if (existing === task) return state;
             return {
                 ...state,
-                tasks: { ...state.tasks, [task.id]: task },
+                tasks: { ...state.tasks, [task.id]: { ...task } },
             };
         }
 

@@ -71,6 +71,12 @@ const Board: React.FC = () => {
         scrollContainerRef.current.scrollLeft = scrollLeft - walk;
     };
 
+    // openCreateView must be defined before useEffect that references it
+    const openCreateView = useCallback((columnId?: string) => {
+        const finalColumnId = columnId || state.columnOrder[0] || 'todo';
+        navigate(`/tasks/new?columnId=${finalColumnId}`);
+    }, [state.columnOrder, navigate]);
+
     // Global Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -130,12 +136,6 @@ const Board: React.FC = () => {
             },
         });
     };
-
-    /* eslint-disable react-hooks/preserve-manual-memoization */
-    const openCreateView = useCallback((columnId?: string) => {
-        const finalColumnId = columnId || state.columnOrder[0] || 'todo';
-        navigate(`/tasks/new?columnId=${finalColumnId}`);
-    }, [state.columnOrder, navigate]);
 
     const openTaskView = (task: Task) => {
         navigate(`/tasks/${task.id}`);

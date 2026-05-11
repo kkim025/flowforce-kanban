@@ -2,10 +2,10 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ColumnsService } from './columns.service';
 import { ColumnsController } from './columns.controller';
 import { PrismaModule } from '../../common/prisma/prisma.module';
-import { BoardsModule } from '../boards/boards.module';
-import { AddColumnUseCase } from '../boards/application/use-cases/add-column.use-case';
-import { ReorderColumnsUseCase } from '../boards/application/use-cases/reorder-columns.use-case';
+import { AddColumnUseCase } from './application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from './application/use-cases/reorder-columns.use-case';
 import { IBoardRepository } from '../boards/domain/boards.repository.interface';
+import { BoardsModule } from '../boards/boards.module';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => BoardsModule)],

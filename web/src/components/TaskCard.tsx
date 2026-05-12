@@ -133,8 +133,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                 ))}
                             </div>
 
-                            {/* Subtasks — only show if there are any checklists with items */}
-                            {task.checklists && task.checklists.length > 0 && (
+                            {/* Subtasks — only show if there are any items */}
+                            {task.checklists && task.checklists.some(cl => cl.items.length > 0) && (
                                 <>
                                     {/* Per-checklist dots + overall progress */}
                                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">

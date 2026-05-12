@@ -166,25 +166,33 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             let checklistId = cl.id;
             // 1. Create or Update Checklist
             // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
-            if (cl.id.includes('-')) { 
+            if (cl.id.includes('-')) {
                 const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
                 checklistId = res.data.id;
+
+                // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
+                for (const item of cl.items) {
+                    await api.post('/subtasks', {
+                        content: item.title,
+                        checklistId: checklistId,
+                        completed: item.isCompleted,
+                        priority: item.priority?.toUpperCase(),
+                    });
+                }
             } else {
                 await api.patch(`/checklists/${cl.id}`, { title: cl.title });
-            }
 
-            // 2. Sync Items
-            for (const item of cl.items) {
-                // UUIDs contain hyphens; DB IDs (nanoid) have no hyphens
-                // Skip items with hyphens - they were already handled by ADD_SUBTASK
-                // and will be refreshed with real DB IDs after board state refresh
-                if (item.id.includes('-')) {
-                    continue;
+                // 2b. For existing checklists, skip items with hyphens (already handled by ADD_SUBTASK)
+                // They will be refreshed with real DB IDs after board state refresh
+                for (const item of cl.items) {
+                    if (item.id.includes('-')) {
+                        continue;
+                    }
+                    await api.patch(`/subtasks/${item.id}`, {
+                        content: item.title,
+                        completed: item.isCompleted,
+                    });
                 }
-                await api.patch(`/subtasks/${item.id}`, {
-                    content: item.title,
-                    completed: item.isCompleted,
-                });
             }
         }
     };

@@ -88,14 +88,19 @@ const TaskEditor: React.FC = () => {
             setSprintId(task?.sprintId);
             setChecklists(task?.checklists || []);
         } else {
-            // Reset to defaults for new task
+            // Reset to defaults for new task - include a default empty checklist
             setTitle('');
             setDescription('');
             setPriority('medium');
             setTags([]);
             setAssigneeId(undefined);
             setSprintId(undefined);
-            setChecklists([]);
+            setChecklists([{
+                id: uuidv4(),
+                title: 'Checklist',
+                taskId: '',
+                items: []
+            }]);
         }
     }, [taskId, state.tasks]);
 

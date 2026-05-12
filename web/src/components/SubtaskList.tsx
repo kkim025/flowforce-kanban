@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
-import { createSubtask, updateSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } from '../lib/api';
+import { updateSubtask, toggleSubtask, reorderSubtasks } from '../lib/api';
 import { SubTask, Priority } from '../types';
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -22,15 +22,20 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
   const [editContent, setEditContent] = useState(subtask.title);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { dispatch } = useKanban();
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   const displayPriority = subtask.priority || taskPriority;
 
   const handleToggle = async () => {
+    if (!isMounted.current) return;
     try {
       await toggleSubtask(subtask.id);
-      dispatch({ type: 'TOGGLE_SUBTASK', payload: { taskId, subtaskId: subtask.id } });
+      if (isMounted.current) dispatch({ type: 'TOGGLE_SUBTASK', payload: { taskId, subtaskId: subtask.id } });
     } catch (err) {
-      console.error('Toggle failed', err);
+      if (isMounted.current) console.error('Toggle failed', err);
     }
   };
 
@@ -41,21 +46,20 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
     }
     try {
       const updated = await updateSubtask(subtask.id, { content: editContent.trim() });
-      dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: updated.title } } });
-      setIsEditing(false);
+      if (isMounted.current) {
+        dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: updated.title } } });
+        setIsEditing(false);
+      }
     } catch (err) {
-      console.error('Edit failed', err);
+      if (isMounted.current) console.error('Edit failed', err);
     }
   };
 
   const handleDelete = async () => {
-    try {
-      await deleteSubtask(subtask.id);
-      dispatch({ type: 'DELETE_SUBTASK', payload: { taskId, checklistId: subtask.checklistId || subtask._checklistId, subtaskId: subtask.id } });
-      setShowDeleteModal(false);
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
+    // Dispatch through wrappedDispatch (handles API + state update)
+    // Don't call deleteSubtask() directly — that would duplicate the API call
+    dispatch({ type: 'DELETE_SUBTASK', payload: { taskId, checklistId: subtask.checklistId || subtask._checklistId, subtaskId: subtask.id } });
+    setShowDeleteModal(false);
   };
 
   return (
@@ -143,12 +147,15 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ task }) => {
   const { dispatch } = useKanban();
 
   // Flatten all subtasks across all checklists, keep checklistId on each
-  const allSubtasks: (SubTask & { _checklistId: string })[] = [];
-  task.checklists?.forEach((cl: any) => {
-    cl.items?.forEach((item: SubTask) => {
-      allSubtasks.push({ ...item, _checklistId: cl.id });
+  const allSubtasks = useMemo(() => {
+    const result: (SubTask & { _checklistId: string })[] = [];
+    task.checklists?.forEach((cl: any) => {
+      cl.items?.forEach((item: SubTask) => {
+        result.push({ ...item, _checklistId: cl.id });
+      });
     });
-  });
+    return result;
+  }, [task.checklists]);
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
@@ -156,22 +163,25 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ task }) => {
     const [moved] = reordered.splice(result.source.index, 1);
     reordered.splice(result.destination.index, 0, moved);
 
-    // Update local state optimistically
     const checklistId = moved._checklistId;
+    const orderedSubtasks = reordered.filter(s => s._checklistId === checklistId);
+
+    // Optimistic update
     dispatch({
       type: 'REORDER_SUBTASKS',
-      payload: {
-        taskId: task.id,
-        checklistId,
-        orderedSubtasks: reordered.filter(s => s._checklistId === checklistId),
-      },
+      payload: { taskId: task.id, checklistId, orderedSubtasks },
     });
 
-    // Persist
     try {
-      await reorderSubtasks(checklistId, reordered.filter(s => s._checklistId === checklistId).map(s => s.id));
+      await reorderSubtasks(checklistId, orderedSubtasks.map(s => s.id));
     } catch (err) {
-      console.error('Reorder failed', err);
+      // Revert on failure by re-dispatching with the original order
+      const originalOrder = allSubtasks.filter(s => s._checklistId === checklistId);
+      dispatch({
+        type: 'REORDER_SUBTASKS',
+        payload: { taskId: task.id, checklistId, orderedSubtasks: originalOrder },
+      });
+      console.error('Reorder failed, reverted to original order', err);
     }
   };
 

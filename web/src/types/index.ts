@@ -119,7 +119,7 @@ export type KanbanAction =
     | { type: 'UPDATE_SUBTASK'; payload: { taskId: string; subtask: SubTask } }
     | { type: 'DELETE_SUBTASK'; payload: { taskId: string; checklistId: string; subtaskId: string } }
     | { type: 'REORDER_SUBTASKS'; payload: { taskId: string; checklistId: string; orderedSubtasks: SubTask[] } }
-    | { type: 'TOGGLE_SUBTASK'; payload: { taskId: string; subtaskId: string } }
+    | { type: 'TOGGLE_SUBTASK'; payload: { taskId?: string; subtaskId: string } }
     | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment } }
     | { type: 'UPDATE_COMMENT'; payload: { taskId: string; comment: Comment } }
     | { type: 'DELETE_COMMENT'; payload: { taskId: string; commentId: string; userId: string } }

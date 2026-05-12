@@ -347,16 +347,22 @@ const TaskEditor: React.FC = () => {
                                         <div className="p-5 space-y-3">
                                             {cl.items.map(item => (
                                                 <div key={item.id} className="flex items-center gap-3 group">
-                                                    <input 
+                                                    <input
                                                         type="checkbox"
                                                         checked={item.isCompleted}
-                                                        onChange={(e) => updateSubTask(cl.id, item.id, { isCompleted: e.target.checked })}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            updateSubTask(cl.id, item.id, { isCompleted: e.target.checked });
+                                                        }}
                                                         className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-accent-blue focus:ring-accent-blue/30 bg-transparent"
                                                     />
-                                                    <input 
+                                                    <input
                                                         type="text"
                                                         value={item.title}
-                                                        onChange={(e) => updateSubTask(cl.id, item.id, { title: e.target.value })}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            updateSubTask(cl.id, item.id, { title: e.target.value });
+                                                        }}
                                                         placeholder="Item description..."
                                                         className={`flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none ${item.isCompleted ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}
                                                     />

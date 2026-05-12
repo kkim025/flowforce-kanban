@@ -314,7 +314,13 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         }
 
         case 'TOGGLE_SUBTASK': {
-            const { taskId, subtaskId } = action.payload;
+            const { taskId: providedTaskId, subtaskId } = action.payload;
+            // Find the task that contains this subtask if taskId not provided
+            const taskId = providedTaskId || Object.keys(state.tasks).find(tid => {
+                const task = state.tasks[tid];
+                return task.checklists?.some(cl => cl.items?.some(item => item.id === subtaskId));
+            });
+            if (!taskId) return state;
             const task = state.tasks[taskId];
             if (!task) return state;
             return {

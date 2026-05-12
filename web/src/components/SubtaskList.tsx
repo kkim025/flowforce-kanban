@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
-import { updateSubtask, toggleSubtask, reorderSubtasks } from '../lib/api';
+import { updateSubtask, reorderSubtasks } from '../lib/api';
 import { SubTask, Priority } from '../types';
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -30,13 +30,9 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
   const displayPriority = subtask.priority || taskPriority;
 
   const handleToggle = async () => {
-    if (!isMounted.current) return;
-    try {
-      await toggleSubtask(subtask.id);
-      if (isMounted.current) dispatch({ type: 'TOGGLE_SUBTASK', payload: { taskId, subtaskId: subtask.id } });
-    } catch (err) {
-      if (isMounted.current) console.error('Toggle failed', err);
-    }
+    // Dispatch through wrappedDispatch (handles API call)
+    // wrappedDispatch TOGGLE_SUBTASK calls PATCH /subtasks/:id/toggle
+    dispatch({ type: 'TOGGLE_SUBTASK', payload: { taskId, subtaskId: subtask.id } });
   };
 
   const handleSaveEdit = async () => {
@@ -44,15 +40,9 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({ subtask, taskPriority, taskId
       setIsEditing(false);
       return;
     }
-    try {
-      const updated = await updateSubtask(subtask.id, { content: editContent.trim() });
-      if (isMounted.current) {
-        dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: updated.title } } });
-        setIsEditing(false);
-      }
-    } catch (err) {
-      if (isMounted.current) console.error('Edit failed', err);
-    }
+    // Dispatch through wrappedDispatch (handles API call)
+    dispatch({ type: 'UPDATE_SUBTASK', payload: { taskId, subtask: { ...subtask, title: editContent.trim() } } });
+    setIsEditing(false);
   };
 
   const handleDelete = async () => {

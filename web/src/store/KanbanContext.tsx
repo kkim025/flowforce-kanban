@@ -176,17 +176,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // 2. Sync Items
             for (const item of cl.items) {
                 // UUIDs contain hyphens; DB IDs (nanoid) have no hyphens
+                // Skip items with hyphens - they were already handled by ADD_SUBTASK
+                // and will be refreshed with real DB IDs after board state refresh
                 if (item.id.includes('-')) {
-                    await api.post('/subtasks', {
-                        content: item.title,
-                        checklistId: checklistId,
-                    });
-                } else {
-                    await api.patch(`/subtasks/${item.id}`, {
-                        content: item.title,
-                        completed: item.isCompleted,
-                    });
+                    continue;
                 }
+                await api.patch(`/subtasks/${item.id}`, {
+                    content: item.title,
+                    completed: item.isCompleted,
+                });
             }
         }
     };
@@ -307,17 +305,14 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const localChecklist = task.checklists?.find(cl => cl.id === checklist.id);
                     if (localChecklist) {
                         for (const item of localChecklist.items) {
-                            if (item.id.length > 36) {
-                                await api.post('/subtasks', {
-                                    content: item.title,
-                                    checklistId: checklist.id,
-                                });
-                            } else {
-                                await api.patch(`/subtasks/${item.id}`, {
-                                    content: item.title,
-                                    completed: item.isCompleted,
-                                });
+                            // Skip items with hyphens - they were already handled by ADD_SUBTASK
+                            if (item.id.includes('-')) {
+                                continue;
                             }
+                            await api.patch(`/subtasks/${item.id}`, {
+                                content: item.title,
+                                completed: item.isCompleted,
+                            });
                         }
                     }
                     break;
@@ -409,6 +404,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 case 'TOGGLE_SUBTASK': {
                     const { subtaskId } = action.payload;
                     await api.patch(`/subtasks/${subtaskId}/toggle`);
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'REORDER_SUBTASKS': {

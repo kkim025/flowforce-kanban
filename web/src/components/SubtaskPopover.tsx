@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createSubtask } from '../lib/api';
 import { useKanban } from '../store/KanbanContext';
 
 interface SubtaskPopoverProps {
@@ -25,8 +24,16 @@ const SubtaskPopover: React.FC<SubtaskPopoverProps> = ({ taskId, checklists, onC
     if (!content.trim() || !checklistId) return;
     setIsSubmitting(true);
     try {
-      const newSubtask = await createSubtask({ content: content.trim(), checklistId });
-      dispatch({ type: 'ADD_SUBTASK', payload: { taskId, checklistId, subtask: newSubtask } });
+      // Dispatch through wrappedDispatch (handles API + state update)
+      // Don't call createSubtask() directly — that would duplicate the API call
+      const optimisticSubtask = {
+        id: crypto.randomUUID(),
+        title: content.trim(),
+        isCompleted: false,
+        checklistId,
+        priority: undefined,
+      };
+      dispatch({ type: 'ADD_SUBTASK', payload: { taskId, checklistId, subtask: optimisticSubtask } });
       onAdded();
       onClose();
     } catch (err) {

@@ -77,20 +77,8 @@ const TaskViewer: React.FC = () => {
     };
 
     const toggleChecklistItem = (checklistId: string, itemId: string) => {
-        const updatedChecklists = task.checklists?.map(cl => {
-            if (cl.id === checklistId) {
-                return {
-                    ...cl,
-                    items: cl.items.map(item => item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item)
-                };
-            }
-            return cl;
-        });
-
-        dispatch({
-            type: 'UPDATE_TASK',
-            payload: { task: { ...task, checklists: updatedChecklists } }
-        });
+        // Use TOGGLE_SUBTASK for proper API persistence without triggering syncChecklistsForTask
+        dispatch({ type: 'TOGGLE_SUBTASK', payload: { subtaskId: itemId } });
     };
 
     const updateAssignee = (userId: string | undefined) => {

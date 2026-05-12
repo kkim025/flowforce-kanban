@@ -136,10 +136,12 @@ model Subtask {
   id          String     @id @default(uuid())
   content     String
   completed   Boolean    @default(false)
+  order       Int        @default(0)
+  priority    Priority?
+  checklistId String?
   taskId      String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  checklistId String?
   checklist   Checklist? @relation("ChecklistSubtasks", fields: [checklistId], references: [id], onDelete: Cascade)
   task        Task?      @relation("TaskSubtasks", fields: [taskId], references: [id], onDelete: Cascade)
 }

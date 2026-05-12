@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { User, UserRole, Sprint, SprintStatus } from '../types';
+import { User, UserRole, Sprint, SprintStatus, SubTask, Priority } from '../types';
 
 const api_url = import.meta.env.VITE_API_URL;
 
@@ -118,6 +118,72 @@ export const assignTaskToSprint = async (taskId: string, sprintId: string | null
 export const getActiveSprint = async (boardId: string): Promise<Sprint | null> => {
   const response = await api.get(`/sprints/boards/${boardId}/active`);
   return response.data;
+};
+
+// Subtask API
+// Backend returns: { id, content, completed, priority, order, checklistId, createdAt, updatedAt }
+// Frontend SubTask uses: { id, title, isCompleted, checklistId, priority, order }
+export interface SubtaskApiResponse {
+  id: string;
+  content: string;
+  completed: boolean;
+  priority?: Priority;
+  order?: number;
+  checklistId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+function mapApiSubtaskToSubTask(api: SubtaskApiResponse): SubTask {
+  return {
+    id: api.id,
+    title: api.content,
+    isCompleted: api.completed,
+    checklistId: api.checklistId,
+    priority: api.priority,
+    order: api.order,
+  };
+}
+
+export interface CreateSubtaskInput {
+  content: string;
+  checklistId: string;
+  priority?: Priority;
+}
+
+export interface UpdateSubtaskInput {
+  content?: string;
+  completed?: boolean;
+  order?: number;
+  priority?: Priority | null;  // null = inherit from parent task
+}
+
+export const createSubtask = async (data: CreateSubtaskInput): Promise<SubTask> => {
+  const response = await api.post<SubtaskApiResponse>('/subtasks', data);
+  return mapApiSubtaskToSubTask(response.data);
+};
+
+export const updateSubtask = async (id: string, data: UpdateSubtaskInput): Promise<SubTask> => {
+  const response = await api.patch<SubtaskApiResponse>(`/subtasks/${id}`, data);
+  return mapApiSubtaskToSubTask(response.data);
+};
+
+export const toggleSubtask = async (id: string): Promise<SubTask> => {
+  const response = await api.patch<SubtaskApiResponse>(`/subtasks/${id}/toggle`);
+  return mapApiSubtaskToSubTask(response.data);
+};
+
+export const deleteSubtask = async (id: string): Promise<void> => {
+  await api.delete(`/subtasks/${id}`);
+};
+
+export const reorderSubtasks = async (checklistId: string, orderedIds: string[]): Promise<void> => {
+  await api.patch('/subtasks/reorder', { checklistId, orderedIds });
+};
+
+export const getSubtasksByChecklist = async (checklistId: string): Promise<SubTask[]> => {
+  const response = await api.get<SubtaskApiResponse[]>('/subtasks', { params: { checklistId } });
+  return response.data.map(mapApiSubtaskToSubTask);
 };
 
 export default api;

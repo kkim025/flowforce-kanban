@@ -190,15 +190,21 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                                     </span>
                                                 </div>
                                                 <div className="w-56 px-6 py-4 flex items-center gap-4">
-                                                    <div className="w-32 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex-shrink-0">
-                                                        <div 
-                                                            className={`h-full transition-all duration-500 ${task.progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
-                                                            style={{ width: `${task.progress}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-slate-400 flex-shrink-0">
-                                                        {task.completedCount}/{task.totalCount}
-                                                    </span>
+                                                    {task.totalCount > 0 ? (
+                                                        <>
+                                                            <div className="w-32 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex-shrink-0">
+                                                                <div
+                                                                    className={`h-full transition-all duration-500 ${task.progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
+                                                                    style={{ width: `${task.progress}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-400 flex-shrink-0">
+                                                                {task.completedCount}/{task.totalCount}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-[10px] text-slate-300 dark:text-slate-600 italic">No subtasks</span>
+                                                    )}
                                                 </div>
                                                 <div className="w-40 px-8 py-4 text-right flex items-center justify-end">
                                                     <span className="text-xs text-slate-400 font-medium">

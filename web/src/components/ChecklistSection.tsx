@@ -10,15 +10,19 @@ interface ChecklistSectionProps {
 const ChecklistSection: React.FC<ChecklistSectionProps> = ({ checklists, onToggleChecklistItem }) => {
     if (!checklists || checklists.length === 0) return null;
 
+    // Filter out checklists with no items for display
+    const nonEmptyChecklists = checklists.filter(cl => cl.items.length > 0);
+    if (nonEmptyChecklists.length === 0) return null;
+
     return (
         <div className="pt-8 border-t border-slate-200 dark:border-white/5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3">
                 <CheckSquare className="w-4 h-4 text-accent-blue" />
                 Checklists
             </h3>
-            
+
             <div className="space-y-6">
-                {checklists.map((cl) => (
+                {nonEmptyChecklists.map((cl) => (
                     <div key={cl.id} className="glass rounded-2xl border border-white/5 overflow-hidden bg-slate-50/50 dark:bg-white/5">
                         <div className="px-5 py-3 border-b border-white/5 bg-white/5">
                             <div className="flex items-center justify-between">

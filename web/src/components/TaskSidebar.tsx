@@ -6,6 +6,7 @@ import { useKanban } from '../store/KanbanContext';
 import { UI_LABELS } from '../lib/constants';
 import Dropdown from './Dropdown';
 import SprintSelector from './sprints/SprintSelector';
+import SubtaskList from './SubtaskList';
 
 interface TaskSidebarProps {
     task: Task;
@@ -182,7 +183,7 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
                         <Settings className="w-3 h-3" />
                     </button>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2">
                     {task.tags && task.tags.length > 0 ? (
                         task.tags.map(tag => (
@@ -198,12 +199,12 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
                     )}
                 </div>
 
-                <Dropdown 
-                    isOpen={showLabelMenu} 
+                <Dropdown
+                    isOpen={showLabelMenu}
                     onClose={() => setShowLabelMenu(false)}
                     className="p-3"
                 >
-                    <input 
+                    <input
                         autoFocus
                         type="text"
                         value={tagInput}
@@ -214,6 +215,9 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
                     />
                 </Dropdown>
             </div>
+
+            {/* Subtasks Section */}
+            <SubtaskList task={task} />
         </aside>
     );
 };

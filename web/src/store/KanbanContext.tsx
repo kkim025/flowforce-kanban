@@ -163,23 +163,30 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
         for (const cl of checklists) {
-            let checklistId = cl.id;
             // 1. Create or Update Checklist
-            if (cl.id.length > 36) { 
+            // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
+            if (cl.id.includes('-')) {
                 const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
-                checklistId = res.data.id;
-            } else {
-                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
-            }
+                const checklistId = res.data.id;
 
-            // 2. Sync Items
-            for (const item of cl.items) {
-                if (item.id.length > 36) {
+                // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
+                for (const item of cl.items) {
                     await api.post('/subtasks', {
                         content: item.title,
                         checklistId: checklistId,
+                        completed: item.isCompleted,
+                        priority: item.priority?.toUpperCase(),
                     });
-                } else {
+                }
+            } else {
+                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+
+                // 2b. For existing checklists, skip items with hyphens (already handled by ADD_SUBTASK)
+                // They will be refreshed with real DB IDs after board state refresh
+                for (const item of cl.items) {
+                    if (item.id.includes('-')) {
+                        continue;
+                    }
                     await api.patch(`/subtasks/${item.id}`, {
                         content: item.title,
                         completed: item.isCompleted,
@@ -305,17 +312,14 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const localChecklist = task.checklists?.find(cl => cl.id === checklist.id);
                     if (localChecklist) {
                         for (const item of localChecklist.items) {
-                            if (item.id.length > 36) {
-                                await api.post('/subtasks', {
-                                    content: item.title,
-                                    checklistId: checklist.id,
-                                });
-                            } else {
-                                await api.patch(`/subtasks/${item.id}`, {
-                                    content: item.title,
-                                    completed: item.isCompleted,
-                                });
+                            // Skip items with hyphens - they were already handled by ADD_SUBTASK
+                            if (item.id.includes('-')) {
+                                continue;
                             }
+                            await api.patch(`/subtasks/${item.id}`, {
+                                content: item.title,
+                                completed: item.isCompleted,
+                            });
                         }
                     }
                     break;
@@ -377,6 +381,46 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 case 'ASSIGN_TASK_TO_SPRINT': {
                     const { taskId, sprintId } = action.payload;
                     await api.patch(`/tasks/${taskId}/sprint`, { sprintId });
+                    break;
+                }
+                case 'ADD_SUBTASK': {
+                    const { checklistId, subtask } = action.payload;
+                    await api.post('/subtasks', {
+                        content: subtask.title,
+                        checklistId: checklistId,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'UPDATE_SUBTASK': {
+                    const { subtask } = action.payload;
+                    await api.patch(`/subtasks/${subtask.id}`, {
+                        content: subtask.title,
+                        completed: subtask.isCompleted,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    break;
+                }
+                case 'DELETE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.delete(`/subtasks/${subtaskId}`);
+                    break;
+                }
+                case 'TOGGLE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.patch(`/subtasks/${subtaskId}/toggle`);
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'REORDER_SUBTASKS': {
+                    const { checklistId, orderedSubtasks } = action.payload;
+                    await api.patch('/subtasks/reorder', {
+                        checklistId,
+                        orderedIds: orderedSubtasks.map((s: any) => s.id),
+                    });
                     break;
                 }
             }

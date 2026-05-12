@@ -31,6 +31,7 @@ export class BoardMapper {
       {
         title: raw.title,
         order: raw.order,
+        boardId: raw.boardId,
       },
       raw.id,
     );

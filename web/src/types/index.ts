@@ -28,6 +28,8 @@ export interface SubTask {
     title: string;
     isCompleted: boolean;
     checklistId?: string;
+    order?: number;        // for sorting within checklist
+    priority?: Priority;   // undefined/null means inherit from parent task
 }
 
 export interface Checklist {
@@ -113,6 +115,11 @@ export type KanbanAction =
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }
     | { type: 'UPDATE_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
+    | { type: 'ADD_SUBTASK'; payload: { taskId: string; checklistId: string; subtask: SubTask } }
+    | { type: 'UPDATE_SUBTASK'; payload: { taskId: string; subtask: SubTask } }
+    | { type: 'DELETE_SUBTASK'; payload: { taskId: string; checklistId: string; subtaskId: string } }
+    | { type: 'REORDER_SUBTASKS'; payload: { taskId: string; checklistId: string; orderedSubtasks: SubTask[] } }
+    | { type: 'TOGGLE_SUBTASK'; payload: { taskId?: string; subtaskId: string } }
     | { type: 'ADD_COMMENT'; payload: { taskId: string; comment: Comment } }
     | { type: 'UPDATE_COMMENT'; payload: { taskId: string; comment: Comment } }
     | { type: 'DELETE_COMMENT'; payload: { taskId: string; commentId: string; userId: string } }

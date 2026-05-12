@@ -5,8 +5,11 @@ import {
   Patch,
   Param,
   Delete,
+  Get,
+  Query,
   UseGuards,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { SubtasksService } from './subtasks.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
@@ -27,7 +30,7 @@ export class SubtasksController {
   @Post()
   create(
     @GetUser('sub') userId: string,
-    @Body() body: { content: string; taskId?: string; checklistId?: string },
+    @Body() body: { content: string; checklistId: string; priority?: string },
   ) {
     return this.subtasksService.create(userId, body);
   }
@@ -49,5 +52,34 @@ export class SubtasksController {
   @Delete(':id')
   remove(@GetUser('sub') userId: string, @Param('id') id: string) {
     return this.subtasksService.remove(userId, id);
+  }
+
+  @Get()
+  async findAll(
+    @GetUser('sub') userId: string,
+    @Query('checklistId') checklistId: string,
+  ) {
+    if (!checklistId)
+      throw new BadRequestException('checklistId query param required');
+    // Verify user has access to this checklist
+    await this.subtasksService.checkChecklistOwnership(userId, checklistId);
+    return this.subtasksService.findAllByChecklist(checklistId);
+  }
+
+  @Patch(':id/toggle')
+  async toggle(@GetUser('sub') userId: string, @Param('id') id: string) {
+    return this.subtasksService.toggle(userId, id);
+  }
+
+  @Patch('reorder')
+  async reorder(
+    @GetUser('sub') userId: string,
+    @Body() body: { checklistId: string; orderedIds: string[] },
+  ) {
+    return this.subtasksService.reorder(
+      userId,
+      body.checklistId,
+      body.orderedIds,
+    );
   }
 }

@@ -4,6 +4,7 @@ import { Result } from '../../../common/domain/result';
 export interface ColumnProps extends Record<string, unknown> {
   title: string;
   order: number;
+  boardId?: string;
 }
 
 export class Column extends Entity<ColumnProps> {

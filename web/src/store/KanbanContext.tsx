@@ -165,7 +165,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         for (const cl of checklists) {
             let checklistId = cl.id;
             // 1. Create or Update Checklist
-            if (cl.id.length > 36) { 
+            // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
+            if (cl.id.includes('-')) { 
                 const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
                 checklistId = res.data.id;
             } else {
@@ -174,7 +175,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
             // 2. Sync Items
             for (const item of cl.items) {
-                if (item.id.length > 36) {
+                // UUIDs contain hyphens; DB IDs (nanoid) have no hyphens
+                if (item.id.includes('-')) {
                     await api.post('/subtasks', {
                         content: item.title,
                         checklistId: checklistId,

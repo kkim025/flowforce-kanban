@@ -182,8 +182,15 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ task }) => {
     if (!firstChecklist) return;
 
     try {
-      const created = await createSubtask({ content: newContent.trim(), checklistId: firstChecklist.id, priority: newPriority });
-      dispatch({ type: 'ADD_SUBTASK', payload: { taskId: task.id, checklistId: firstChecklist.id, subtask: created } });
+      // Build optimistic subtask (temp UUID with hyphens so wrappedDispatch treats it as new)
+      const optimisticSubtask = {
+        id: crypto.randomUUID(),
+        title: newContent.trim(),
+        isCompleted: false,
+        checklistId: firstChecklist.id,
+        priority: newPriority,
+      };
+      dispatch({ type: 'ADD_SUBTASK', payload: { taskId: task.id, checklistId: firstChecklist.id, subtask: optimisticSubtask } });
       setNewContent('');
       setNewPriority(undefined);
       setIsAdding(false);

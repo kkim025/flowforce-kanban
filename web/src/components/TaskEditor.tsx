@@ -511,7 +511,10 @@ const TaskEditor: React.FC = () => {
                                     <>
                                         <span
                                             className="w-2.5 h-2.5 rounded-full"
-                                            style={{ backgroundColor: getSprintColor(state.sprints.find(s => s.id === sprintId)!, state.sprints) }}
+                                            style={{ backgroundColor: (() => {
+                                                const sprint = state.sprints.find(s => s.id === sprintId);
+                                                return sprint ? getSprintColor(sprint, state.sprints) : '#94a3b8';
+                                            })() }}
                                         />
                                         <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate flex-1 text-left">
                                             {state.sprints.find(s => s.id === sprintId)?.name}

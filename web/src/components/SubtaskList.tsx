@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
-import { updateSubtask, reorderSubtasks } from '../lib/api';
+import { reorderSubtasks } from '../lib/api';
 import { SubTask, Priority } from '../types';
 
 const PRIORITY_BADGE: Record<string, string> = {

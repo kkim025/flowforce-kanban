@@ -11,7 +11,12 @@ describe('SubtasksService', () => {
   const mockColumn = { id: 'col-1', boardId: 'board-1', board: mockBoard };
   const mockTask = { id: 'task-1', columnId: 'col-1', column: mockColumn };
   const mockChecklist = { id: 'cl-1', taskId: 'task-1', task: mockTask };
-  const mockSubtask = { id: 'st-1', content: 'Subtask 1', completed: false, checklistId: 'cl-1' };
+  const mockSubtask = {
+    id: 'st-1',
+    content: 'Subtask 1',
+    completed: false,
+    checklistId: 'cl-1',
+  };
 
   beforeEach(async () => {
     mockPrisma = {
@@ -50,7 +55,10 @@ describe('SubtasksService', () => {
       mockPrisma.checklist.findUnique.mockResolvedValue(mockChecklist);
       mockPrisma.subtask.create.mockResolvedValue(mockSubtask);
 
-      const result = await service.create('user-1', { content: 'Subtask 1', checklistId: 'cl-1' });
+      const result = await service.create('user-1', {
+        content: 'Subtask 1',
+        checklistId: 'cl-1',
+      });
 
       expect(result).toEqual(mockSubtask);
       expect(mockPrisma.subtask.create).toHaveBeenCalledWith({
@@ -61,33 +69,52 @@ describe('SubtasksService', () => {
     it('should throw ForbiddenException if user does not own the checklist', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue({
         ...mockChecklist,
-        task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } },
+        task: {
+          ...mockTask,
+          column: {
+            ...mockColumn,
+            board: { ...mockBoard, ownerId: 'other-user' },
+          },
+        },
       });
 
-      await expect(service.create('user-1', { content: 'Subtask 1', checklistId: 'cl-1' }))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.create('user-1', { content: 'Subtask 1', checklistId: 'cl-1' }),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if checklist not found', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue(null);
 
-      await expect(service.create('user-1', { content: 'Subtask 1', checklistId: 'cl-1' }))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.create('user-1', { content: 'Subtask 1', checklistId: 'cl-1' }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw error if neither taskId nor checklistId provided', async () => {
-      await expect(service.create('user-1', { content: 'Subtask 1' }))
-        .rejects.toThrow('Either taskId or checklistId must be provided');
+      await expect(
+        service.create('user-1', { content: 'Subtask 1' }),
+      ).rejects.toThrow('Either taskId or checklistId must be provided');
     });
   });
 
   describe('update', () => {
     it('should update a subtask', async () => {
-      const updatedSubtask = { ...mockSubtask, content: 'Updated', completed: true };
-      mockPrisma.subtask.findUnique.mockResolvedValue({ ...mockSubtask, checklist: mockChecklist });
+      const updatedSubtask = {
+        ...mockSubtask,
+        content: 'Updated',
+        completed: true,
+      };
+      mockPrisma.subtask.findUnique.mockResolvedValue({
+        ...mockSubtask,
+        checklist: mockChecklist,
+      });
       mockPrisma.subtask.update.mockResolvedValue(updatedSubtask);
 
-      const result = await service.update('user-1', 'st-1', { content: 'Updated', completed: true });
+      const result = await service.update('user-1', 'st-1', {
+        content: 'Updated',
+        completed: true,
+      });
 
       expect(result.content).toBe('Updated');
       expect(result.completed).toBe(true);
@@ -96,47 +123,74 @@ describe('SubtasksService', () => {
     it('should throw NotFoundException if subtask not found', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue(null);
 
-      await expect(service.update('user-1', 'st-1', { content: 'Updated' }))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.update('user-1', 'st-1', { content: 'Updated' }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if user does not own the subtask', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue({
         ...mockSubtask,
-        checklist: { ...mockChecklist, task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } } },
+        checklist: {
+          ...mockChecklist,
+          task: {
+            ...mockTask,
+            column: {
+              ...mockColumn,
+              board: { ...mockBoard, ownerId: 'other-user' },
+            },
+          },
+        },
       });
 
-      await expect(service.update('user-1', 'st-1', { content: 'Updated' }))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.update('user-1', 'st-1', { content: 'Updated' }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('remove', () => {
     it('should delete a subtask', async () => {
-      mockPrisma.subtask.findUnique.mockResolvedValue({ ...mockSubtask, checklist: mockChecklist });
+      mockPrisma.subtask.findUnique.mockResolvedValue({
+        ...mockSubtask,
+        checklist: mockChecklist,
+      });
       mockPrisma.subtask.delete.mockResolvedValue(mockSubtask);
 
       const result = await service.remove('user-1', 'st-1');
 
       expect(result).toEqual(mockSubtask);
-      expect(mockPrisma.subtask.delete).toHaveBeenCalledWith({ where: { id: 'st-1' } });
+      expect(mockPrisma.subtask.delete).toHaveBeenCalledWith({
+        where: { id: 'st-1' },
+      });
     });
 
     it('should throw NotFoundException if subtask not found', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('user-1', 'st-1'))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.remove('user-1', 'st-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException if user does not own the subtask', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue({
         ...mockSubtask,
-        checklist: { ...mockChecklist, task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } } },
+        checklist: {
+          ...mockChecklist,
+          task: {
+            ...mockTask,
+            column: {
+              ...mockColumn,
+              board: { ...mockBoard, ownerId: 'other-user' },
+            },
+          },
+        },
       });
 
-      await expect(service.remove('user-1', 'st-1'))
-        .rejects.toThrow(ForbiddenException);
+      await expect(service.remove('user-1', 'st-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -144,7 +198,10 @@ describe('SubtasksService', () => {
     it('should toggle subtask completed status from false to true', async () => {
       const subtaskFalse = { ...mockSubtask, completed: false };
       const subtaskTrue = { ...mockSubtask, completed: true };
-      mockPrisma.subtask.findUnique.mockResolvedValue({ ...subtaskFalse, checklist: mockChecklist });
+      mockPrisma.subtask.findUnique.mockResolvedValue({
+        ...subtaskFalse,
+        checklist: mockChecklist,
+      });
       mockPrisma.subtask.update.mockResolvedValue(subtaskTrue);
 
       const result = await service.toggle('user-1', 'st-1');
@@ -155,7 +212,10 @@ describe('SubtasksService', () => {
     it('should toggle subtask completed status from true to false', async () => {
       const subtaskTrue = { ...mockSubtask, completed: true };
       const subtaskFalse = { ...mockSubtask, completed: false };
-      mockPrisma.subtask.findUnique.mockResolvedValue({ ...subtaskTrue, checklist: mockChecklist });
+      mockPrisma.subtask.findUnique.mockResolvedValue({
+        ...subtaskTrue,
+        checklist: mockChecklist,
+      });
       mockPrisma.subtask.update.mockResolvedValue(subtaskFalse);
 
       const result = await service.toggle('user-1', 'st-1');
@@ -166,18 +226,29 @@ describe('SubtasksService', () => {
     it('should throw NotFoundException if subtask not found', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue(null);
 
-      await expect(service.toggle('user-1', 'st-1'))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.toggle('user-1', 'st-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException if user does not own the subtask', async () => {
       mockPrisma.subtask.findUnique.mockResolvedValue({
         ...mockSubtask,
-        checklist: { ...mockChecklist, task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } } },
+        checklist: {
+          ...mockChecklist,
+          task: {
+            ...mockTask,
+            column: {
+              ...mockColumn,
+              board: { ...mockBoard, ownerId: 'other-user' },
+            },
+          },
+        },
       });
 
-      await expect(service.toggle('user-1', 'st-1'))
-        .rejects.toThrow(ForbiddenException);
+      await expect(service.toggle('user-1', 'st-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -202,18 +273,26 @@ describe('SubtasksService', () => {
     it('should throw ForbiddenException if user does not own the checklist', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue({
         ...mockChecklist,
-        task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } },
+        task: {
+          ...mockTask,
+          column: {
+            ...mockColumn,
+            board: { ...mockBoard, ownerId: 'other-user' },
+          },
+        },
       });
 
-      await expect(service.reorder('user-1', 'cl-1', ['st-1', 'st-2']))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.reorder('user-1', 'cl-1', ['st-1', 'st-2']),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if checklist not found', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue(null);
 
-      await expect(service.reorder('user-1', 'cl-1', ['st-1', 'st-2']))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.reorder('user-1', 'cl-1', ['st-1', 'st-2']),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -247,18 +326,26 @@ describe('SubtasksService', () => {
     it('should throw ForbiddenException if user is not owner', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue({
         ...mockChecklist,
-        task: { ...mockTask, column: { ...mockColumn, board: { ...mockBoard, ownerId: 'other-user' } } },
+        task: {
+          ...mockTask,
+          column: {
+            ...mockColumn,
+            board: { ...mockBoard, ownerId: 'other-user' },
+          },
+        },
       });
 
-      await expect(service.checkChecklistOwnership('user-1', 'cl-1'))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        service.checkChecklistOwnership('user-1', 'cl-1'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if checklist not found', async () => {
       mockPrisma.checklist.findUnique.mockResolvedValue(null);
 
-      await expect(service.checkChecklistOwnership('user-1', 'cl-1'))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        service.checkChecklistOwnership('user-1', 'cl-1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -3,7 +3,7 @@ import { Draggable } from '@hello-pangea/dnd';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { CheckSquare, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

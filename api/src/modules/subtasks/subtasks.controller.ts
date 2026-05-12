@@ -59,17 +59,15 @@ export class SubtasksController {
     @GetUser('sub') userId: string,
     @Query('checklistId') checklistId: string,
   ) {
-    if (!checklistId) throw new BadRequestException('checklistId query param required');
+    if (!checklistId)
+      throw new BadRequestException('checklistId query param required');
     // Verify user has access to this checklist
     await this.subtasksService.checkChecklistOwnership(userId, checklistId);
     return this.subtasksService.findAllByChecklist(checklistId);
   }
 
   @Patch(':id/toggle')
-  async toggle(
-    @GetUser('sub') userId: string,
-    @Param('id') id: string,
-  ) {
+  async toggle(@GetUser('sub') userId: string, @Param('id') id: string) {
     return this.subtasksService.toggle(userId, id);
   }
 
@@ -78,6 +76,10 @@ export class SubtasksController {
     @GetUser('sub') userId: string,
     @Body() body: { checklistId: string; orderedIds: string[] },
   ) {
-    return this.subtasksService.reorder(userId, body.checklistId, body.orderedIds);
+    return this.subtasksService.reorder(
+      userId,
+      body.checklistId,
+      body.orderedIds,
+    );
   }
 }

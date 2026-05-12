@@ -1,4 +1,10 @@
-import { IsBoolean, IsOptional, IsString, IsInt, IsEnum } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsInt,
+  IsEnum,
+} from 'class-validator';
 import { Priority } from '@prisma/client';
 
 export class UpdateSubtaskDto {
@@ -16,5 +22,5 @@ export class UpdateSubtaskDto {
 
   @IsEnum(Priority)
   @IsOptional()
-  priority?: Priority | null;  // null = inherit from parent task
+  priority?: Priority | null; // null = inherit from parent task
 }

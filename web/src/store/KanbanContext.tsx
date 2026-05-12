@@ -163,12 +163,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
         for (const cl of checklists) {
-            let checklistId = cl.id;
             // 1. Create or Update Checklist
             // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
             if (cl.id.includes('-')) {
                 const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
-                checklistId = res.data.id;
+                const checklistId = res.data.id;
 
                 // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
                 for (const item of cl.items) {
@@ -385,7 +384,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'ADD_SUBTASK': {
-                    const { taskId, checklistId, subtask } = action.payload;
+                    const { checklistId, subtask } = action.payload;
                     await api.post('/subtasks', {
                         content: subtask.title,
                         checklistId: checklistId,
@@ -396,7 +395,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'UPDATE_SUBTASK': {
-                    const { taskId, subtask } = action.payload;
+                    const { subtask } = action.payload;
                     await api.patch(`/subtasks/${subtask.id}`, {
                         content: subtask.title,
                         completed: subtask.isCompleted,

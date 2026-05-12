@@ -8,7 +8,7 @@ export class CreateSubtaskDto {
 
   @IsString()
   @IsNotEmpty()
-  checklistId!: string;  // checklistId is REQUIRED — taskId-only creation is deprecated
+  checklistId!: string; // checklistId is REQUIRED — taskId-only creation is deprecated
 
   @IsOptional()
   @IsEnum(Priority)

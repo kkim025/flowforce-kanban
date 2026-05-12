@@ -181,4 +181,107 @@ describe('kanbanReducer', () => {
         const newState = kanbanReducer(initialState, action);
         expect(newState.columnOrder).toEqual(newOrder);
     });
+
+    describe('subtask actions', () => {
+        const stateWithChecklist: BoardState = {
+            ...initialState,
+            tasks: {
+                'task-1': {
+                    id: 'task-1',
+                    title: 'Task 1',
+                    checklists: [{
+                        id: 'cl-1',
+                        title: 'Checklist 1',
+                        taskId: 'task-1',
+                        items: [
+                            { id: 'st-1', title: 'Subtask 1', isCompleted: false },
+                            { id: 'st-2', title: 'Subtask 2', isCompleted: true },
+                        ]
+                    }]
+                } as any
+            }
+        };
+
+        it('should handle ADD_SUBTASK', () => {
+            const newSubtask = { id: 'st-3', title: 'New Subtask', isCompleted: false };
+            const action = {
+                type: 'ADD_SUBTASK' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', subtask: newSubtask }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items).toHaveLength(3);
+            expect(newState.tasks['task-1'].checklists[0].items[2]).toEqual(newSubtask);
+        });
+
+        it('should handle UPDATE_SUBTASK', () => {
+            const updatedSubtask = { id: 'st-1', title: 'Updated Subtask', isCompleted: true, checklistId: 'cl-1' };
+            const action = {
+                type: 'UPDATE_SUBTASK' as const,
+                payload: { taskId: 'task-1', subtask: updatedSubtask }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].title).toBe('Updated Subtask');
+            expect(newState.tasks['task-1'].checklists[0].items[0].isCompleted).toBe(true);
+        });
+
+        it('should handle DELETE_SUBTASK', () => {
+            const action = {
+                type: 'DELETE_SUBTASK' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items).toHaveLength(1);
+            expect(newState.tasks['task-1'].checklists[0].items[0].id).toBe('st-2');
+        });
+
+        it('should handle REORDER_SUBTASKS', () => {
+            const reorderedSubtasks = [
+                { id: 'st-2', title: 'Subtask 2', isCompleted: true },
+                { id: 'st-1', title: 'Subtask 1', isCompleted: false },
+            ];
+            const action = {
+                type: 'REORDER_SUBTASKS' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', orderedSubtasks: reorderedSubtasks }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].id).toBe('st-2');
+            expect(newState.tasks['task-1'].checklists[0].items[1].id).toBe('st-1');
+        });
+
+        it('should handle TOGGLE_SUBTASK with provided taskId', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { taskId: 'task-1', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].isCompleted).toBe(true);
+        });
+
+        it('should handle TOGGLE_SUBTASK without taskId (auto-find)', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { subtaskId: 'st-2' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[1].isCompleted).toBe(false);
+        });
+
+        it('should handle TOGGLE_SUBTASK with task not found', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { subtaskId: 'nonexistent' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState).toBe(stateWithChecklist);
+        });
+
+        it('should return state when TOGGLE_SUBTASK taskId is provided but task does not exist', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { taskId: 'nonexistent-task', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState).toBe(stateWithChecklist);
+        });
+    });
 });

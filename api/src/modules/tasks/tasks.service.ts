@@ -32,6 +32,7 @@ export class TasksService {
       description?: string;
       tags?: string[];
       sprintId?: string;
+      dueDate?: string;
     },
   ): Promise<Task> {
     await this.checkColumnOwnership(userId, data.columnId);
@@ -46,6 +47,7 @@ export class TasksService {
         description: data.description,
         tags: data.tags || [],
         sprintId: data.sprintId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
       },
     });
 
@@ -84,6 +86,7 @@ export class TasksService {
       assigneeId?: string;
       tags?: string[];
       sprintId?: string;
+      dueDate?: string;
     },
   ): Promise<Task> {
     const task = await this.prisma.task.findUnique({
@@ -112,6 +115,7 @@ export class TasksService {
         assigneeId: data.assigneeId,
         tags: data.tags,
         sprintId: data.sprintId,
+        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
       },
     });
 

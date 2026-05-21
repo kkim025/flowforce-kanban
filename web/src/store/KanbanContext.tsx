@@ -146,10 +146,13 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     };
                     setHistory({ type: 'SET_STATE', payload: newState });
                 } else {
+                    // Store sprints before they get overwritten by refreshBoardState
+                    const loadedSprints = mappedState.sprints;
                     mappedState.activeSprintId = activeSprintId;
                     // Always refresh to get full board data with tasks
                     const refreshedState = await refreshBoardState(board.id, null);
-                    setHistory({ type: 'SET_STATE', payload: refreshedState });
+                    // Preserve the sprints that were loaded separately (before stateRef was updated)
+                    setHistory({ type: 'SET_STATE', payload: { ...refreshedState, sprints: loadedSprints } });
                 }
                 setIsHydrated(true);
             } catch (err) {

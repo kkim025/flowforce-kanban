@@ -28,7 +28,7 @@ import TaskSidebar from './TaskSidebar';
 
 const TaskViewer: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
-    const { state, dispatch } = useKanban();
+    const { state, dispatch, updateTaskDueDate } = useKanban();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { users, getInitials, getUserName } = useUsers();
     const { user } = useAuth();
@@ -286,12 +286,13 @@ const TaskViewer: React.FC = () => {
                     </div>
 
                     {/* Right Column - Sidebar */}
-                    <TaskSidebar 
+                    <TaskSidebar
                         task={task}
                         onUpdateAssignee={updateAssignee}
                         onUpdatePriority={updatePriority}
                         onAddTag={addTag}
                         onRemoveTag={removeTag}
+                        updateTaskDueDate={updateTaskDueDate}
                     />
                 </div>
             </div>

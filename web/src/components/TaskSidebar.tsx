@@ -14,6 +14,7 @@ interface TaskSidebarProps {
     onUpdatePriority: (priority: Priority) => void;
     onAddTag: (tag: string) => void;
     onRemoveTag: (tag: string) => void;
+    updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
 const TaskSidebar: React.FC<TaskSidebarProps> = ({
@@ -21,7 +22,8 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
     onUpdateAssignee,
     onUpdatePriority,
     onAddTag,
-    onRemoveTag
+    onRemoveTag,
+    updateTaskDueDate,
 }) => {
     const { users, getInitials, getUserName } = useUsers();
     const { activeBoardId } = useKanban();
@@ -174,6 +176,20 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
                     boardId={activeBoardId}
                 />
             )}
+
+            {/* Due Date Section */}
+            <div className="sidebar-section">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{UI_LABELS.DUE_DATE}</h3>
+                <input
+                    type="date"
+                    value={task.dueDate ? task.dueDate.split('T')[0] : ''}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        updateTaskDueDate(task.id, value || null);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-accent-blue hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                />
+            </div>
 
             {/* Labels Section */}
             <div className="sidebar-section relative" ref={labelRef}>

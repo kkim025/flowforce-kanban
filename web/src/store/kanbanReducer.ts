@@ -183,6 +183,22 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'CLEAR_SELECTION':
             return { ...state, selectedTaskIds: [] };
 
+        case 'SET_DUE_DATE_FILTER':
+            return { ...state, dueDateFilter: action.payload };
+
+        case 'UPDATE_TASK_DUE_DATE': {
+            const { taskId, dueDate } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: { ...task, dueDate },
+                },
+            };
+        }
+
         case 'SET_VIEW_MODE':
             return { ...state, viewMode: action.payload };
 

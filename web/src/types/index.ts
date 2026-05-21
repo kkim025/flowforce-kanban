@@ -134,4 +134,6 @@ export type KanbanAction =
     | { type: 'UPDATE_SPRINT'; payload: { sprint: Sprint } }
     | { type: 'DELETE_SPRINT'; payload: { sprintId: string } }
     | { type: 'SET_ACTIVE_SPRINT'; payload: { sprintId: string | null } }
+    | { type: 'SET_DUE_DATE_FILTER'; payload: DueDateFilter }
+    | { type: 'UPDATE_TASK_DUE_DATE'; payload: { taskId: string; dueDate: string | null } }
     | { type: 'ASSIGN_TASK_TO_SPRINT'; payload: { taskId: string; sprintId: string | null } };

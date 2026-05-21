@@ -10,6 +10,7 @@ export const initialState: BoardState = {
     searchQuery: '',
     sprints: [],
     activeSprintId: null,
+    dueDateFilter: 'all',
 };
 
 export interface HistoryState {

@@ -3,6 +3,7 @@ export type ViewMode = 'board' | 'list';
 export type UserRole = 'ADMIN' | 'MEMBER';
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
 export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+export type DueDateFilter = 'all' | 'overdue' | 'dueToday' | 'dueThisWeek' | 'noDate';
 
 export interface Sprint {
     id: string;
@@ -96,6 +97,7 @@ export interface BoardState {
     searchQuery: string;
     sprints: Sprint[];
     activeSprintId: string | null;
+    dueDateFilter: DueDateFilter;
 }
 
 export type KanbanAction =

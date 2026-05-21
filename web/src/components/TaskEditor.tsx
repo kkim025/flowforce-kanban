@@ -25,7 +25,7 @@ const TaskEditor: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
     const location = useLocation();
-    const { state, dispatch } = useKanban();
+    const { state, dispatch, updateTaskDueDate } = useKanban();
     const { users } = useUsers();
     const { user } = useAuth();
 
@@ -602,6 +602,20 @@ const TaskEditor: React.FC = () => {
                                     )}
                                 </div>
                             </Dropdown>
+                        </div>
+
+                        {/* Due Date Section */}
+                        <div className="sidebar-section">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Due Date</h3>
+                            <input
+                                type="date"
+                                value={existingTask?.dueDate ? existingTask.dueDate.split('T')[0] : ''}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    updateTaskDueDate(taskId as string, value || null);
+                                }}
+                                className="px-3 py-2 rounded-lg bg-white/10 dark:bg-slate-800/50 border border-white/20 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-full"
+                            />
                         </div>
 
                         {/* Labels Section */}

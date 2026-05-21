@@ -15,6 +15,7 @@ interface KanbanContextType {
     isSyncing: boolean;
     isHydrated: boolean;
     activeBoardId: string | null;
+    updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
 const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
@@ -432,6 +433,20 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const undo = useCallback(() => setHistory({ type: 'INTERNAL_UNDO' }), []);
     const redo = useCallback(() => setHistory({ type: 'INTERNAL_REDO' }), []);
 
+    const updateTaskDueDate = useCallback((taskId: string, dueDate: string | null) => {
+        // Store previous value for potential rollback
+        const previousDueDate = stateRef.current.tasks[taskId]?.dueDate;
+
+        // Optimistic state update
+        setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate } });
+
+        // API call
+        api.patch(`/tasks/${taskId}`, { dueDate }).catch(() => {
+            // Rollback on failure
+            setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate: previousDueDate } });
+        });
+    }, [activeBoardId]);
+
     return (
         <KanbanContext.Provider
             value={{
@@ -444,6 +459,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 isSyncing,
                 isHydrated,
                 activeBoardId,
+                updateTaskDueDate,
             }}
         >
             {children}

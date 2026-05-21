@@ -48,6 +48,7 @@ interface ApiTask {
   comments?: ApiComment[];
   activities?: ApiActivity[];
   sprintId?: string | null;
+  dueDate?: string | null;
 }
 
 interface ApiColumn {
@@ -145,6 +146,7 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
         isArchived: apiTask.archived,
         assigneeId: apiTask.assigneeId || undefined,
         sprintId: apiTask.sprintId || undefined,
+        dueDate: apiTask.dueDate || undefined,
       };
     });
   });
@@ -158,5 +160,6 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
     searchQuery: '',
     sprints: [],
     activeSprintId: null,
+    dueDateFilter: 'all',
   };
 };

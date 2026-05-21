@@ -194,7 +194,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                 ...state,
                 tasks: {
                     ...state.tasks,
-                    [taskId]: { ...task, dueDate },
+                    [taskId]: { ...task, dueDate: dueDate ?? undefined },
                 },
             };
         }

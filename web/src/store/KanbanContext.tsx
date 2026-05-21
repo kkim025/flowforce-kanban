@@ -435,7 +435,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const updateTaskDueDate = useCallback((taskId: string, dueDate: string | null) => {
         // Store previous value for potential rollback
-        const previousDueDate = stateRef.current.tasks[taskId]?.dueDate;
+        const previousDueDate = stateRef.current.tasks[taskId]?.dueDate ?? null;
 
         // Optimistic state update
         setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate } });
@@ -445,7 +445,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // Rollback on failure
             setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate: previousDueDate } });
         });
-    }, [activeBoardId]);
+    }, []);
 
     return (
         <KanbanContext.Provider

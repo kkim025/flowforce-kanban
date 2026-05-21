@@ -5,7 +5,7 @@ import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
-import { Task, Column as ColumnType } from '../types';
+import { Task, Column as ColumnType, DueDateFilter } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -391,7 +391,7 @@ const Board: React.FC = () => {
 
                         <select
                                 value={state.dueDateFilter}
-                                onChange={(e) => dispatch({ type: 'SET_DUE_DATE_FILTER', payload: e.target.value as any })}
+                                onChange={(e) => dispatch({ type: 'SET_DUE_DATE_FILTER', payload: e.target.value as DueDateFilter })}
                                 aria-label="Filter by due date"
                                 className="bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 pr-8 outline-none focus:ring-2 focus:ring-accent-blue/30 dark:text-white transition-all duration-300 text-sm"
                             >
@@ -479,7 +479,7 @@ const Board: React.FC = () => {
                                                         weekEnd.setDate(weekEnd.getDate() + 7);
 
                                                         const taskDate = task.dueDate ? new Date(task.dueDate) : null;
-                                                        const taskDateTime = taskDate ? taskDate.setHours(0, 0, 0, 0) : null;
+                                                        const taskDateTime = taskDate ? new Date(taskDate.getTime()).setHours(0, 0, 0, 0) : null;
 
                                                         switch (state.dueDateFilter) {
                                                             case 'overdue':

@@ -606,7 +606,7 @@ const TaskEditor: React.FC = () => {
 
                         {/* Due Date Section */}
                         <div className="sidebar-section">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Due Date</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{UI_LABELS.DUE_DATE}</h3>
                             <input
                                 type="date"
                                 value={existingTask?.dueDate ? existingTask.dueDate.split('T')[0] : ''}
@@ -614,7 +614,7 @@ const TaskEditor: React.FC = () => {
                                     const value = e.target.value;
                                     updateTaskDueDate(taskId as string, value || null);
                                 }}
-                                className="px-3 py-2 rounded-lg bg-white/10 dark:bg-slate-800/50 border border-white/20 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-full"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-accent-blue hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                             />
                         </div>
 

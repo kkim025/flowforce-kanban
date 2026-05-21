@@ -44,6 +44,7 @@ export const UI_LABELS = {
     SPRINT_DELETED: 'Sprint deleted. Viewing all tasks.',
     DAYS_LEFT: 'days left',
     SPRINT_OVERDUE: 'Sprint overdue',
+    DUE_DATE: 'Due Date',
 };
 
 export const DEFAULT_CUSTOM_COLOR = '#3B82F6';

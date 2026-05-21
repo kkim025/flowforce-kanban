@@ -389,6 +389,19 @@ const Board: React.FC = () => {
                             />
                         </div>
 
+                        <select
+                                value={state.dueDateFilter}
+                                onChange={(e) => dispatch({ type: 'SET_DUE_DATE_FILTER', payload: e.target.value as any })}
+                                aria-label="Filter by due date"
+                                className="bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 pr-8 outline-none focus:ring-2 focus:ring-accent-blue/30 dark:text-white transition-all duration-300 text-sm"
+                            >
+                                <option value="all">All Dates</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="dueToday">Due Today</option>
+                                <option value="dueThisWeek">Due This Week</option>
+                                <option value="noDate">No Date</option>
+                            </select>
+
                         <button
                             onClick={() => openCreateView()}
                             className="bg-accent-blue hover:bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-95 flex items-center gap-2"
@@ -455,6 +468,30 @@ const Board: React.FC = () => {
                                                         // Show tasks in active sprint or tasks with no sprint (backlog)
                                                         if (task.sprintId && task.sprintId !== state.activeSprintId) {
                                                             return false;
+                                                        }
+                                                    }
+                                                    // Due date filtering
+                                                    if (state.dueDateFilter !== 'all') {
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const todayTime = today.getTime();
+                                                        const weekEnd = new Date(today);
+                                                        weekEnd.setDate(weekEnd.getDate() + 7);
+
+                                                        const taskDate = task.dueDate ? new Date(task.dueDate) : null;
+                                                        const taskDateTime = taskDate ? taskDate.setHours(0, 0, 0, 0) : null;
+
+                                                        switch (state.dueDateFilter) {
+                                                            case 'overdue':
+                                                                return taskDateTime !== null && taskDateTime < todayTime;
+                                                            case 'dueToday':
+                                                                return taskDateTime === todayTime;
+                                                            case 'dueThisWeek':
+                                                                return taskDateTime !== null && taskDateTime >= todayTime && taskDateTime <= weekEnd.getTime();
+                                                            case 'noDate':
+                                                                return taskDateTime === null;
+                                                            default:
+                                                                return true;
                                                         }
                                                     }
                                                     // Search filtering

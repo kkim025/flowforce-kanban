@@ -59,6 +59,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
         [sprintColor]
     );
 
+    const dueDateBadge = useMemo(() => {
+        if (!task.dueDate) return null;
+        const status = getDueDateStatus(task.dueDate);
+        const label = formatDueDate(task.dueDate);
+        const badgeClass = status === 'overdue'
+            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+            : status === 'today'
+            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+        return <span className={`text-[10px] px-2 py-0.5 rounded ${badgeClass}`}>{label}</span>;
+    }, [task.dueDate]);
+
     const handleSprintBadgeClick = useCallback(() => {
         if (taskSprint) {
             dispatch({ type: 'SET_ACTIVE_SPRINT', payload: { sprintId: taskSprint.id } });
@@ -102,20 +114,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${PRIORITY_COLORS[task.priority]}`}>
                                         {task.priority}
                                     </span>
-                                    {task.dueDate && (() => {
-                                        const status = getDueDateStatus(task.dueDate);
-                                        const label = formatDueDate(task.dueDate);
-                                        const badgeClass = status === 'overdue'
-                                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                            : status === 'today'
-                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
-                                        return (
-                                            <span className={`text-[10px] px-2 py-0.5 rounded ${badgeClass}`}>
-                                                {label}
-                                            </span>
-                                        );
-                                    })()}
+                                    {dueDateBadge}
                                     {taskSprint && (
                                         <span onClick={(e) => {
                                             e.stopPropagation();

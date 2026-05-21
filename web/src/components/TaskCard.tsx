@@ -19,6 +19,22 @@ const PRIORITY_COLORS = {
     high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 } as const;
 
+const getDueDateStatus = (dueDate: string | undefined): 'overdue' | 'today' | 'future' | null => {
+    if (!dueDate) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
+    if (due < today) return 'overdue';
+    if (due.getTime() === today.getTime()) return 'today';
+    return 'future';
+};
+
+const formatDueDate = (dueDate: string): string => {
+    const date = new Date(dueDate);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 interface TaskCardProps {
     task: Task;
     index: number;
@@ -86,6 +102,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${PRIORITY_COLORS[task.priority]}`}>
                                         {task.priority}
                                     </span>
+                                    {task.dueDate && (() => {
+                                        const status = getDueDateStatus(task.dueDate);
+                                        const label = formatDueDate(task.dueDate);
+                                        const badgeClass = status === 'overdue'
+                                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                            : status === 'today'
+                                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+                                        return (
+                                            <span className={`text-[10px] px-2 py-0.5 rounded ${badgeClass}`}>
+                                                {label}
+                                            </span>
+                                        );
+                                    })()}
                                     {taskSprint && (
                                         <span onClick={(e) => {
                                             e.stopPropagation();

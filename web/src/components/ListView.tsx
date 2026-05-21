@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt';
+type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt' | 'dueDate';
 type SortOrder = 'asc' | 'desc';
 
 const SortIcon = ({ field, sortField, sortOrder }: { field: SortField; sortField: SortField; sortOrder: SortOrder }) => {
@@ -86,6 +86,12 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                 comparison = a.progress - b.progress;
             } else if (sortField === 'createdAt') {
                 comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            } else if (sortField === 'dueDate') {
+                // Tasks with no due date sort to bottom
+                if (!a.dueDate && !b.dueDate) comparison = 0;
+                else if (!a.dueDate) comparison = 1;
+                else if (!b.dueDate) comparison = -1;
+                else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             } else {
                 comparison = String(a[sortField]).localeCompare(String(b[sortField]));
             }
@@ -149,6 +155,9 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                             <div className="w-40 px-8 py-5 text-right cursor-pointer hover:text-accent-blue transition-colors flex items-center justify-end" onClick={() => handleSort('createdAt')}>
                                 Created <SortIcon field="createdAt" sortField={sortField} sortOrder={sortOrder} />
                             </div>
+                            <div className="w-40 px-8 py-5 text-right cursor-pointer hover:text-accent-blue transition-colors flex items-center justify-end" onClick={() => handleSort('dueDate')}>
+                                Due Date <SortIcon field="dueDate" sortField={sortField} sortOrder={sortOrder} />
+                            </div>
                         </div>
 
                         {/* Virtualized Body */}
@@ -209,6 +218,11 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                                 <div className="w-40 px-8 py-4 text-right flex items-center justify-end">
                                                     <span className="text-xs text-slate-400 font-medium">
                                                         {new Date(task.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                                <div className="w-40 px-8 py-4 text-right flex items-center justify-end">
+                                                    <span className="text-xs text-slate-400 font-medium">
+                                                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                                                     </span>
                                                 </div>
                                             </div>

@@ -26,7 +26,6 @@ const SprintSelector: React.FC<SprintSelectorProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const currentSprint = sprints.find(s => s.id === currentSprintId);
-    const _currentSprintIndex = currentSprint ? sprints.indexOf(currentSprint) : -1;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

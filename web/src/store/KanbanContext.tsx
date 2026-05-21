@@ -74,14 +74,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     // Helper to refresh board state after API operations
-    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null) => {
+    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null, sprints?: any[]) => {
         const refreshedBoard = await api.get(getBoardUrl(boardId, sprintId || undefined));
-        const newState = mapApiBoardToState(refreshedBoard.data);
-        return {
-            ...newState,
-            sprints: stateRef.current.sprints,
-            activeSprintId: sprintId,
-        };
+        return mapApiBoardToState(refreshedBoard.data, sprints || stateRef.current.sprints);
     }, []);
 
     // Initial Hydration
@@ -146,13 +141,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     };
                     setHistory({ type: 'SET_STATE', payload: newState });
                 } else {
-                    // Store sprints before they get overwritten by refreshBoardState
+                    // Pass sprints directly to refreshBoardState - stateRef not yet updated
                     const loadedSprints = mappedState.sprints;
                     mappedState.activeSprintId = activeSprintId;
-                    // Always refresh to get full board data with tasks
-                    const refreshedState = await refreshBoardState(board.id, null);
-                    // Preserve the sprints that were loaded separately (before stateRef was updated)
-                    setHistory({ type: 'SET_STATE', payload: { ...refreshedState, sprints: loadedSprints } });
+                    const refreshedState = await refreshBoardState(board.id, null, loadedSprints);
+                    setHistory({ type: 'SET_STATE', payload: { ...refreshedState, activeSprintId } });
                 }
                 setIsHydrated(true);
             } catch (err) {

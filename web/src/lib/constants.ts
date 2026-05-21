@@ -47,6 +47,14 @@ export const UI_LABELS = {
     DUE_DATE: 'Due Date',
 };
 
+export const DUE_DATE_FILTER_OPTIONS = [
+    { value: 'all', label: 'All Dates' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'dueToday', label: 'Due Today' },
+    { value: 'dueThisWeek', label: 'Due This Week' },
+    { value: 'noDate', label: 'No Date' },
+] as const;
+
 export const DEFAULT_CUSTOM_COLOR = '#3B82F6';
 
 export const SPRINT_COLORS = [

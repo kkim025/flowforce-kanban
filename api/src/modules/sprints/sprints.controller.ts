@@ -32,11 +32,11 @@ export class SprintsController {
     private readonly prisma: PrismaService,
   ) {}
 
-  // GET /boards/:boardId/sprints — list sprints for a board (any member)
+  // GET /sprints/boards/:boardId — list active sprints for a board (any member)
   @Get('boards/:boardId')
   async findByBoard(@Param('boardId') boardId: string) {
     return this.prisma.sprint.findMany({
-      where: { boardId },
+      where: { boardId, status: { not: 'ARCHIVED' } },
       orderBy: { startDate: 'asc' },
     });
   }

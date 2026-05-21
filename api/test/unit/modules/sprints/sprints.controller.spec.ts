@@ -60,7 +60,7 @@ describe('SprintsController', () => {
 
     expect(result).toEqual(mockSprints);
     expect(mockPrisma.sprint.findMany).toHaveBeenCalledWith({
-      where: { boardId: 'board-1' },
+      where: { boardId: 'board-1', status: { not: 'ARCHIVED' } },
       orderBy: { startDate: 'asc' },
     });
   });

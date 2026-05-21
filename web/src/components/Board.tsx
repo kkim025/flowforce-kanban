@@ -6,6 +6,7 @@ import Column from './Column';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task, Column as ColumnType, DueDateFilter } from '../types';
+import { DUE_DATE_FILTER_OPTIONS } from '../lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -395,11 +396,9 @@ const Board: React.FC = () => {
                                 aria-label="Filter by due date"
                                 className="bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 pr-8 outline-none focus:ring-2 focus:ring-accent-blue/30 dark:text-white transition-all duration-300 text-sm"
                             >
-                                <option value="all">All Dates</option>
-                                <option value="overdue">Overdue</option>
-                                <option value="dueToday">Due Today</option>
-                                <option value="dueThisWeek">Due This Week</option>
-                                <option value="noDate">No Date</option>
+                                {DUE_DATE_FILTER_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
                             </select>
 
                         <button

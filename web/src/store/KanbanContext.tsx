@@ -195,6 +195,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Async Synchronizer
     const wrappedDispatch = useCallback(async (action: KanbanAction) => {
+        // Skip history for pure local-state actions (no API call needed)
+        if (action.type === 'SET_SPRINTS' || action.type === 'SET_VIEW_MODE') {
+            // These are pure local-state actions, no history or API needed
+            if (action.type === 'SET_VIEW_MODE') {
+                localStorage.setItem('flowforce_view_mode', action.payload);
+            }
+            return;
+        }
+
         setHistory(action);
 
         if (!activeBoardId || !isHydrated) return;
@@ -337,14 +346,6 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                     const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
                     setHistory({ type: 'SET_STATE', payload: newState });
-                    break;
-                }
-                case 'SET_VIEW_MODE': {
-                    localStorage.setItem('flowforce_view_mode', action.payload);
-                    break;
-                }
-                case 'SET_SPRINTS': {
-                    // Just local state update, no API call
                     break;
                 }
                 case 'ADD_SPRINT': {

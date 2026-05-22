@@ -472,7 +472,8 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         }
 
         default:
-            console.warn(`Unhandled action type: ${(action as any).type}`);
+            // UNDO/REDO/INTERNAL_* actions are handled by KanbanContext's history mechanism
+            // The reducer just passes state through unchanged for these
             return state;
     }
 };

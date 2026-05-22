@@ -48,6 +48,7 @@ interface ApiTask {
   comments?: ApiComment[];
   activities?: ApiActivity[];
   sprintId?: string | null;
+  dueDate?: string | null;
 }
 
 interface ApiColumn {
@@ -66,7 +67,7 @@ interface ApiBoard {
   columns?: ApiColumn[];
 }
 
-export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
+export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[], activeSprintId?: string | null): BoardState => {
   const tasks: Record<string, FETask> = {};
   const columns: Record<string, FEColumn> = {};
   const columnOrder: string[] = [];
@@ -145,6 +146,7 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
         isArchived: apiTask.archived,
         assigneeId: apiTask.assigneeId || undefined,
         sprintId: apiTask.sprintId || undefined,
+        dueDate: apiTask.dueDate || undefined,
       };
     });
   });
@@ -156,7 +158,8 @@ export const mapApiBoardToState = (apiBoard: ApiBoard): BoardState => {
     selectedTaskIds: [],
     viewMode: (localStorage.getItem('flowforce_view_mode') as any) || 'board',
     searchQuery: '',
-    sprints: [],
-    activeSprintId: null,
+    sprints: existingSprints || [],
+    activeSprintId: activeSprintId ?? null,
+    dueDateFilter: 'all',
   };
 };

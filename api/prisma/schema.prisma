@@ -89,6 +89,7 @@ model Task {
   archived    Boolean     @default(false)
   assigneeId  String?
   sprintId    String?
+  dueDate     DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   checklists  Checklist[]

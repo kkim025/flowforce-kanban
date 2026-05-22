@@ -44,7 +44,16 @@ export const UI_LABELS = {
     SPRINT_DELETED: 'Sprint deleted. Viewing all tasks.',
     DAYS_LEFT: 'days left',
     SPRINT_OVERDUE: 'Sprint overdue',
+    DUE_DATE: 'Due Date',
 };
+
+export const DUE_DATE_FILTER_OPTIONS = [
+    { value: 'all', label: 'All Dates' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'dueToday', label: 'Due Today' },
+    { value: 'dueThisWeek', label: 'Due This Week' },
+    { value: 'noDate', label: 'No Date' },
+] as const;
 
 export const DEFAULT_CUSTOM_COLOR = '#3B82F6';
 

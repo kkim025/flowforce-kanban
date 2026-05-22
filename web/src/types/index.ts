@@ -3,6 +3,7 @@ export type ViewMode = 'board' | 'list';
 export type UserRole = 'ADMIN' | 'MEMBER';
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
 export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+export type DueDateFilter = 'all' | 'overdue' | 'dueToday' | 'dueThisWeek' | 'noDate';
 
 export interface Sprint {
     id: string;
@@ -96,6 +97,7 @@ export interface BoardState {
     searchQuery: string;
     sprints: Sprint[];
     activeSprintId: string | null;
+    dueDateFilter: DueDateFilter;
 }
 
 export type KanbanAction =
@@ -132,4 +134,6 @@ export type KanbanAction =
     | { type: 'UPDATE_SPRINT'; payload: { sprint: Sprint } }
     | { type: 'DELETE_SPRINT'; payload: { sprintId: string } }
     | { type: 'SET_ACTIVE_SPRINT'; payload: { sprintId: string | null } }
+    | { type: 'SET_DUE_DATE_FILTER'; payload: DueDateFilter }
+    | { type: 'UPDATE_TASK_DUE_DATE'; payload: { taskId: string; dueDate: string | null } }
     | { type: 'ASSIGN_TASK_TO_SPRINT'; payload: { taskId: string; sprintId: string | null } };

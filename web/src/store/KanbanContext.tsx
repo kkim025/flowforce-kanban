@@ -15,6 +15,7 @@ interface KanbanContextType {
     isSyncing: boolean;
     isHydrated: boolean;
     activeBoardId: string | null;
+    updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
 const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
@@ -73,14 +74,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     // Helper to refresh board state after API operations
-    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null) => {
+    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null, sprints?: any[]) => {
         const refreshedBoard = await api.get(getBoardUrl(boardId, sprintId || undefined));
-        const newState = mapApiBoardToState(refreshedBoard.data);
-        return {
-            ...newState,
-            sprints: stateRef.current.sprints,
-            activeSprintId: sprintId,
-        };
+        return mapApiBoardToState(refreshedBoard.data, sprints || stateRef.current.sprints);
     }, []);
 
     // Initial Hydration
@@ -145,10 +141,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     };
                     setHistory({ type: 'SET_STATE', payload: newState });
                 } else {
+                    // Pass sprints directly to refreshBoardState - stateRef not yet updated
+                    const loadedSprints = mappedState.sprints;
                     mappedState.activeSprintId = activeSprintId;
-                    // Always refresh to get full board data with tasks
-                    const refreshedState = await refreshBoardState(board.id, null);
-                    setHistory({ type: 'SET_STATE', payload: refreshedState });
+                    const refreshedState = await refreshBoardState(board.id, null, loadedSprints);
+                    setHistory({ type: 'SET_STATE', payload: { ...refreshedState, activeSprintId } });
                 }
                 setIsHydrated(true);
             } catch (err) {
@@ -198,6 +195,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Async Synchronizer
     const wrappedDispatch = useCallback(async (action: KanbanAction) => {
+        // Skip history for pure local-state actions (no API call needed)
+        if (action.type === 'SET_SPRINTS' || action.type === 'SET_VIEW_MODE') {
+            // These are pure local-state actions, no history or API needed
+            if (action.type === 'SET_VIEW_MODE') {
+                localStorage.setItem('flowforce_view_mode', action.payload);
+            }
+            return;
+        }
+
         setHistory(action);
 
         if (!activeBoardId || !isHydrated) return;
@@ -342,14 +348,6 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
-                case 'SET_VIEW_MODE': {
-                    localStorage.setItem('flowforce_view_mode', action.payload);
-                    break;
-                }
-                case 'SET_SPRINTS': {
-                    // Just local state update, no API call
-                    break;
-                }
                 case 'ADD_SPRINT': {
                     // Sprint is already added to state by setHistory, API call handled elsewhere
                     break;
@@ -368,8 +366,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // Re-fetch board with sprint filter to get only sprint tasks
                     if (activeBoardId) {
                         try {
-                            const newState = await refreshBoardState(activeBoardId, newSprintId);
-                            setHistory({ type: 'SET_STATE', payload: newState });
+                            const newState = await refreshBoardState(activeBoardId, newSprintId, stateRef.current.sprints);
+                            setHistory({ type: 'SET_STATE', payload: { ...newState, activeSprintId: newSprintId } });
                         } catch (err) {
                             console.error('Failed to set active sprint:', err);
                             // Revert to previous sprint on failure
@@ -432,6 +430,20 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const undo = useCallback(() => setHistory({ type: 'INTERNAL_UNDO' }), []);
     const redo = useCallback(() => setHistory({ type: 'INTERNAL_REDO' }), []);
 
+    const updateTaskDueDate = useCallback((taskId: string, dueDate: string | null) => {
+        // Store previous value for potential rollback
+        const previousDueDate = stateRef.current.tasks[taskId]?.dueDate ?? null;
+
+        // Optimistic state update
+        setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate } });
+
+        // API call
+        api.patch(`/tasks/${taskId}`, { dueDate }).catch(() => {
+            // Rollback on failure
+            setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate: previousDueDate } });
+        });
+    }, []);
+
     return (
         <KanbanContext.Provider
             value={{
@@ -444,6 +456,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 isSyncing,
                 isHydrated,
                 activeBoardId,
+                updateTaskDueDate,
             }}
         >
             {children}

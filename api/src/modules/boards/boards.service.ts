@@ -31,7 +31,8 @@ export class BoardsService {
   }
 
   async findOne(userId: string, id: string, sprintId?: string): Promise<Board> {
-    // Build task filter
+    // Build task filter - using any due to Prisma type complexity with config spread
+
     const taskWhere: any = { archived: false };
     if (sprintId) {
       taskWhere.sprintId = sprintId;

@@ -82,7 +82,8 @@ describe('TaskViewer', () => {
                 viewMode: 'board' as const,
                 searchQuery: '',
                 sprints: [],
-                activeSprintId: null
+                activeSprintId: null,
+                dueDateFilter: 'all' as const
             },
             dispatch,
             undo: () => {},
@@ -91,7 +92,8 @@ describe('TaskViewer', () => {
             canRedo: false,
             isSyncing: false,
             isHydrated: true,
-            activeBoardId: null
+            activeBoardId: null,
+            updateTaskDueDate: vi.fn()
         });
         vi.mocked(useUsers).mockReturnValue({
             users: mockUsers,
@@ -107,7 +109,7 @@ describe('TaskViewer', () => {
 
     it('should show "Task not found" when taskId is invalid', () => {
         vi.mocked(useKanban).mockReturnValue({
-            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '', sprints: [], activeSprintId: null },
+            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '', sprints: [], activeSprintId: null, dueDateFilter: 'all' as const },
             dispatch: vi.fn(),
             undo: () => {},
             redo: () => {},
@@ -115,7 +117,8 @@ describe('TaskViewer', () => {
             canRedo: false,
             isSyncing: false,
             isHydrated: true,
-            activeBoardId: null
+            activeBoardId: null,
+            updateTaskDueDate: vi.fn()
         });
 
         render(
@@ -293,7 +296,8 @@ describe('TaskViewer', () => {
                     viewMode: 'board' as const,
                     searchQuery: '',
                     sprints: [],
-                    activeSprintId: null
+                    activeSprintId: null,
+                    dueDateFilter: 'all' as const
                 },
                 dispatch,
                 undo: () => {},
@@ -302,7 +306,8 @@ describe('TaskViewer', () => {
                 canRedo: false,
                 isSyncing: false,
                 isHydrated: true,
-                activeBoardId: null
+                activeBoardId: null,
+                updateTaskDueDate: vi.fn()
             });
 
             render(
@@ -355,7 +360,8 @@ describe('TaskViewer', () => {
                 viewMode: 'board' as const,
                 searchQuery: '',
                 sprints: [],
-                activeSprintId: null
+                activeSprintId: null,
+                dueDateFilter: 'all' as const
             },
             dispatch,
             undo: () => {},
@@ -364,7 +370,8 @@ describe('TaskViewer', () => {
             canRedo: false,
             isSyncing: false,
             isHydrated: true,
-            activeBoardId: null
+            activeBoardId: null,
+            updateTaskDueDate: vi.fn()
         });
 
         render(

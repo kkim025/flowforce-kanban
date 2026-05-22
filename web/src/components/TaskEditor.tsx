@@ -25,7 +25,7 @@ const TaskEditor: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
     const navigate = useNavigate();
     const location = useLocation();
-    const { state, dispatch } = useKanban();
+    const { state, dispatch, updateTaskDueDate } = useKanban();
     const { users } = useUsers();
     const { user } = useAuth();
 
@@ -528,7 +528,7 @@ const TaskEditor: React.FC = () => {
                                             })() }}
                                         />
                                         <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate flex-1 text-left">
-                                            {state.sprints.find(s => s.id === sprintId)?.name}
+                                            {state.sprints.find(s => s.id === sprintId)?.name || (existingTask?.sprintId === sprintId ? 'Archived Sprint' : UI_LABELS.NO_SPRINT)}
                                         </span>
                                     </>
                                 ) : (
@@ -558,42 +558,83 @@ const TaskEditor: React.FC = () => {
                                         {!sprintId && <Check className="w-4 h-4 text-accent-blue" />}
                                     </button>
 
-                                    {state.sprints.length > 0 && <div className="border-t border-slate-100 dark:border-white/5 my-1" />}
+                                    {/* Task's archived sprint (if any) */}
+                                    {existingTask?.sprintId && !state.sprints.find(s => s.id === existingTask.sprintId) && (
+                                        <>
+                                            {state.sprints.length > 0 && <div className="border-t border-slate-100 dark:border-white/5 my-1" />}
+                                            {(() => {
+                                                const archivedSprint = state.sprints.find(s => s.id === existingTask.sprintId);
+                                                if (!archivedSprint) return null;
+                                                const color = getSprintColor(archivedSprint, state.sprints);
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setSprintId(archivedSprint.id);
+                                                            setSprintDropdownOpen(false);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-slate-300"
+                                                    >
+                                                        <span
+                                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                            style={{ backgroundColor: color }}
+                                                        />
+                                                        <div className="flex-1 text-left">
+                                                            <span className="text-xs font-medium block truncate">{archivedSprint.name}</span>
+                                                            <span className="text-[10px] text-slate-400">Archived</span>
+                                                        </div>
+                                                        {sprintId === archivedSprint.id && <Check className="w-4 h-4 text-accent-blue flex-shrink-0" />}
+                                                    </button>
+                                                );
+                                            })()}
+                                        </>
+                                    )}
 
-                                    {/* Sprint options */}
-                                    {state.sprints.map((sprint) => {
-                                        const color = getSprintColor(sprint, state.sprints);
-                                        const isSelected = sprint.id === sprintId;
-
+                                    {/* Sprint options (non-archived only) */}
+                                    {(() => {
+                                        const availableSprints = state.sprints.filter(s => s.status !== 'ARCHIVED');
+                                        if (availableSprints.length === 0) return null;
                                         return (
-                                            <button
-                                                type="button"
-                                                key={sprint.id}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setSprintId(sprint.id);
-                                                    setSprintDropdownOpen(false);
-                                                }}
-                                                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors ${
-                                                    isSelected ? 'text-accent-blue' : 'text-slate-600 dark:text-slate-300'
-                                                }`}
-                                            >
-                                                <span
-                                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                                    style={{ backgroundColor: color }}
-                                                />
-                                                <div className="flex-1 text-left">
-                                                    <span className="text-xs font-medium block truncate">{sprint.name}</span>
-                                                    <span className="text-[10px] text-slate-400">
-                                                        {sprint.status === 'ACTIVE' ? 'Active' :
-                                                         sprint.status === 'COMPLETED' ? 'Completed' : 'Planning'}
-                                                    </span>
-                                                </div>
-                                                {isSelected && <Check className="w-4 h-4 text-accent-blue flex-shrink-0" />}
-                                            </button>
+                                            <>
+                                                <div className="border-t border-slate-100 dark:border-white/5 my-1" />
+                                                {availableSprints.map((sprint) => {
+                                                    const color = getSprintColor(sprint, state.sprints);
+                                                    const isSelected = sprint.id === sprintId;
+
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={sprint.id}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setSprintId(sprint.id);
+                                                                setSprintDropdownOpen(false);
+                                                            }}
+                                                            className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors ${
+                                                                isSelected ? 'text-accent-blue' : 'text-slate-600 dark:text-slate-300'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                            <div className="flex-1 text-left">
+                                                                <span className="text-xs font-medium block truncate">{sprint.name}</span>
+                                                                <span className="text-[10px] text-slate-400">
+                                                                    {sprint.status === 'ACTIVE' ? 'Active' :
+                                                                     sprint.status === 'COMPLETED' ? 'Completed' : 'Planning'}
+                                                                </span>
+                                                            </div>
+                                                            {isSelected && <Check className="w-4 h-4 text-accent-blue flex-shrink-0" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </>
                                         );
-                                    })}
+                                    })()}
 
                                     {state.sprints.length === 0 && (
                                         <div className="px-3 py-4 text-center text-slate-400 text-xs">
@@ -602,6 +643,20 @@ const TaskEditor: React.FC = () => {
                                     )}
                                 </div>
                             </Dropdown>
+                        </div>
+
+                        {/* Due Date Section */}
+                        <div className="sidebar-section">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{UI_LABELS.DUE_DATE}</h3>
+                            <input
+                                type="date"
+                                value={existingTask?.dueDate ? existingTask.dueDate.split('T')[0] : ''}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    updateTaskDueDate(taskId as string, value || null);
+                                }}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-accent-blue hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                            />
                         </div>
 
                         {/* Labels Section */}

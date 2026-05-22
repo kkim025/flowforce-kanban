@@ -365,8 +365,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // Re-fetch board with sprint filter to get only sprint tasks
                     if (activeBoardId) {
                         try {
-                            const newState = await refreshBoardState(activeBoardId, newSprintId);
-                            setHistory({ type: 'SET_STATE', payload: newState });
+                            const newState = await refreshBoardState(activeBoardId, newSprintId, stateRef.current.sprints);
+                            setHistory({ type: 'SET_STATE', payload: { ...newState, activeSprintId: newSprintId } });
                         } catch (err) {
                             console.error('Failed to set active sprint:', err);
                             // Revert to previous sprint on failure

@@ -67,7 +67,7 @@ interface ApiBoard {
   columns?: ApiColumn[];
 }
 
-export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[]): BoardState => {
+export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[], activeSprintId?: string | null): BoardState => {
   const tasks: Record<string, FETask> = {};
   const columns: Record<string, FEColumn> = {};
   const columnOrder: string[] = [];
@@ -159,7 +159,7 @@ export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[]):
     viewMode: (localStorage.getItem('flowforce_view_mode') as any) || 'board',
     searchQuery: '',
     sprints: existingSprints || [],
-    activeSprintId: null,
+    activeSprintId: activeSprintId ?? null,
     dueDateFilter: 'all',
   };
 };

@@ -201,6 +201,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (action.type === 'SET_VIEW_MODE') {
                 localStorage.setItem('flowforce_view_mode', action.payload);
             }
+            // Update state via setHistory before early return
+            setHistory(action);
             return;
         }
 

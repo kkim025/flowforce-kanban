@@ -132,12 +132,12 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full h-full px-4 py-6 md:px-8 flex flex-col overflow-hidden"
+            className="w-full h-full px-1 py-2 flex flex-col overflow-hidden"
         >
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-lg overflow-hidden flex flex-col flex-1">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-sm overflow-hidden flex flex-col flex-1">
                 {/* Horizontal Scroll Container for the whole table */}
                 <div className="flex-1 flex flex-col overflow-x-auto custom-scrollbar">
-                    <div className="min-w-[900px] flex flex-col flex-1">
+                    <div className="w-full flex flex-col flex-1">
                         {/* Header */}
                         <div className="flex border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 font-bold text-[10px] uppercase tracking-widest text-slate-400 z-10 sticky top-0">
                             <div className="flex-1 px-8 py-5 cursor-pointer hover:text-accent-blue transition-colors flex items-center" onClick={() => handleSort('title')}>

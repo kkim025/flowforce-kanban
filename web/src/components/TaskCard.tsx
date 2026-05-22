@@ -1,17 +1,12 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Task } from '../types';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeSanitize from 'rehype-sanitize';
 import { useKanban } from '../store/KanbanContext';
 import { getSprintColor } from '../lib/sprint-utils';
 import SprintBadge from './sprints/SprintBadge';
-import SubtaskPopover from './SubtaskPopover';
 
 const PRIORITY_COLORS = {
     low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -48,7 +43,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
     const navigate = useNavigate();
     const { state, dispatch } = useKanban();
     const { sprints } = state;
-    const [showSubtaskPopover, setShowSubtaskPopover] = useState(false);
 
     // Find sprint for this task
     const taskSprint = task.sprintId ? sprints.find(s => s.id === task.sprintId) : null;
@@ -70,6 +64,25 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
         return <span className={`text-[10px] px-2 py-0.5 rounded ${badgeClass}`}>{label}</span>;
     }, [task.dueDate]);
+
+    // Memoized progress calculation for checklists
+    const checklistProgress = useMemo(() => {
+        const allItems = task.checklists?.flatMap(cl => cl.items) ?? [];
+        const total = allItems.length;
+        if (total === 0) return null;
+        const completed = allItems.filter(i => i.isCompleted).length;
+        const progress = (completed / total) * 100;
+        return { total, completed, progress };
+    }, [task.checklists]);
+
+    // Memoized progress for legacy subtasks
+    const legacyProgress = useMemo(() => {
+        if (!task.subTasks?.length) return null;
+        const completed = task.subTasks.filter(s => s.isCompleted).length;
+        const total = task.subTasks.length;
+        const progress = (completed / total) * 100;
+        return { total, completed, progress };
+    }, [task.subTasks]);
 
     const handleSprintBadgeClick = useCallback(() => {
         if (taskSprint) {
@@ -146,14 +159,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                 {task.title}
                             </h3>
 
-                            {task.description && (
-                                <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 prose prose-slate dark:prose-invert prose-xs">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                                        {task.description}
-                                    </ReactMarkdown>
-                                </div>
-                            )}
-
                             <div className="flex flex-wrap gap-1 mt-auto">
                                 {task.tags.map(tag => (
                                     <span key={tag} className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">
@@ -163,80 +168,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                             </div>
 
                             {/* Subtasks — only show if there are any items */}
-                            {task.checklists && task.checklists.some(cl => cl.items.length > 0) && (
-                                <>
-                                    {/* Per-checklist dots + overall progress */}
-                                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="flex items-center gap-2">
-                                                {task.checklists.map(cl => {
-                                                    const total = cl.items.length;
-                                                    if (total === 0) return null;
-                                                    const completed = cl.items.filter(i => i.isCompleted).length;
-                                                    // Assign a consistent color per checklist index
-                                                    const dotColors = ['bg-purple-500', 'bg-teal-500', 'bg-amber-500', 'bg-pink-500'];
-                                                    const dotColor = dotColors[task.checklists.indexOf(cl) % dotColors.length];
-                                                    return (
-                                                        <div key={cl.id} className="flex items-center gap-1" title={`${cl.title}: ${completed}/${total}`}>
-                                                            <span className={`w-2 h-2 rounded-full ${dotColor}`} />
-                                                            <span className="text-[9px] text-slate-400">{completed}/{total}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setShowSubtaskPopover(!showSubtaskPopover); }}
-                                                className="text-slate-400 hover:text-accent-blue transition-colors"
-                                                title="Add subtask"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-
-                                        {/* Overall progress bar */}
-                                        {(() => {
-                                            const allItems = task.checklists.flatMap(cl => cl.items);
-                                            const total = allItems.length;
-                                            const completed = allItems.filter(i => i.isCompleted).length;
-                                            const progress = total > 0 ? (completed / total) * 100 : 0;
-                                            return (
-                                                <>
-                                                    <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden mb-1">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${progress}%` }}
-                                                            className={`h-full ${progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
-                                                        />
-                                                    </div>
-                                                    <span className="text-[9px] text-slate-400">{completed}/{total} done</span>
-                                                </>
-                                            );
-                                        })()}
-
-                                        {/* Inline subtask creation popover */}
-                                        {showSubtaskPopover && (
-                                            <SubtaskPopover
-                                                taskId={task.id}
-                                                checklists={task.checklists.map(cl => ({ id: cl.id, title: cl.title }))}
-                                                onClose={() => setShowSubtaskPopover(false)}
-                                                onAdded={() => {}}
-                                            />
-                                        )}
+                            {checklistProgress && (
+                                <div className="mt-2 border-slate-100 dark:border-white/5">
+                                    <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden mb-1">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${checklistProgress.progress}%` }}
+                                            className={`h-full ${checklistProgress.progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
+                                        />
                                     </div>
-                                </>
+                                    <span className="text-[9px] text-slate-400">{checklistProgress.completed}/{checklistProgress.total} done</span>
+                                </div>
                             )}
 
                             {/* Legacy Subtasks Fallback */}
-                            {!task.checklists?.length && task.subTasks && task.subTasks.length > 0 && (
+                            {legacyProgress && (
                                 <div className="mt-3">
                                     <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
                                         <span>Progress</span>
-                                        <span>{task.subTasks.filter(s => s.isCompleted).length}/{task.subTasks.length}</span>
+                                        <span>{legacyProgress.completed}/{legacyProgress.total}</span>
                                     </div>
                                     <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                         <motion.div
                                             initial={{ width: 0 }}
-                                            animate={{ width: `${(task.subTasks.filter(s => s.isCompleted).length / task.subTasks.length) * 100}%` }}
+                                            animate={{ width: `${legacyProgress.progress}%` }}
                                             className="h-full bg-accent-blue"
                                         />
                                     </div>

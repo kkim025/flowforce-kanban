@@ -99,7 +99,8 @@ npm test
 - `api/test/unit/modules/checklists/checklists.service.spec.ts` (Ownership & Deletion logic)
 - `web/src/store/kanbanReducer.test.ts` (State transitions)
 - `web/src/components/Drawer.test.tsx` (UI Interactions)
-- `web/src/components/TaskViewer.test.tsx` (Hook stability & Task rendering)
+- `web/src/components/TaskViewer.test.tsx` (Inline editing, status dropdown, comments)
+- `web/src/components/TaskEditor.test.tsx` (Create/edit mode, save/dispatch logic)
 - `web/src/lib/utils.test.ts` (Timeline sorting)
 
 #### Why this approach?
@@ -151,7 +152,7 @@ flowforce-kanban
 │   └── prisma/            # Database schema and migrations
 ├── web/                   # React/Vite Frontend Application
 │   ├── src/
-│   │   ├── components/    # UI Components (Board, ListView, TaskViewer)
+│   │   ├── components/    # UI Components (Board, ListView, TaskViewer, TaskEditor)
 │   │   ├── store/         # State Management (Context, Reducers)
 │   │   ├── lib/           # Utilities and API client
 │   │   └── types/         # TypeScript definitions

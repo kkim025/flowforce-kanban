@@ -71,7 +71,11 @@ describe('TaskEditor', () => {
                 searchQuery: '',
                 sprints: [],
                 activeSprintId: null,
-                dueDateFilter: 'all' as const
+                dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
             },
             dispatch,
             undo: () => {},
@@ -251,7 +255,11 @@ describe('TaskEditor', () => {
                 searchQuery: '',
                 sprints: [],
                 activeSprintId: null,
-                dueDateFilter: 'all' as const
+                dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
             },
             dispatch,
             undo: () => {},

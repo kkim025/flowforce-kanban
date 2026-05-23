@@ -93,7 +93,11 @@ describe('TaskViewer', () => {
                 searchQuery: '',
                 sprints: [],
                 activeSprintId: null,
-                dueDateFilter: 'all' as const
+                dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
             },
             dispatch,
             undo: () => {},
@@ -119,7 +123,11 @@ describe('TaskViewer', () => {
 
     it('should show "Task not found" when taskId is invalid', () => {
         vi.mocked(useKanban).mockReturnValue({
-            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '', sprints: [], activeSprintId: null, dueDateFilter: 'all' as const },
+            state: { tasks: {}, columns: {}, columnOrder: [], selectedTaskIds: [], viewMode: 'board' as const, searchQuery: '', sprints: [], activeSprintId: null, dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: [] },
             dispatch: vi.fn(),
             undo: () => {},
             redo: () => {},
@@ -307,7 +315,11 @@ describe('TaskViewer', () => {
                     searchQuery: '',
                     sprints: [],
                     activeSprintId: null,
-                    dueDateFilter: 'all' as const
+                    dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
                 },
                 dispatch,
                 undo: () => {},
@@ -371,7 +383,11 @@ describe('TaskViewer', () => {
                 searchQuery: '',
                 sprints: [],
                 activeSprintId: null,
-                dueDateFilter: 'all' as const
+                dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
             },
             dispatch,
             undo: () => {},
@@ -485,7 +501,11 @@ describe('TaskViewer', () => {
                     searchQuery: '',
                     sprints: [],
                     activeSprintId: null,
-                    dueDateFilter: 'all' as const
+                    dueDateFilter: 'all' as const,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [] as string[],
+                assignees: []
                 },
                 dispatch,
                 undo: () => {},

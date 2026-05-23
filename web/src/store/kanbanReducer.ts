@@ -11,6 +11,10 @@ export const initialState: BoardState = {
     sprints: [],
     activeSprintId: null,
     dueDateFilter: 'all',
+    assigneeFilter: null,
+    priorityFilter: null,
+    tagFilter: [],
+    assignees: [],
 };
 
 export interface HistoryState {
@@ -185,6 +189,28 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'SET_DUE_DATE_FILTER':
             return { ...state, dueDateFilter: action.payload };
+
+        case 'SET_ASSIGNEE_FILTER':
+            return { ...state, assigneeFilter: action.payload };
+
+        case 'SET_PRIORITY_FILTER':
+            return { ...state, priorityFilter: action.payload };
+
+        case 'SET_TAG_FILTER':
+            return { ...state, tagFilter: action.payload };
+
+        case 'SET_ASSIGNEES':
+            return { ...state, assignees: action.payload.assignees };
+
+        case 'CLEAR_ALL_FILTERS':
+            return {
+                ...state,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [],
+                dueDateFilter: 'all',
+                searchQuery: '',
+            };
 
         case 'UPDATE_TASK_DUE_DATE': {
             const { taskId, dueDate } = action.payload;

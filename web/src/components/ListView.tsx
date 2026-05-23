@@ -4,6 +4,7 @@ import { Task, Priority } from '../types';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { taskMatchesFilters } from '../lib/filter-utils';
 
 type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt' | 'dueDate';
 type SortOrder = 'asc' | 'desc';
@@ -57,21 +58,27 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                     const progress = total > 0 ? (completed / total) * 100 : 0;
 
                     const query = (state.searchQuery || '').toLowerCase();
-                    const matchesSearch = !query || 
+                    const matchesSearch = !query ||
                         (task.title || '').toLowerCase().includes(query) ||
                         (task.description || '').toLowerCase().includes(query) ||
                         (task.tags || []).some(t => (t || '').toLowerCase().includes(query)) ||
                         (column.title || '').toLowerCase().includes(query);
 
-                    if (matchesSearch) {
-                        tasks.push({
-                            ...task,
-                            columnTitle: column.title,
-                            progress,
-                            completedCount: completed,
-                            totalCount: total
-                        });
+                    if (!matchesSearch || !taskMatchesFilters(task, {
+                        assigneeFilter: state.assigneeFilter,
+                        priorityFilter: state.priorityFilter,
+                        tagFilter: state.tagFilter,
+                    })) {
+                        return;
                     }
+
+                    tasks.push({
+                        ...task,
+                        columnTitle: column.title,
+                        progress,
+                        completedCount: completed,
+                        totalCount: total
+                    });
                 }
             });
         });
@@ -97,7 +104,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
             }
             return sortOrder === 'asc' ? comparison : -comparison;
         });
-    }, [state.tasks, state.columns, state.columnOrder, state.searchQuery, sortField, sortOrder]);
+    }, [state.tasks, state.columns, state.columnOrder, state.searchQuery, state.assigneeFilter, state.priorityFilter, state.tagFilter, sortField, sortOrder]);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {

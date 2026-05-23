@@ -63,7 +63,7 @@ body {
 
 
 .dark .glass {
-  @apply bg-black/40 border-white/10;
+  @apply bg-slate-900/60 border-white/10;
 }
 
 /* Custom Scrollbar */

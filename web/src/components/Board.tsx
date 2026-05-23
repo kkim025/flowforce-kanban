@@ -11,6 +11,7 @@ import { taskMatchesFilters } from '../lib/filter-utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
 import Drawer from './Drawer';
 import SprintFilterBar from './sprints/SprintFilterBar';
@@ -21,9 +22,9 @@ import CreateSprintModal from './sprints/CreateSprintModal';
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId } = useKanban();
     const { user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
     const searchInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -187,12 +188,6 @@ const Board: React.FC = () => {
         dispatch({ type: 'CLEAR_SELECTION' });
     };
 
-    const toggleTheme = () => {
-        const newMode = !isDarkMode;
-        setIsDarkMode(newMode);
-        document.documentElement.classList.toggle('dark', newMode);
-    };
-
     const exportData = () => {
         const dataStr = JSON.stringify(state, null, 2);
         const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -314,7 +309,7 @@ const Board: React.FC = () => {
                                     title="Toggle Theme"
                                     aria-label="Toggle dark mode"
                                 >
-                                    {isDarkMode ? (
+                                    {theme === 'dark' ? (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 18v1m9-9h1M3 9h1m15.364 6.364l-.707.707M6.343 6.343l-.707.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>

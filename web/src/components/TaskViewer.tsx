@@ -48,6 +48,8 @@ const TaskViewer: React.FC = () => {
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [editDescription, setEditDescription] = useState(task?.description || '');
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [editTitle, setEditTitle] = useState(task?.title || '');
 
     if (!task) {
         return (
@@ -204,6 +206,28 @@ const TaskViewer: React.FC = () => {
         setIsEditingDescription(false);
     };
 
+    const handleEditTitle = () => {
+        setEditTitle(task.title || '');
+        setIsEditingTitle(true);
+    };
+
+    const handleSaveTitle = () => {
+        if (editTitle.trim()) {
+            dispatch({
+                type: 'UPDATE_TASK',
+                payload: {
+                    task: { ...task, title: editTitle.trim() }
+                }
+            });
+        }
+        setIsEditingTitle(false);
+    };
+
+    const handleCancelTitle = () => {
+        setEditTitle(task.title || '');
+        setIsEditingTitle(false);
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Action Bar */}
@@ -249,9 +273,40 @@ const TaskViewer: React.FC = () => {
 
             <div className="p-8 space-y-12 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-4">
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">
-                        {task.title}
-                    </h1>
+                    {isEditingTitle ? (
+                        <div className="space-y-3">
+                            <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full bg-transparent border-b-2 border-accent-blue p-0 text-3xl font-black text-slate-900 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-800 focus:ring-0 outline-none"
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSaveTitle}
+                                    disabled={!editTitle.trim()}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold bg-accent-blue text-white shadow-lg shadow-accent-blue/20 hover:shadow-accent-blue/40 transition-all text-xs disabled:opacity-50"
+                                >
+                                    <Save className="w-3.5 h-3.5" />
+                                    Save
+                                </button>
+                                <button
+                                    onClick={handleCancelTitle}
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-xs text-slate-600 dark:text-slate-300"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <h1
+                            onClick={handleEditTitle}
+                            className="text-3xl font-black text-slate-900 dark:text-white leading-tight cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl p-1 -m-1 transition-colors"
+                        >
+                            {task.title}
+                        </h1>
+                    )}
                     
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-medium">
                         <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider">

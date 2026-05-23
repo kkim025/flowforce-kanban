@@ -511,4 +511,97 @@ describe('TaskViewer', () => {
             expect(screen.getByText('Cancel')).toBeInTheDocument();
         });
     });
+
+    describe('Title Inline Editing', () => {
+        it('should enter edit mode when clicking title', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click on the title
+            fireEvent.click(screen.getByText('Test Task'));
+
+            // Should show Save and Cancel buttons
+            expect(screen.getByText('Save')).toBeInTheDocument();
+            expect(screen.getByText('Cancel')).toBeInTheDocument();
+        });
+
+        it('should save title and dispatch UPDATE_TASK', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click to enter edit mode
+            fireEvent.click(screen.getByText('Test Task'));
+
+            // Change the title - use first textbox (the title input)
+            const inputs = screen.getAllByRole('textbox');
+            fireEvent.change(inputs[0], { target: { value: 'Updated Task Title' } });
+
+            // Click Save
+            fireEvent.click(screen.getByText('Save'));
+
+            // Should dispatch UPDATE_TASK with new title
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'UPDATE_TASK',
+                payload: expect.objectContaining({
+                    task: expect.objectContaining({
+                        id: 'task-1',
+                        title: 'Updated Task Title'
+                    })
+                })
+            }));
+        });
+
+        it('should cancel edit and return to read mode', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click to enter edit mode
+            fireEvent.click(screen.getByText('Test Task'));
+
+            // Click Cancel
+            fireEvent.click(screen.getByText('Cancel'));
+
+            // Should be back in read mode
+            expect(screen.queryByText('Save')).not.toBeInTheDocument();
+            expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+            // Original title should still be shown
+            expect(screen.getByText('Test Task')).toBeInTheDocument();
+        });
+
+        it('should not save empty title', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click to enter edit mode
+            fireEvent.click(screen.getByText('Test Task'));
+
+            // Clear the title - use first textbox (the title input)
+            const inputs = screen.getAllByRole('textbox');
+            fireEvent.change(inputs[0], { target: { value: '' } });
+
+            // Save button should be disabled
+            const saveButton = screen.getByText('Save');
+            expect(saveButton).toBeDisabled();
+        });
+    });
 });

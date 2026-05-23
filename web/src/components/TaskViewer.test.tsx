@@ -606,6 +606,27 @@ describe('TaskViewer', () => {
             const saveButton = screen.getByText('Save');
             expect(saveButton).toBeDisabled();
         });
+
+        it('should enter title edit mode on title click', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Initially, title is displayed as text, not as input
+            expect(screen.getByText('Test Task')).toBeInTheDocument();
+
+            // Click on the title
+            fireEvent.click(screen.getByText('Test Task'));
+
+            // After clicking, the title becomes editable (shows textbox with the title value)
+            const textboxes = screen.getAllByRole('textbox');
+            const titleInput = textboxes.find(input => input.tagName === 'INPUT' || (input as HTMLInputElement).type === 'text');
+            expect(titleInput).toBeInTheDocument();
+        });
     });
 
     describe('Status Dropdown', () => {

@@ -52,17 +52,42 @@ const TaskViewer: React.FC = () => {
     const [editTitle, setEditTitle] = useState(task?.title || '');
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const statusBadgeRef = useRef<HTMLDivElement>(null);
+    const titleEditRef = useRef<HTMLDivElement>(null);
+    const descriptionEditRef = useRef<HTMLDivElement>(null);
 
     // Close status dropdown on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            // Handle status dropdown click outside
             if (statusBadgeRef.current && !statusBadgeRef.current.contains(event.target as Node)) {
                 setShowStatusDropdown(false);
+            }
+            // Auto-save title if clicking outside title edit area
+            if (isEditingTitle && titleEditRef.current && !titleEditRef.current.contains(event.target as Node) && task) {
+                if (editTitle.trim()) {
+                    dispatch({
+                        type: 'UPDATE_TASK',
+                        payload: {
+                            task: { ...task, title: editTitle.trim() }
+                        }
+                    });
+                }
+                setIsEditingTitle(false);
+            }
+            // Auto-save description if clicking outside description edit area
+            if (isEditingDescription && descriptionEditRef.current && !descriptionEditRef.current.contains(event.target as Node) && task) {
+                dispatch({
+                    type: 'UPDATE_TASK',
+                    payload: {
+                        task: { ...task, description: editDescription }
+                    }
+                });
+                setIsEditingDescription(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isEditingTitle, isEditingDescription, editTitle, editDescription, task, dispatch]);
 
     if (!task) {
         return (
@@ -312,7 +337,7 @@ const TaskViewer: React.FC = () => {
             <div className="p-8 space-y-12 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-4">
                     {isEditingTitle ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3" ref={titleEditRef}>
                             <input
                                 type="text"
                                 value={editTitle}
@@ -404,7 +429,7 @@ const TaskViewer: React.FC = () => {
                                 {UI_LABELS.DESCRIPTION}
                             </div>
                             {isEditingDescription ? (
-                                <div className="space-y-3">
+                                <div className="space-y-3" ref={descriptionEditRef}>
                                     <div className="glass rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-accent-blue/20 transition-all duration-300">
                                         <MarkdownEditor
                                             value={editDescription}

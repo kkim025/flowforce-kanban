@@ -161,5 +161,9 @@ export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[], 
     sprints: existingSprints || [],
     activeSprintId: activeSprintId ?? null,
     dueDateFilter: 'all',
+    assigneeFilter: null,
+    priorityFilter: null,
+    tagFilter: [],
+    assignees: [],
   };
 };

@@ -7,12 +7,14 @@ import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task, Column as ColumnType, DueDateFilter } from '../types';
 import { DUE_DATE_FILTER_OPTIONS } from '../lib/constants';
+import { taskMatchesFilters } from '../lib/filter-utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
 import Drawer from './Drawer';
 import SprintFilterBar from './sprints/SprintFilterBar';
+import FilterBar from './FilterBar';
 import SprintPanel from './sprints/SprintPanel';
 import CreateSprintModal from './sprints/CreateSprintModal';
 
@@ -401,6 +403,8 @@ const Board: React.FC = () => {
                                 ))}
                             </select>
 
+                        <FilterBar />
+
                         <button
                             onClick={() => openCreateView()}
                             className="bg-accent-blue hover:bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-95 flex items-center gap-2"
@@ -502,7 +506,14 @@ const Board: React.FC = () => {
                                                         task.tags.some(t => t.toLowerCase().includes(query)) ||
                                                         task.priority.toLowerCase().includes(query)
                                                     );
-                                                });
+                                                })
+                                                .filter(task =>
+                                                    taskMatchesFilters(task, {
+                                                        assigneeFilter: state.assigneeFilter,
+                                                        priorityFilter: state.priorityFilter,
+                                                        tagFilter: state.tagFilter,
+                                                    })
+                                                );
 
                                             return (
                                                 <Column

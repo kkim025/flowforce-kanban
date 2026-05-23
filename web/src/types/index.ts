@@ -4,6 +4,9 @@ export type UserRole = 'ADMIN' | 'MEMBER';
 export type UserStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE';
 export type SprintStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
 export type DueDateFilter = 'all' | 'overdue' | 'dueToday' | 'dueThisWeek' | 'noDate';
+export type AssigneeFilter = string | null;
+export type PriorityFilter = Priority | null;
+export type TagFilter = string[];
 
 export interface Sprint {
     id: string;
@@ -98,6 +101,10 @@ export interface BoardState {
     sprints: Sprint[];
     activeSprintId: string | null;
     dueDateFilter: DueDateFilter;
+    assigneeFilter: AssigneeFilter;
+    priorityFilter: PriorityFilter;
+    tagFilter: TagFilter;
+    assignees: User[];
 }
 
 export type KanbanAction =
@@ -136,4 +143,9 @@ export type KanbanAction =
     | { type: 'SET_ACTIVE_SPRINT'; payload: { sprintId: string | null } }
     | { type: 'SET_DUE_DATE_FILTER'; payload: DueDateFilter }
     | { type: 'UPDATE_TASK_DUE_DATE'; payload: { taskId: string; dueDate: string | null } }
-    | { type: 'ASSIGN_TASK_TO_SPRINT'; payload: { taskId: string; sprintId: string | null } };
+    | { type: 'ASSIGN_TASK_TO_SPRINT'; payload: { taskId: string; sprintId: string | null } }
+    | { type: 'SET_ASSIGNEE_FILTER'; payload: AssigneeFilter }
+    | { type: 'SET_PRIORITY_FILTER'; payload: PriorityFilter }
+    | { type: 'SET_TAG_FILTER'; payload: TagFilter }
+    | { type: 'SET_ASSIGNEES'; payload: { assignees: User[] } }
+    | { type: 'CLEAR_ALL_FILTERS' };

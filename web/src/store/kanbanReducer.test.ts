@@ -182,6 +182,100 @@ describe('kanbanReducer', () => {
         expect(newState.columnOrder).toEqual(newOrder);
     });
 
+    describe('filter actions', () => {
+        it('should handle SET_ASSIGNEE_FILTER', () => {
+            const action = {
+                type: 'SET_ASSIGNEE_FILTER' as const,
+                payload: 'user-1',
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.assigneeFilter).toBe('user-1');
+        });
+
+        it('should handle SET_ASSIGNEE_FILTER with null to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                assigneeFilter: 'user-1' as string | null,
+            };
+            const action = {
+                type: 'SET_ASSIGNEE_FILTER' as const,
+                payload: null,
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.assigneeFilter).toBe(null);
+        });
+
+        it('should handle SET_PRIORITY_FILTER', () => {
+            const action = {
+                type: 'SET_PRIORITY_FILTER' as const,
+                payload: 'high' as const,
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.priorityFilter).toBe('high');
+        });
+
+        it('should handle SET_PRIORITY_FILTER with null to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                priorityFilter: 'high' as const,
+            };
+            const action = {
+                type: 'SET_PRIORITY_FILTER' as const,
+                payload: null,
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.priorityFilter).toBe(null);
+        });
+
+        it('should handle SET_TAG_FILTER', () => {
+            const action = {
+                type: 'SET_TAG_FILTER' as const,
+                payload: ['frontend', 'bug'],
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.tagFilter).toEqual(['frontend', 'bug']);
+        });
+
+        it('should handle SET_TAG_FILTER with empty array to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                tagFilter: ['frontend', 'bug'] as string[],
+            };
+            const action = {
+                type: 'SET_TAG_FILTER' as const,
+                payload: [],
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.tagFilter).toEqual([]);
+        });
+
+        it('should handle CLEAR_ALL_FILTERS', () => {
+            const stateWithFilters: BoardState = {
+                ...initialState,
+                assigneeFilter: 'user-1',
+                priorityFilter: 'high',
+                tagFilter: ['frontend', 'bug'],
+            };
+            const action = { type: 'CLEAR_ALL_FILTERS' as const };
+            const newState = kanbanReducer(stateWithFilters, action);
+            expect(newState.assigneeFilter).toBe(null);
+            expect(newState.priorityFilter).toBe(null);
+            expect(newState.tagFilter).toEqual([]);
+        });
+
+        it('should handle SET_ASSIGNEES', () => {
+            const assignees = [
+                { id: 'user-1', name: 'Alice', email: 'alice@test.com', role: 'MEMBER' as const, status: 'ACTIVE' as const },
+            ];
+            const action = {
+                type: 'SET_ASSIGNEES' as const,
+                payload: { assignees },
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.assignees).toEqual(assignees);
+        });
+    });
+
     describe('subtask actions', () => {
         const stateWithChecklist: BoardState = {
             ...initialState,

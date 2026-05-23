@@ -254,7 +254,7 @@ const Board: React.FC = () => {
     }, [isAddingColumn]);
 
     return (
-        <div className="p-8 h-screen max-h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+        <div className="p-8 h-screen max-h-screen flex flex-col overflow-hidden bg-transparent dark:bg-transparent transition-colors duration-300">
             <header className="flex flex-col gap-6 mb-8 flex-shrink-0">
                 {/* Top Row: Logo and User Profile */}
                 <div className="flex justify-between items-start w-full">

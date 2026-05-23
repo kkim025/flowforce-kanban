@@ -259,10 +259,10 @@ const Board: React.FC = () => {
                 {/* Top Row: Logo and User Profile */}
                 <div className="flex justify-between items-start w-full">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
                             FlowForce<span className="text-accent-blue">.</span>
                         </h1>
-                        <p className="text-slate-500 font-medium">Streamline your workflow with precision.</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Streamline your workflow with precision.</p>
                     </div>
 
                     {user && (
@@ -286,7 +286,7 @@ const Board: React.FC = () => {
                                     {user.name?.[0] || user.email[0].toUpperCase()}
                                 </div>
                                 <div className="hidden md:block text-left">
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
+                                    <p className="text-xs font-bold text-slate-900 dark:text-slate-200 leading-tight truncate max-w-[100px]">{user.name || user.email.split('@')[0]}</p>
                                     <button onClick={logout} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-tighter flex items-center gap-1 transition-colors">
                                         <LogOut className="w-2.5 h-2.5" /> Log Out
                                     </button>
@@ -302,10 +302,10 @@ const Board: React.FC = () => {
                         <ViewToggle />
 
                         <div className="flex items-center gap-4">
-                            <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20">
+                            <div className="flex bg-white/50 dark:bg-slate-900/50 p-1 rounded-lg border border-white/20 dark:border-slate-700/50">
                                 <button
                                     onClick={toggleTheme}
-                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-700 transition-all text-slate-500 dark:text-slate-300"
                                     title="Toggle Theme"
                                     aria-label="Toggle dark mode"
                                 >
@@ -321,7 +321,7 @@ const Board: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={exportData}
-                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-300"
                                     title="Export Data (JSON)"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,7 +330,7 @@ const Board: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500"
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-300"
                                     title="Import Data (JSON)"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,7 +350,7 @@ const Board: React.FC = () => {
                                 <button
                                     onClick={undo}
                                     disabled={!canUndo}
-                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-500 dark:text-slate-300"
                                     title="Undo (Ctrl+Z)"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +360,7 @@ const Board: React.FC = () => {
                                 <button
                                     onClick={redo}
                                     disabled={!canRedo}
-                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all"
+                                    className="p-2 rounded hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-500 dark:text-slate-300"
                                     title="Redo (Ctrl+Shift+Z)"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,7 +373,7 @@ const Board: React.FC = () => {
 
                     <div className="flex items-center gap-4">
                         <div className="relative group">
-                            <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <input
@@ -453,7 +453,7 @@ const Board: React.FC = () => {
                                         onMouseUp={handleMouseUp}
                                         onMouseMove={handleMouseMove}
                                         style={{ minWidth: '100%', display: 'flex' }}
-                                        className={`h-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none gap-6 items-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                        className={`h-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-4 select-none gap-6 items-start ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} relative board-glow`}
                                     >
                                         {state.columnOrder.map((columnId, index) => {
                                             const column = state.columns[columnId];

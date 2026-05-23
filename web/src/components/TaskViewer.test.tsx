@@ -83,8 +83,11 @@ describe('TaskViewer', () => {
         vi.mocked(useKanban).mockReturnValue({
             state: {
                 tasks: { 'task-1': mockTask },
-                columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } },
-                columnOrder: ['col-1'],
+                columns: {
+                    'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] },
+                    'col-2': { id: 'col-2', title: 'Done', taskIds: [] }
+                },
+                columnOrder: ['col-1', 'col-2'],
                 selectedTaskIds: [],
                 viewMode: 'board' as const,
                 searchQuery: '',
@@ -602,6 +605,93 @@ describe('TaskViewer', () => {
             // Save button should be disabled
             const saveButton = screen.getByText('Save');
             expect(saveButton).toBeDisabled();
+        });
+    });
+
+    describe('Status Dropdown', () => {
+        it('should show status dropdown when clicking status badge', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click the status badge - use first occurrence (the badge itself)
+            fireEvent.click(screen.getAllByText('Todo')[0]);
+
+            // Should show 'Done' option in dropdown
+            expect(screen.getByText('Done')).toBeInTheDocument();
+        });
+
+        it('should dispatch MOVE_TASK when selecting different column', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click the status badge - use first occurrence (the badge itself)
+            fireEvent.click(screen.getAllByText('Todo')[0]);
+
+            // Should show 'Done' option in dropdown
+            expect(screen.getByText('Done')).toBeInTheDocument();
+        });
+
+        it('should dispatch MOVE_TASK when selecting different column', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click the status badge to open dropdown
+            fireEvent.click(screen.getAllByText('Todo')[0]);
+
+            // Select 'Done' column
+            fireEvent.click(screen.getByText('Done'));
+
+            // Should dispatch MOVE_TASK
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MOVE_TASK',
+                payload: expect.objectContaining({
+                    taskId: 'task-1',
+                    destinationColId: 'col-2'
+                })
+            }));
+        });
+
+        it('should close dropdown when selecting a column', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click the status badge to open dropdown
+            fireEvent.click(screen.getAllByText('Todo')[0]);
+
+            // Dropdown is open - 'Done' should be visible in dropdown
+            expect(screen.getByText('Done')).toBeInTheDocument();
+
+            // Select 'Done' - this should close the dropdown
+            fireEvent.click(screen.getByText('Done'));
+
+            // After selection, dropdown closes and MOVE_TASK is dispatched
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'MOVE_TASK',
+                payload: expect.objectContaining({
+                    taskId: 'task-1',
+                    destinationColId: 'col-2'
+                })
+            }));
         });
     });
 });

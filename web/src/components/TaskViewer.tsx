@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
@@ -50,6 +50,19 @@ const TaskViewer: React.FC = () => {
     const [editDescription, setEditDescription] = useState(task?.description || '');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [editTitle, setEditTitle] = useState(task?.title || '');
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+    const statusBadgeRef = useRef<HTMLDivElement>(null);
+
+    // Close status dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusBadgeRef.current && !statusBadgeRef.current.contains(event.target as Node)) {
+                setShowStatusDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     if (!task) {
         return (
@@ -228,6 +241,31 @@ const TaskViewer: React.FC = () => {
         setIsEditingTitle(false);
     };
 
+    const handleChangeStatus = (newColumnId: string) => {
+        const sourceColumn = Object.values(state.columns).find(col => col.taskIds.includes(task.id));
+        if (!sourceColumn || sourceColumn.id === newColumnId) {
+            setShowStatusDropdown(false);
+            return;
+        }
+        const sourceIndex = sourceColumn.taskIds.indexOf(task.id);
+        const destinationColumn = state.columns[newColumnId];
+        if (!destinationColumn) {
+            setShowStatusDropdown(false);
+            return;
+        }
+        dispatch({
+            type: 'MOVE_TASK',
+            payload: {
+                taskId: task.id,
+                sourceColId: sourceColumn.id,
+                destinationColId: newColumnId,
+                sourceIndex,
+                destinationIndex: destinationColumn.taskIds.length,
+            },
+        });
+        setShowStatusDropdown(false);
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Action Bar */}
@@ -309,9 +347,44 @@ const TaskViewer: React.FC = () => {
                     )}
                     
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-medium">
-                        <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            {column?.title || 'Open'}
+                        <div className="relative" ref={statusBadgeRef}>
+                            <div
+                                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                                className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-wider cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                            >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                {column?.title || 'Open'}
+                            </div>
+                            {showStatusDropdown && (
+                                <div className="absolute top-full left-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
+                                    {state.columnOrder.map(colId => {
+                                        const col = state.columns[colId];
+                                        if (!col) return null;
+                                        const isCurrentColumn = colId === column?.id;
+                                        return (
+                                            <button
+                                                key={colId}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleChangeStatus(colId);
+                                                }}
+                                                className={`w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-white/10 transition-colors ${
+                                                    isCurrentColumn ? 'text-accent-blue bg-accent-blue/5' : 'text-slate-700 dark:text-slate-200'
+                                                }`}
+                                            >
+                                                {col.title}
+                                                {isCurrentColumn && (
+                                                    <span className="ml-auto text-accent-blue">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-slate-400" />

@@ -8,33 +8,36 @@ import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import UserManagement from './components/admin/UserManagement';
 import { ToastProvider } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/register" element={<RegisterForm />} />
+    <ThemeProvider>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
 
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Board />}>
-            <Route path="tasks/new" element={<TaskEditor />} />
-            <Route path="tasks/:taskId" element={<TaskViewer />} />
-            <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
-            
-            {/* Admin Routes */}
-            <Route path="admin/users" element={<UserManagement />} />
-          </Route>
-        </Route>
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Board />}>
+                <Route path="tasks/new" element={<TaskEditor />} />
+                <Route path="tasks/:taskId" element={<TaskViewer />} />
+                <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      </Router>
-    </ToastProvider>
+                {/* Admin Routes */}
+                <Route path="admin/users" element={<UserManagement />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 

@@ -1,5 +1,5 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { vi } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 // Test component that exposes theme values

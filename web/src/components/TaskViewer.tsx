@@ -3,15 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
 import { useAuth } from '../store/AuthContext';
-import { 
-    Hash, 
-    Clock, 
-    AlertCircle, 
-    Trash2, 
+import {
+    Hash,
+    Clock,
+    AlertCircle,
+    Trash2,
     Archive,
     Edit3,
     MessageSquare,
-    X
+    X,
+    Save
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,6 +26,7 @@ import ChecklistSection from './ChecklistSection';
 import TaskTimeline from './TaskTimeline';
 import CommentForm from './CommentForm';
 import TaskSidebar from './TaskSidebar';
+import MarkdownEditor from './MarkdownEditor';
 
 const TaskViewer: React.FC = () => {
     const { taskId } = useParams<{ taskId: string }>();
@@ -44,6 +46,8 @@ const TaskViewer: React.FC = () => {
     // UI States
     const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [editDescription, setEditDescription] = useState(task?.description || '');
 
     if (!task) {
         return (
@@ -180,6 +184,26 @@ const TaskViewer: React.FC = () => {
         }
     };
 
+    const handleEditDescription = () => {
+        setEditDescription(task.description || '');
+        setIsEditingDescription(true);
+    };
+
+    const handleSaveDescription = () => {
+        dispatch({
+            type: 'UPDATE_TASK',
+            payload: {
+                task: { ...task, description: editDescription }
+            }
+        });
+        setIsEditingDescription(false);
+    };
+
+    const handleCancelDescription = () => {
+        setEditDescription(task.description || '');
+        setIsEditingDescription(false);
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Action Bar */}
@@ -251,15 +275,45 @@ const TaskViewer: React.FC = () => {
                                 <MessageSquare className="w-4 h-4" />
                                 {UI_LABELS.DESCRIPTION}
                             </div>
-                            <div className="prose prose-slate dark:prose-invert max-w-none">
-                                {task.description ? (
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                                        {task.description}
-                                    </ReactMarkdown>
-                                ) : (
-                                    <p className="text-slate-400 italic text-sm">{UI_LABELS.NO_DESCRIPTION}</p>
-                                )}
-                            </div>
+                            {isEditingDescription ? (
+                                <div className="space-y-3">
+                                    <div className="glass rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden focus-within:ring-2 focus-within:ring-accent-blue/20 transition-all duration-300">
+                                        <MarkdownEditor
+                                            value={editDescription}
+                                            onChange={setEditDescription}
+                                            placeholder={UI_LABELS.ADD_DETAILS}
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleSaveDescription}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold bg-accent-blue text-white shadow-lg shadow-accent-blue/20 hover:shadow-accent-blue/40 transition-all text-xs"
+                                        >
+                                            <Save className="w-3.5 h-3.5" />
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={handleCancelDescription}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-xs text-slate-600 dark:text-slate-300"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    onClick={handleEditDescription}
+                                    className="prose prose-slate dark:prose-invert max-w-none cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl p-3 -m-3 transition-colors"
+                                >
+                                    {task.description ? (
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                                            {task.description}
+                                        </ReactMarkdown>
+                                    ) : (
+                                        <p className="text-slate-400 italic text-sm">{UI_LABELS.NO_DESCRIPTION}</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Checklists Section */}

@@ -28,6 +28,13 @@ vi.mock('framer-motion', () => ({
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+// Mock MarkdownEditor
+vi.mock('./MarkdownEditor', () => ({
+    default: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => (
+        <textarea data-testid="markdown-editor" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+    )
+}));
+
 // Mock window.confirm
 window.confirm = vi.fn();
 
@@ -384,5 +391,124 @@ describe('TaskViewer', () => {
 
         expect(screen.getByText('Bold Text').tagName).toBe('STRONG');
         expect(screen.getByRole('link', { name: 'Link' })).toHaveAttribute('href', 'https://example.com');
+    });
+
+    describe('Description Inline Editing', () => {
+        it('should enter edit mode when clicking description', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click on the description area
+            const descriptionArea = screen.getByText('Test Description').closest('.prose');
+            if (descriptionArea) fireEvent.click(descriptionArea);
+            else fireEvent.click(screen.getByText('Test Description'));
+
+            // Should show Save and Cancel buttons
+            expect(screen.getByText('Save')).toBeInTheDocument();
+            expect(screen.getByText('Cancel')).toBeInTheDocument();
+        });
+
+        it('should save description and dispatch UPDATE_TASK', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click to enter edit mode
+            const descriptionArea = screen.getByText('Test Description').closest('.prose');
+            if (descriptionArea) fireEvent.click(descriptionArea);
+            else fireEvent.click(screen.getByText('Test Description'));
+
+            // Click Save
+            fireEvent.click(screen.getByText('Save'));
+
+            // Should dispatch UPDATE_TASK with new description
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+                type: 'UPDATE_TASK',
+                payload: expect.objectContaining({
+                    task: expect.objectContaining({
+                        id: 'task-1',
+                        description: 'Test Description'
+                    })
+                })
+            }));
+        });
+
+        it('should cancel edit and return to read mode', () => {
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click to enter edit mode
+            const descriptionArea = screen.getByText('Test Description').closest('.prose');
+            if (descriptionArea) fireEvent.click(descriptionArea);
+            else fireEvent.click(screen.getByText('Test Description'));
+
+            // Click Cancel
+            fireEvent.click(screen.getByText('Cancel'));
+
+            // Should be back in read mode - no Save/Cancel buttons
+            expect(screen.queryByText('Save')).not.toBeInTheDocument();
+            expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+            // Description should still be shown
+            expect(screen.getByText('Test Description')).toBeInTheDocument();
+        });
+
+        it('should enter edit mode when clicking "No description" placeholder', () => {
+            const taskWithoutDescription = {
+                ...mockTask,
+                description: ''
+            };
+
+            vi.mocked(useKanban).mockReturnValue({
+                state: {
+                    tasks: { 'task-1': taskWithoutDescription },
+                    columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1'] } },
+                    columnOrder: ['col-1'],
+                    selectedTaskIds: [],
+                    viewMode: 'board' as const,
+                    searchQuery: '',
+                    sprints: [],
+                    activeSprintId: null,
+                    dueDateFilter: 'all' as const
+                },
+                dispatch,
+                undo: () => {},
+                redo: () => {},
+                canUndo: false,
+                canRedo: false,
+                isSyncing: false,
+                isHydrated: true,
+                activeBoardId: null,
+                updateTaskDueDate: vi.fn()
+            });
+
+            render(
+                <MemoryRouter initialEntries={['/tasks/task-1']}>
+                    <Routes>
+                        <Route path="/tasks/:taskId" element={<TaskViewer />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+
+            // Click on the "No description" placeholder
+            fireEvent.click(screen.getByText('No description provided.'));
+
+            // Should show Save and Cancel buttons
+            expect(screen.getByText('Save')).toBeInTheDocument();
+            expect(screen.getByText('Cancel')).toBeInTheDocument();
+        });
     });
 });

@@ -36,7 +36,9 @@ export class TimeEntriesService {
 
     const enriched = await Promise.all(
       entries.map(async (entry) => {
-        const user = await this.prisma.user.findUnique({ where: { id: entry.userId } });
+        const user = await this.prisma.user.findUnique({
+          where: { id: entry.userId },
+        });
         return {
           id: entry.id,
           taskId: entry.taskId,

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { TimeEntriesService } from './time-entries.service';
@@ -14,7 +22,12 @@ export class TimeEntriesController {
     @Param('taskId') taskId: string,
     @Body() body: { minutes: number; date?: string },
   ) {
-    return this.timeEntriesService.logTime(userId, taskId, body.minutes, body.date ? new Date(body.date) : undefined);
+    return this.timeEntriesService.logTime(
+      userId,
+      taskId,
+      body.minutes,
+      body.date ? new Date(body.date) : undefined,
+    );
   }
 
   @Get('tasks/:taskId/time-entries')

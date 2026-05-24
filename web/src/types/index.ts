@@ -82,6 +82,45 @@ export interface Task {
     createdAt: string;
     isArchived?: boolean;
     sprintId?: string;
+    estimatedMinutes?: number | null;
+}
+
+export type TimeUnit = 'weeks' | 'days' | 'hours' | 'minutes';
+
+export const TIME_UNIT_CONVERSIONS: Record<TimeUnit, number> = {
+    weeks: 2400,
+    days: 480,
+    hours: 60,
+    minutes: 1,
+};
+
+export interface TimeEntry {
+    id: string;
+    taskId: string;
+    userId: string;
+    userName?: string;
+    minutes: number;
+    date: string;
+    createdAt: string;
+}
+
+export interface SprintReportTask {
+    taskId: string;
+    content: string;
+    estimatedMinutes: number | null;
+    loggedMinutes: number;
+    variance: number;
+}
+
+export interface SprintReport {
+    sprintId: string;
+    sprintName: string;
+    startDate: string;
+    endDate: string;
+    totalEstimated: number;
+    totalLogged: number;
+    taskCount: number;
+    tasks: SprintReportTask[];
 }
 
 export interface Column {

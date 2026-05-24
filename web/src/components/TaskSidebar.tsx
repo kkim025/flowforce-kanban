@@ -7,6 +7,7 @@ import { UI_LABELS } from '../lib/constants';
 import Dropdown from './Dropdown';
 import SprintSelector from './sprints/SprintSelector';
 import SubtaskList from './SubtaskList';
+import TimeTab from './time-tracking/TimeTab';
 
 interface TaskSidebarProps {
     task: Task;
@@ -15,6 +16,8 @@ interface TaskSidebarProps {
     onAddTag: (tag: string) => void;
     onRemoveTag: (tag: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
+    onUpdateEstimatedMinutes: (taskId: string, estimatedMinutes: number | null) => void;
+    userId: string;
 }
 
 const TaskSidebar: React.FC<TaskSidebarProps> = ({
@@ -24,6 +27,8 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
     onAddTag,
     onRemoveTag,
     updateTaskDueDate,
+    onUpdateEstimatedMinutes,
+    userId,
 }) => {
     const { users, getInitials, getUserName } = useUsers();
     const { activeBoardId } = useKanban();
@@ -234,6 +239,14 @@ const TaskSidebar: React.FC<TaskSidebarProps> = ({
 
             {/* Subtasks Section */}
             <SubtaskList task={task} />
+
+            {/* Time Section */}
+            <TimeTab
+                taskId={task.id}
+                estimatedMinutes={task.estimatedMinutes ?? null}
+                onUpdateEstimate={(minutes) => onUpdateEstimatedMinutes(task.id, minutes)}
+                userId={userId}
+            />
         </aside>
     );
 };

@@ -7,6 +7,7 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import UserManagement from './components/admin/UserManagement';
+import SprintReportPage from './components/reports/SprintReportPage';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -29,6 +30,7 @@ const App: React.FC = () => {
 
                 {/* Admin Routes */}
                 <Route path="admin/users" element={<UserManagement />} />
+                <Route path="board/:boardId/reports" element={<SprintReportPage />} />
               </Route>
             </Route>
 

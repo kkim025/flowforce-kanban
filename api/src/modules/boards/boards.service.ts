@@ -97,16 +97,18 @@ export class BoardsService {
       throw new NotFoundException('Sprint not found');
     }
 
-    const taskIds = sprint.tasks.map(t => t.id);
+    const taskIds = sprint.tasks.map((t) => t.id);
     const timeEntries = await this.prisma.timeEntry.groupBy({
       by: ['taskId'],
       where: { taskId: { in: taskIds } },
       _sum: { minutes: true },
     });
 
-    const timeEntryMap = new Map(timeEntries.map(te => [te.taskId, te._sum.minutes || 0]));
+    const timeEntryMap = new Map(
+      timeEntries.map((te) => [te.taskId, te._sum.minutes || 0]),
+    );
 
-    const tasks = sprint.tasks.map(task => {
+    const tasks = sprint.tasks.map((task) => {
       const logged = timeEntryMap.get(task.id) || 0;
       return {
         taskId: task.id,
@@ -117,7 +119,10 @@ export class BoardsService {
       };
     });
 
-    const totalEstimated = tasks.reduce((sum, t) => sum + (t.estimatedMinutes || 0), 0);
+    const totalEstimated = tasks.reduce(
+      (sum, t) => sum + (t.estimatedMinutes || 0),
+      0,
+    );
     const totalLogged = tasks.reduce((sum, t) => sum + t.loggedMinutes, 0);
 
     return {

@@ -186,4 +186,52 @@ export const getSubtasksByChecklist = async (checklistId: string): Promise<SubTa
   return response.data.map(mapApiSubtaskToSubTask);
 };
 
+// Time Tracking API
+export interface TimeEntryApiResponse {
+  id: string;
+  taskId: string;
+  userId: string;
+  userName?: string;
+  minutes: number;
+  date: string;
+  createdAt: string;
+}
+
+export interface SprintReportApiResponse {
+  sprintId: string;
+  sprintName: string;
+  startDate: string;
+  endDate: string;
+  totalEstimated: number;
+  totalLogged: number;
+  taskCount: number;
+  tasks: Array<{
+    taskId: string;
+    content: string;
+    estimatedMinutes: number | null;
+    loggedMinutes: number;
+    variance: number;
+  }>;
+}
+
+export const logTime = async (taskId: string, minutes: number, date?: string): Promise<TimeEntryApiResponse> => {
+  const response = await api.post<TimeEntryApiResponse>(`/tasks/${taskId}/time-entries`, { minutes, date });
+  return response.data;
+};
+
+export const getTimeEntries = async (taskId: string): Promise<TimeEntryApiResponse[]> => {
+  const response = await api.get<TimeEntryApiResponse[]>(`/tasks/${taskId}/time-entries`);
+  return response.data;
+};
+
+export const deleteTimeEntry = async (id: string): Promise<{ success: boolean }> => {
+  const response = await api.delete<{ success: boolean }>(`/time-entries/${id}`);
+  return response.data;
+};
+
+export const getSprintReport = async (boardId: string, sprintId: string): Promise<SprintReportApiResponse> => {
+  const response = await api.get<SprintReportApiResponse>(`/boards/${boardId}/sprint-reports`, { params: { sprintId } });
+  return response.data;
+};
+
 export default api;

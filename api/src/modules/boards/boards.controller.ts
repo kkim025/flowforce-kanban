@@ -100,4 +100,13 @@ export class BoardsController {
     this.logger.log(`Reordering columns for board ${boardId}`);
     return this.reorderColumnsUseCase.execute(userId, boardId, columnIds);
   }
+
+  @Get(':id/sprint-reports')
+  async getSprintReport(
+    @GetUser('sub') userId: string,
+    @Param('id') boardId: string,
+    @Query('sprintId') sprintId: string,
+  ) {
+    return this.boardsService.getSprintReport(userId, boardId, sprintId);
+  }
 }

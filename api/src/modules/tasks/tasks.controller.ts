@@ -112,6 +112,7 @@ export class TasksController {
       assigneeId?: string;
       tags?: string[];
       sprintId?: string;
+      estimatedMinutes?: number;
     },
   ) {
     if (body.columnId !== undefined && body.order !== undefined) {

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Subtask } from '@prisma/client';
 
@@ -16,11 +20,12 @@ export class SubtasksService {
       },
     });
     if (!task) throw new NotFoundException('Task not found');
-    if (task.column.board.ownerId !== userId) throw new ForbiddenException('Access denied');
+    if (task.column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
     return task;
   }
 
-  private async checkChecklistOwnership(userId: string, checklistId: string) {
+  async checkChecklistOwnership(userId: string, checklistId: string) {
     const checklist = await this.prisma.checklist.findUnique({
       where: { id: checklistId },
       include: {
@@ -34,11 +39,15 @@ export class SubtasksService {
       },
     });
     if (!checklist) throw new NotFoundException('Checklist not found');
-    if (checklist.task.column.board.ownerId !== userId) throw new ForbiddenException('Access denied');
+    if (checklist.task.column.board.ownerId !== userId)
+      throw new ForbiddenException('Access denied');
     return checklist;
   }
 
-  async create(userId: string, data: { content: string; taskId?: string; checklistId?: string }): Promise<Subtask> {
+  async create(
+    userId: string,
+    data: { content: string; taskId?: string; checklistId?: string },
+  ): Promise<Subtask> {
     if (data.checklistId) {
       await this.checkChecklistOwnership(userId, data.checklistId);
     } else if (data.taskId) {
@@ -56,18 +65,28 @@ export class SubtasksService {
     });
   }
 
-  async update(userId: string, id: string, data: { content?: string; completed?: boolean }): Promise<Subtask> {
+  async update(
+    userId: string,
+    id: string,
+    data: { content?: string; completed?: boolean },
+  ): Promise<Subtask> {
     const subtask = await this.prisma.subtask.findUnique({
       where: { id },
       include: {
         task: { include: { column: { include: { board: true } } } },
-        checklist: { include: { task: { include: { column: { include: { board: true } } } } } },
+        checklist: {
+          include: {
+            task: { include: { column: { include: { board: true } } } },
+          },
+        },
       },
     });
 
     if (!subtask) throw new NotFoundException('Subtask not found');
-    
-    const ownerId = subtask.task?.column.board.ownerId || subtask.checklist?.task.column.board.ownerId;
+
+    const ownerId =
+      subtask.task?.column.board.ownerId ||
+      subtask.checklist?.task.column.board.ownerId;
     if (ownerId !== userId) throw new ForbiddenException('Access denied');
 
     return this.prisma.subtask.update({
@@ -84,17 +103,75 @@ export class SubtasksService {
       where: { id },
       include: {
         task: { include: { column: { include: { board: true } } } },
-        checklist: { include: { task: { include: { column: { include: { board: true } } } } } },
+        checklist: {
+          include: {
+            task: { include: { column: { include: { board: true } } } },
+          },
+        },
       },
     });
 
     if (!subtask) throw new NotFoundException('Subtask not found');
-    
-    const ownerId = subtask.task?.column.board.ownerId || subtask.checklist?.task.column.board.ownerId;
+
+    const ownerId =
+      subtask.task?.column.board.ownerId ||
+      subtask.checklist?.task.column.board.ownerId;
     if (ownerId !== userId) throw new ForbiddenException('Access denied');
 
     return this.prisma.subtask.delete({
       where: { id },
+    });
+  }
+
+  async toggle(userId: string, id: string): Promise<Subtask> {
+    const subtask = await this.prisma.subtask.findUnique({
+      where: { id },
+      include: {
+        task: { include: { column: { include: { board: true } } } },
+        checklist: {
+          include: {
+            task: { include: { column: { include: { board: true } } } },
+          },
+        },
+      },
+    });
+
+    if (!subtask) throw new NotFoundException('Subtask not found');
+
+    const ownerId =
+      subtask.task?.column.board.ownerId ||
+      subtask.checklist?.task.column.board.ownerId;
+    if (ownerId !== userId) throw new ForbiddenException('Access denied');
+
+    return this.prisma.subtask.update({
+      where: { id },
+      data: { completed: !subtask.completed },
+    });
+  }
+
+  async reorder(
+    userId: string,
+    checklistId: string,
+    orderedIds: string[],
+  ): Promise<void> {
+    // Verify ownership via checklist chain
+    await this.checkChecklistOwnership(userId, checklistId);
+
+    // Update order for each subtask in the ordered list
+    await this.prisma.$transaction(
+      orderedIds.map((id, index) =>
+        this.prisma.subtask.update({
+          where: { id },
+          data: { order: index },
+        }),
+      ),
+    );
+  }
+
+  async findAllByChecklist(checklistId: string): Promise<Subtask[]> {
+    return this.prisma.subtask.findMany({
+      where: { checklistId },
+      orderBy: { order: 'asc' },
     });
   }
 }

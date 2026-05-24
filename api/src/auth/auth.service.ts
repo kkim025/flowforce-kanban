@@ -1,44 +1,146 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { RegisterUserUseCase } from '../modules/users/application/use-cases/register-user.use-case';
+import { ValidateUserUseCase } from '../modules/users/application/use-cases/validate-user.use-case';
+import { LoginUserUseCase } from '../modules/users/application/use-cases/login-user.use-case';
+import { RegisterUserDto } from '../modules/users/application/dto/register-user.dto';
+import { UserDto } from '../modules/users/application/dto/user.dto';
+import { LoginResponseDto } from '../modules/users/application/dto/login-response.dto';
+import { AcceptInvitationDto } from '../modules/users/application/dto/accept-invitation.dto';
+import { User } from '../modules/users/domain/user.entity';
+import { Email } from '../modules/users/domain/email.value-object';
+import { PrismaService } from '../common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
+    private registerUserUseCase: RegisterUserUseCase,
+    private validateUserUseCase: ValidateUserUseCase,
+    private loginUserUseCase: LoginUserUseCase,
+    private prisma: PrismaService,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOneByEmail(email);
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
+  async validateUser(email: string, pass: string): Promise<UserDto | null> {
+    const user = await this.validateUserUseCase.execute(email, pass);
+    if (user) {
+      return {
+        id: user.id,
+        email: user.email.value,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+      };
     }
     return null;
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id };
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-    };
-  }
-
-  async register(data: Prisma.UserCreateInput) {
-    const existingUser = await this.usersService.findOneByEmail(data.email);
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
+  async login(userDto: UserDto): Promise<LoginResponseDto> {
+    const emailResult = Email.create(userDto.email);
+    if (emailResult.isFailure) {
+      throw new BadRequestException('Invalid email in userDto');
     }
 
-    const user = await this.usersService.create(data);
-    return this.login(user);
+    const validRoles = ['ADMIN', 'MEMBER'] as const;
+    const validStatuses = ['ACTIVE', 'PENDING', 'INACTIVE'] as const;
+
+    if (
+      !validRoles.includes(userDto.role as 'ADMIN' | 'MEMBER') ||
+      !validStatuses.includes(
+        userDto.status as 'ACTIVE' | 'PENDING' | 'INACTIVE',
+      )
+    ) {
+      throw new BadRequestException('Invalid role or status in userDto');
+    }
+
+    const userResult = User.create(
+      {
+        email: emailResult.getValue(),
+        password: '',
+        name: userDto.name,
+        role: userDto.role as 'ADMIN' | 'MEMBER',
+        status: userDto.status as 'ACTIVE' | 'PENDING' | 'INACTIVE',
+      },
+      userDto.id,
+    );
+
+    return this.loginUserUseCase.execute(userResult.getValue());
+  }
+
+  async register(data: RegisterUserDto): Promise<LoginResponseDto> {
+    const user = await this.registerUserUseCase.execute(data);
+    const userDto: UserDto = {
+      id: user.id,
+      email: user.email.value,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    };
+    return this.login(userDto);
+  }
+
+  async acceptInvitation(dto: AcceptInvitationDto): Promise<LoginResponseDto> {
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { token: dto.token },
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invalid or expired invitation token');
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      await this.prisma.invitation.delete({ where: { token: dto.token } });
+      throw new UnauthorizedException('Invitation token has expired');
+    }
+
+    const emailResult = Email.create(invitation.email);
+    if (emailResult.isFailure) {
+      throw new BadRequestException(String(emailResult.error as unknown));
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+    const userResult = User.create({
+      email: emailResult.getValue(),
+      password: hashedPassword,
+      name: dto.name,
+      role: invitation.role,
+      status: 'ACTIVE',
+    });
+
+    if (userResult.isFailure) {
+      throw new BadRequestException(String(userResult.error as unknown));
+    }
+
+    const user = userResult.getValue();
+
+    // Save user and delete invitation in a transaction
+    await this.prisma.$transaction([
+      this.prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email.value,
+          password: user.password,
+          name: user.name,
+          role: user.role,
+          status: 'ACTIVE',
+        },
+      }),
+      this.prisma.invitation.delete({
+        where: { id: invitation.id },
+      }),
+    ]);
+
+    return this.login({
+      id: user.id,
+      email: user.email.value,
+      name: user.name,
+      role: user.role,
+      status: 'ACTIVE',
+    });
   }
 }

@@ -1,18 +1,20 @@
-import { BoardState, KanbanAction } from '../types';
+import { v4 as uuidv4 } from 'uuid';
+import { BoardState, KanbanAction, Activity } from '../types';
 
 export const initialState: BoardState = {
     tasks: {},
-    columns: {
-        'backlog': { id: 'backlog', title: 'Backlog', taskIds: [] },
-        'todo': { id: 'todo', title: 'To Do', taskIds: [], wipLimit: 10 },
-        'inprogress': { id: 'inprogress', title: 'In Progress', taskIds: [], wipLimit: 3 },
-        'review': { id: 'review', title: 'Review', taskIds: [], wipLimit: 2 },
-        'done': { id: 'done', title: 'Done', taskIds: [] },
-    },
-    columnOrder: ['backlog', 'todo', 'inprogress', 'review', 'done'],
+    columns: {},
+    columnOrder: [],
     selectedTaskIds: [],
     viewMode: (localStorage.getItem('flowforce_view_mode') as 'board' | 'list') || 'board',
     searchQuery: '',
+    sprints: [],
+    activeSprintId: null,
+    dueDateFilter: 'all',
+    assigneeFilter: null,
+    priorityFilter: null,
+    tagFilter: [],
+    assignees: [],
 };
 
 export interface HistoryState {
@@ -23,15 +25,15 @@ export interface HistoryState {
 
 export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardState => {
     switch (action.type) {
-        // ... (rest of cases)
         case 'SET_SEARCH_QUERY':
             return { ...state, searchQuery: action.payload };
-        // ...
+
         case 'MOVE_TASK': {
             const { taskId, sourceColId, destinationColId, sourceIndex, destinationIndex } = action.payload;
 
             if (sourceColId === destinationColId) {
                 const column = state.columns[sourceColId];
+                if (!column) return state;
                 const newTaskIds = Array.from(column.taskIds);
                 newTaskIds.splice(sourceIndex, 1);
                 newTaskIds.splice(destinationIndex, 0, taskId);
@@ -47,6 +49,7 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
             const start = state.columns[sourceColId];
             const finish = state.columns[destinationColId];
+            if (!start || !finish) return state;
             const startTaskIds = Array.from(start.taskIds);
             startTaskIds.splice(sourceIndex, 1);
             const finishTaskIds = Array.from(finish.taskIds);
@@ -64,14 +67,16 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'ADD_TASK': {
             const { columnId, task } = action.payload;
+            const column = state.columns[columnId];
+            if (!column) return state;
             return {
                 ...state,
-                tasks: { ...state.tasks, [task.id]: task },
+                tasks: { ...state.tasks, [task.id]: { ...task } },
                 columns: {
                     ...state.columns,
                     [columnId]: {
-                        ...state.columns[columnId],
-                        taskIds: [...state.columns[columnId].taskIds, task.id],
+                        ...column,
+                        taskIds: [...column.taskIds, task.id],
                     },
                 },
             };
@@ -79,9 +84,11 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
 
         case 'UPDATE_TASK': {
             const { task } = action.payload;
+            const existing = state.tasks[task.id];
+            if (existing === task) return state;
             return {
                 ...state,
-                tasks: { ...state.tasks, [task.id]: task },
+                tasks: { ...state.tasks, [task.id]: { ...task } },
             };
         }
 
@@ -90,14 +97,17 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
             const newTasks = { ...state.tasks };
             delete newTasks[taskId];
 
+            const column = state.columns[columnId];
+            if (!column) return { ...state, tasks: newTasks };
+
             return {
                 ...state,
                 tasks: newTasks,
                 columns: {
                     ...state.columns,
                     [columnId]: {
-                        ...state.columns[columnId],
-                        taskIds: state.columns[columnId].taskIds.filter(id => id !== taskId),
+                        ...column,
+                        taskIds: column.taskIds.filter(id => id !== taskId),
                     },
                 },
             };
@@ -156,13 +166,12 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
                 ...initialState,
                 ...action.payload, 
                 selectedTaskIds: [],
-                // Preserve current search query if the payload doesn't have one (payload is usually from API board mapping)
                 searchQuery: action.payload.searchQuery !== undefined ? action.payload.searchQuery : state.searchQuery,
                 viewMode: action.payload.viewMode !== undefined ? action.payload.viewMode : state.viewMode
             };
 
         case 'TOGGLE_SELECT_TASK': {
-            const { taskId, multiSelect } = (action as any).payload;
+            const { taskId, multiSelect } = action.payload;
             if (!multiSelect) {
                 return { ...state, selectedTaskIds: [taskId] };
             }
@@ -178,12 +187,51 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'CLEAR_SELECTION':
             return { ...state, selectedTaskIds: [] };
 
+        case 'SET_DUE_DATE_FILTER':
+            return { ...state, dueDateFilter: action.payload };
+
+        case 'SET_ASSIGNEE_FILTER':
+            return { ...state, assigneeFilter: action.payload };
+
+        case 'SET_PRIORITY_FILTER':
+            return { ...state, priorityFilter: action.payload };
+
+        case 'SET_TAG_FILTER':
+            return { ...state, tagFilter: action.payload };
+
+        case 'SET_ASSIGNEES':
+            return { ...state, assignees: action.payload.assignees };
+
+        case 'CLEAR_ALL_FILTERS':
+            return {
+                ...state,
+                assigneeFilter: null,
+                priorityFilter: null,
+                tagFilter: [],
+                dueDateFilter: 'all',
+                searchQuery: '',
+            };
+
+        case 'UPDATE_TASK_DUE_DATE': {
+            const { taskId, dueDate } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: { ...task, dueDate: dueDate ?? undefined },
+                },
+            };
+        }
+
         case 'SET_VIEW_MODE':
             return { ...state, viewMode: action.payload };
 
         case 'ADD_CHECKLIST': {
             const { taskId, checklist } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
@@ -199,13 +247,14 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'DELETE_CHECKLIST': {
             const { taskId, checklistId } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
                     ...state.tasks,
                     [taskId]: {
                         ...task,
-                        checklists: task.checklists.filter(cl => cl.id !== checklistId),
+                        checklists: (task.checklists || []).filter(cl => cl.id !== checklistId),
                     },
                 },
             };
@@ -214,19 +263,243 @@ export const kanbanReducer = (state: BoardState, action: KanbanAction): BoardSta
         case 'UPDATE_CHECKLIST': {
             const { taskId, checklist } = action.payload;
             const task = state.tasks[taskId];
+            if (!task) return state;
             return {
                 ...state,
                 tasks: {
                     ...state.tasks,
                     [taskId]: {
                         ...task,
-                        checklists: task.checklists.map(cl => cl.id === checklist.id ? checklist : cl),
+                        checklists: (task.checklists || []).map(cl => cl.id === checklist.id ? checklist : cl),
                     },
                 },
             };
         }
 
+        case 'ADD_SUBTASK': {
+            const { taskId, checklistId, subtask } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl =>
+                            cl.id === checklistId
+                                ? { ...cl, items: [...cl.items, subtask] }
+                                : cl
+                        ),
+                    },
+                },
+            };
+        }
+
+        case 'UPDATE_SUBTASK': {
+            const { taskId, subtask } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl =>
+                            cl.id === subtask.checklistId
+                                ? { ...cl, items: cl.items.map(i => i.id === subtask.id ? subtask : i) }
+                                : cl
+                        ),
+                    },
+                },
+            };
+        }
+
+        case 'DELETE_SUBTASK': {
+            const { taskId, checklistId, subtaskId } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl =>
+                            cl.id === checklistId
+                                ? { ...cl, items: cl.items.filter(i => i.id !== subtaskId) }
+                                : cl
+                        ),
+                    },
+                },
+            };
+        }
+
+        case 'REORDER_SUBTASKS': {
+            const { taskId, checklistId, orderedSubtasks } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl =>
+                            cl.id === checklistId
+                                ? { ...cl, items: orderedSubtasks }
+                                : cl
+                        ),
+                    },
+                },
+            };
+        }
+
+        case 'TOGGLE_SUBTASK': {
+            const { taskId: providedTaskId, subtaskId } = action.payload;
+            // Find the task that contains this subtask if taskId not provided
+            const taskId = providedTaskId || Object.keys(state.tasks).find(tid => {
+                const task = state.tasks[tid];
+                return task.checklists?.some(cl => cl.items?.some(item => item.id === subtaskId));
+            });
+            if (!taskId) return state;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        checklists: task.checklists.map(cl => ({
+                            ...cl,
+                            items: cl.items.map(i =>
+                                i.id === subtaskId ? { ...i, isCompleted: !i.isCompleted } : i
+                            ),
+                        })),
+                    },
+                },
+            };
+        }
+
+        case 'ADD_COMMENT': {
+            const { taskId, comment } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+
+            const activity: Activity = {
+                id: uuidv4(),
+                taskId,
+                userId: comment.userId,
+                type: 'comment',
+                details: { 
+                    text: comment.content,
+                    commentId: comment.id
+                },
+                createdAt: comment.createdAt
+            };
+
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: [...(task.comments || []), comment],
+                        activities: [...(task.activities || []), activity],
+                    },
+                },
+            };
+        }
+
+        case 'UPDATE_COMMENT': {
+            const { taskId, comment } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: (task.comments || []).map(c => c.id === comment.id ? comment : c),
+                    },
+                },
+            };
+        }
+
+        case 'DELETE_COMMENT': {
+            const { taskId, commentId, userId } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+
+            const comment = task.comments?.find(c => c.id === commentId);
+            if (!comment || comment.userId !== userId) {
+                return state; // Unauthorized or comment not found
+            }
+
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...task,
+                        comments: (task.comments || []).filter(c => c.id !== commentId),
+                        activities: (task.activities || []).filter(a => !(a.type === 'comment' && a.details.commentId === commentId)),
+                    },
+                },
+            };
+        }
+
+        case 'SET_SPRINTS': {
+            const { sprints } = action.payload;
+            return { ...state, sprints };
+        }
+
+        case 'ADD_SPRINT': {
+            const { sprint } = action.payload;
+            return { ...state, sprints: [...state.sprints, sprint] };
+        }
+
+        case 'UPDATE_SPRINT': {
+            const { sprint } = action.payload;
+            return {
+                ...state,
+                sprints: state.sprints.map(s => s.id === sprint.id ? sprint : s),
+            };
+        }
+
+        case 'DELETE_SPRINT': {
+            const { sprintId } = action.payload;
+            return {
+                ...state,
+                sprints: state.sprints.filter(s => s.id !== sprintId),
+                activeSprintId: state.activeSprintId === sprintId ? null : state.activeSprintId,
+            };
+        }
+
+        case 'SET_ACTIVE_SPRINT': {
+            const { sprintId } = action.payload;
+            return { ...state, activeSprintId: sprintId };
+        }
+
+        case 'ASSIGN_TASK_TO_SPRINT': {
+            const { taskId, sprintId } = action.payload;
+            const task = state.tasks[taskId];
+            if (!task) return state;
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: { ...task, sprintId: sprintId || undefined },
+                },
+            };
+        }
+
         default:
+            // UNDO/REDO/INTERNAL_* actions are handled by KanbanContext's history mechanism
+            // The reducer just passes state through unchanged for these
             return state;
     }
 };

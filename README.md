@@ -11,12 +11,15 @@ FlowForce is a premium, high-performance Kanban board application designed for p
     - Full Undo/Redo support (Ctrl+Z / Ctrl+Shift+Z) using the Command Pattern.
     - Automatic persistence to `localStorage` for seamless session recovery.
 - **🛠️ Workflow Optimizations**:
+    - **Board & List Views**: Instant toggle between a classic Kanban board and a compact table list view.
     - **WIP Limits**: Visual warnings when columns exceed their work-in-progress limits.
     - **Live Search**: Instant task filtering by pressing `/`.
     - **Bulk Actions**: Multi-select tasks (Ctrl+Click) for batch move or delete operations.
 - **📋 Rich Task Management**: 
-    - Sub-tasks with real-time progress tracking.
-    - Priority tagging and rich metadata.
+    - **Activity Timeline**: Full audit log of task changes and comments in a chronological feed.
+    - **Checklists**: Multi-level task completion tracking with real-time progress bars.
+    - **Sub-tasks**: Hierarchical task relationships.
+    - **Priority & Tags**: Granular task classification and visual indicators.
 - **📤 Data Portability**: Full JSON Export and Import capabilities for board backups and transfers.
 - **🚀 High Performance**: Built with React 19 and Vite, utilizing memoization for buttery-smooth interactions.
 
@@ -44,44 +47,67 @@ FlowForce is a premium, high-performance Kanban board application designed for p
    cd flowforce-kanban
    ```
 
-2. **Start the Database**:
+2. **Install all dependencies**:
+   Run this from the root directory to install dependencies for the root, API, and Web projects:
+   ```bash
+   npm run install-all
+   ```
+
+3. **Start the Database**:
    ```bash
    cd api
    docker-compose up -d
+   cd ..
    ```
 
-3. **Set up the Backend**:
+4. **Set up the Backend**:
    ```bash
    cd api
-   npm install
-   npx prisma migrate dev  # Sync database schema
-   npm run start:dev       # API will run on http://localhost:3000
+   cp .env.example .env    # Create environment file (Ensure DATABASE_URL and JWT_SECRET are set)
+   npx prisma migrate dev  # Apply migrations and sync database schema
+   npx prisma generate     # Generate Prisma Client
+   cd ..
    ```
 
-4. **Set up the Frontend**:
-   Open a new terminal window:
+5. **Run the Application**:
+   You can now start both the API and Web frontend concurrently from the root:
    ```bash
-   cd web
-   npm install
-   npm run dev             # Web app will run on http://localhost:5173
+   npm run dev
    ```
-
-### First Time Use
-After starting both servers, navigate to `http://localhost:5173/register` to create your first account and initialize your personal board.
-
-### Build
-
-Create a production-ready build:
-```bash
-npm run build
-```
+   - API will run on `http://localhost:3000`
+   - Web app will run on `http://localhost:5173`
 
 ### Testing
 
-Run the test suite:
+FlowForce uses a centralized testing strategy. You can run all tests (API & Web) from the root directory:
+
 ```bash
-npm run test
+# Using npm
+npm test
+
+# Or using the specialized scripts
+./test-all.sh      # Linux/macOS
+.\test-all.ps1     # Windows (PowerShell)
 ```
+
+#### Testing Architecture
+- **Root**: `npm test` runs both suites.
+- **Backend (API)**: Jest unit tests.
+- **Frontend (Web)**: Vitest + React Testing Library + JSDom.
+
+#### Key Test Suites:
+- `api/test/unit/modules/checklists/checklists.service.spec.ts` (Ownership & Deletion logic)
+- `web/src/store/kanbanReducer.test.ts` (State transitions)
+- `web/src/components/Drawer.test.tsx` (UI Interactions)
+- `web/src/components/TaskViewer.test.tsx` (Inline editing, status dropdown, comments)
+- `web/src/components/TaskEditor.test.tsx` (Create/edit mode, save/dispatch logic)
+- `web/src/lib/utils.test.ts` (Timeline sorting)
+
+#### Why this approach?
+- **Centralization**: A single command from the root ensures all layers of the application are validated without navigating subdirectories.
+- **Cross-Platform Support**: We provide both `.sh` and `.ps1` scripts to ensure a consistent experience across Windows, macOS, and Linux.
+- **CI/CD Ready**: The root `package.json` scripts are optimized for CI environments (e.g., using `--run` for Vitest to prevent hanging).
+- **Project Integrity**: Running both test suites together helps catch integration issues early and ensures that changes in the API/Types don't break the frontend.
 
 ## 🏗️ Architecture
 
@@ -106,8 +132,6 @@ graph TD
 
 ## ⌨️ Global Shortcuts
 
-Maximize your productivity with these built-in shortcuts:
-
 | Shortcut | Action |
 | :--- | :--- |
 | `Ctrl + Z` | Undo last action |
@@ -119,16 +143,23 @@ Maximize your productivity with these built-in shortcuts:
 ## 📂 Project Structure
 
 ```text
-C:\Development\flowforce-kanban
-├── web
-│   ├── src
-│   │   ├── components\    # UI Components (Board, Column, Card, Modal)
-│   │   ├── store\         # State Management (Context, Reducer, History)
-│   │   ├── types\         # TypeScript interfaces and types
-│   │   ├── App.tsx        # Main application entry point
-│   │   └── index.css      # Tailwind v4 styles
-│   └── vite.config.ts     # Vite configuration
-└── GEMINI.md              # Project documentation and context
+flowforce-kanban
+├── api/                   # NestJS Backend Application
+│   ├── src/
+│   │   ├── auth/          # Authentication logic (JWT, Local)
+│   │   ├── modules/       # Domain modules (Boards, Columns, Tasks, Users)
+│   │   └── common/        # Shared decorators, Prisma service, DDD base classes
+│   └── prisma/            # Database schema and migrations
+├── web/                   # React/Vite Frontend Application
+│   ├── src/
+│   │   ├── components/    # UI Components (Board, ListView, TaskViewer, TaskEditor)
+│   │   ├── store/         # State Management (Context, Reducers)
+│   │   ├── lib/           # Utilities and API client
+│   │   └── types/         # TypeScript definitions
+│   └── vite.config.ts
+├── package.json           # Root workspace configuration
+├── test-all.sh            # Universal test script (Linux/macOS)
+└── test-all.ps1           # Universal test script (Windows)
 ```
 
 ## 📄 License

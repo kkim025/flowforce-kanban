@@ -1,21 +1,56 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  Logger,
+  Put,
+} from '@nestjs/common';
 import { ColumnsService } from './columns.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
+import { AddColumnUseCase } from './application/use-cases/add-column.use-case';
+import { ReorderColumnsUseCase } from './application/use-cases/reorder-columns.use-case';
+import { AddColumnDto } from '../boards/application/dto/add-column.dto';
 
 @Controller('columns')
 @UseGuards(JwtAuthGuard)
 export class ColumnsController {
   private readonly logger = new Logger(ColumnsController.name);
 
-  constructor(private readonly columnsService: ColumnsService) {}
+  constructor(
+    private readonly columnsService: ColumnsService,
+    private readonly addColumnUseCase: AddColumnUseCase,
+    private readonly reorderColumnsUseCase: ReorderColumnsUseCase,
+  ) {}
 
   @Post()
-  create(
+  async create(@GetUser('sub') userId: string, @Body() dto: AddColumnDto) {
+    const column = await this.addColumnUseCase.execute(userId, dto);
+    return {
+      id: column.id,
+      title: column.title,
+      order: column.order,
+      boardId: dto.boardId,
+      tasks: [],
+    };
+  }
+
+  @Put('reorder')
+  reorder(
     @GetUser('sub') userId: string,
-    @Body() body: { title: string; boardId: string; order: number },
+    @Body() body: { boardId: string; columnIds: string[] },
   ) {
-    return this.columnsService.create(userId, body);
+    return this.reorderColumnsUseCase.execute(
+      userId,
+      body.boardId,
+      body.columnIds,
+    );
   }
 
   @Get()
@@ -27,7 +62,7 @@ export class ColumnsController {
   update(
     @GetUser('sub') userId: string,
     @Param('id') id: string,
-    @Body() body: { title?: string; order?: number },
+    @Body() body: { title?: string; order?: number; wipLimit?: number },
   ) {
     return this.columnsService.update(userId, id, body);
   }

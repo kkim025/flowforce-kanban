@@ -1,0 +1,16 @@
+{
+  "name": "flowforce-kanban-root",
+  "private": true,
+  "scripts": {
+    "test": "npm run test --prefix api && npm run test --prefix web -- --run",
+    "test:api": "npm run test --prefix api",
+    "test:web": "npm run test --prefix web -- --run",
+    "lint": "npm run lint --prefix api",
+    "build": "npm run build --prefix api && npm run build --prefix web",
+    "dev": "concurrently \"npm run start:dev --prefix api\" \"npm run dev --prefix web\"",
+    "install-all": "npm install && npm install --prefix api && npm install --prefix web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -32,6 +32,13 @@ describe('kanbanReducer', () => {
     });
 
     it('should handle ADD_TASK', () => {
+        const state: BoardState = {
+            ...initialState,
+            columns: {
+                'todo': { id: 'todo', title: 'To Do', taskIds: [] },
+            },
+        };
+
         const newTask: Task = {
             id: '3',
             title: 'Task 3',
@@ -40,6 +47,8 @@ describe('kanbanReducer', () => {
             tags: [],
             subTasks: [],
             checklists: [],
+            comments: [],
+            activities: [],
             createdAt: '',
         };
 
@@ -51,7 +60,7 @@ describe('kanbanReducer', () => {
             },
         };
 
-        const newState = kanbanReducer(initialState, action);
+        const newState = kanbanReducer(state, action);
         expect(newState.tasks['3']).toEqual(newTask);
         expect(newState.columns['todo'].taskIds).toContain('3');
     });
@@ -171,5 +180,202 @@ describe('kanbanReducer', () => {
 
         const newState = kanbanReducer(initialState, action);
         expect(newState.columnOrder).toEqual(newOrder);
+    });
+
+    describe('filter actions', () => {
+        it('should handle SET_ASSIGNEE_FILTER', () => {
+            const action = {
+                type: 'SET_ASSIGNEE_FILTER' as const,
+                payload: 'user-1',
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.assigneeFilter).toBe('user-1');
+        });
+
+        it('should handle SET_ASSIGNEE_FILTER with null to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                assigneeFilter: 'user-1' as string | null,
+            };
+            const action = {
+                type: 'SET_ASSIGNEE_FILTER' as const,
+                payload: null,
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.assigneeFilter).toBe(null);
+        });
+
+        it('should handle SET_PRIORITY_FILTER', () => {
+            const action = {
+                type: 'SET_PRIORITY_FILTER' as const,
+                payload: 'high' as const,
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.priorityFilter).toBe('high');
+        });
+
+        it('should handle SET_PRIORITY_FILTER with null to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                priorityFilter: 'high' as const,
+            };
+            const action = {
+                type: 'SET_PRIORITY_FILTER' as const,
+                payload: null,
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.priorityFilter).toBe(null);
+        });
+
+        it('should handle SET_TAG_FILTER', () => {
+            const action = {
+                type: 'SET_TAG_FILTER' as const,
+                payload: ['frontend', 'bug'],
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.tagFilter).toEqual(['frontend', 'bug']);
+        });
+
+        it('should handle SET_TAG_FILTER with empty array to clear', () => {
+            const stateWithFilter = {
+                ...initialState,
+                tagFilter: ['frontend', 'bug'] as string[],
+            };
+            const action = {
+                type: 'SET_TAG_FILTER' as const,
+                payload: [],
+            };
+            const newState = kanbanReducer(stateWithFilter, action);
+            expect(newState.tagFilter).toEqual([]);
+        });
+
+        it('should handle CLEAR_ALL_FILTERS', () => {
+            const stateWithFilters: BoardState = {
+                ...initialState,
+                assigneeFilter: 'user-1',
+                priorityFilter: 'high',
+                tagFilter: ['frontend', 'bug'],
+            };
+            const action = { type: 'CLEAR_ALL_FILTERS' as const };
+            const newState = kanbanReducer(stateWithFilters, action);
+            expect(newState.assigneeFilter).toBe(null);
+            expect(newState.priorityFilter).toBe(null);
+            expect(newState.tagFilter).toEqual([]);
+        });
+
+        it('should handle SET_ASSIGNEES', () => {
+            const assignees = [
+                { id: 'user-1', name: 'Alice', email: 'alice@test.com', role: 'MEMBER' as const, status: 'ACTIVE' as const },
+            ];
+            const action = {
+                type: 'SET_ASSIGNEES' as const,
+                payload: { assignees },
+            };
+            const newState = kanbanReducer(initialState, action);
+            expect(newState.assignees).toEqual(assignees);
+        });
+    });
+
+    describe('subtask actions', () => {
+        const stateWithChecklist: BoardState = {
+            ...initialState,
+            tasks: {
+                'task-1': {
+                    id: 'task-1',
+                    title: 'Task 1',
+                    checklists: [{
+                        id: 'cl-1',
+                        title: 'Checklist 1',
+                        taskId: 'task-1',
+                        items: [
+                            { id: 'st-1', title: 'Subtask 1', isCompleted: false },
+                            { id: 'st-2', title: 'Subtask 2', isCompleted: true },
+                        ]
+                    }]
+                } as any
+            }
+        };
+
+        it('should handle ADD_SUBTASK', () => {
+            const newSubtask = { id: 'st-3', title: 'New Subtask', isCompleted: false };
+            const action = {
+                type: 'ADD_SUBTASK' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', subtask: newSubtask }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items).toHaveLength(3);
+            expect(newState.tasks['task-1'].checklists[0].items[2]).toEqual(newSubtask);
+        });
+
+        it('should handle UPDATE_SUBTASK', () => {
+            const updatedSubtask = { id: 'st-1', title: 'Updated Subtask', isCompleted: true, checklistId: 'cl-1' };
+            const action = {
+                type: 'UPDATE_SUBTASK' as const,
+                payload: { taskId: 'task-1', subtask: updatedSubtask }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].title).toBe('Updated Subtask');
+            expect(newState.tasks['task-1'].checklists[0].items[0].isCompleted).toBe(true);
+        });
+
+        it('should handle DELETE_SUBTASK', () => {
+            const action = {
+                type: 'DELETE_SUBTASK' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items).toHaveLength(1);
+            expect(newState.tasks['task-1'].checklists[0].items[0].id).toBe('st-2');
+        });
+
+        it('should handle REORDER_SUBTASKS', () => {
+            const reorderedSubtasks = [
+                { id: 'st-2', title: 'Subtask 2', isCompleted: true },
+                { id: 'st-1', title: 'Subtask 1', isCompleted: false },
+            ];
+            const action = {
+                type: 'REORDER_SUBTASKS' as const,
+                payload: { taskId: 'task-1', checklistId: 'cl-1', orderedSubtasks: reorderedSubtasks }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].id).toBe('st-2');
+            expect(newState.tasks['task-1'].checklists[0].items[1].id).toBe('st-1');
+        });
+
+        it('should handle TOGGLE_SUBTASK with provided taskId', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { taskId: 'task-1', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[0].isCompleted).toBe(true);
+        });
+
+        it('should handle TOGGLE_SUBTASK without taskId (auto-find)', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { subtaskId: 'st-2' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState.tasks['task-1'].checklists[0].items[1].isCompleted).toBe(false);
+        });
+
+        it('should handle TOGGLE_SUBTASK with task not found', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { subtaskId: 'nonexistent' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState).toBe(stateWithChecklist);
+        });
+
+        it('should return state when TOGGLE_SUBTASK taskId is provided but task does not exist', () => {
+            const action = {
+                type: 'TOGGLE_SUBTASK' as const,
+                payload: { taskId: 'nonexistent-task', subtaskId: 'st-1' }
+            };
+            const newState = kanbanReducer(stateWithChecklist, action);
+            expect(newState).toBe(stateWithChecklist);
+        });
     });
 });

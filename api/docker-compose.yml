@@ -1,6 +1,8 @@
 version: '3.8'
+name: flowforce
 services:
   db:
+    container_name: database
     image: postgres:15-alpine
     restart: always
     environment:

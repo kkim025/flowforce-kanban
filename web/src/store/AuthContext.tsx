@@ -5,6 +5,8 @@ interface User {
   id: string;
   email: string;
   name?: string;
+  role: 'ADMIN' | 'MEMBER';
+  status: 'ACTIVE' | 'PENDING' | 'INACTIVE';
 }
 
 interface AuthContextType {

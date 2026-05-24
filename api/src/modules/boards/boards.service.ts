@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Board } from '@prisma/client';
+import { BOARD_LIST_CONFIG, BOARD_DETAIL_CONFIG } from './boards-query.config';
 
 @Injectable()
 export class BoardsService {
@@ -21,42 +26,28 @@ export class BoardsService {
   async findAll(userId: string): Promise<Board[]> {
     return this.prisma.board.findMany({
       where: { ownerId: userId },
-      include: {
-        columns: {
-          include: {
-            tasks: {
-              include: {
-                checklists: {
-                  include: {
-                    items: true,
-                  },
-                },
-                subtasks: true,
-              },
-            },
-          },
-        },
-      },
+      include: BOARD_LIST_CONFIG,
     });
   }
 
-  async findOne(userId: string, id: string): Promise<Board> {
+  async findOne(userId: string, id: string, sprintId?: string): Promise<Board> {
+    // Build task filter - using any due to Prisma type complexity with config spread
+
+    const taskWhere: any = { archived: false };
+    if (sprintId) {
+      taskWhere.sprintId = sprintId;
+    }
+
     const board = await this.prisma.board.findUnique({
       where: { id },
       include: {
+        ...BOARD_DETAIL_CONFIG,
         columns: {
-          orderBy: { order: 'asc' },
+          ...BOARD_DETAIL_CONFIG.columns,
           include: {
             tasks: {
-              orderBy: { order: 'asc' },
-              include: {
-                checklists: {
-                  include: {
-                    items: true,
-                  },
-                },
-                subtasks: true,
-              },
+              ...BOARD_DETAIL_CONFIG.columns.include.tasks,
+              where: taskWhere,
             },
           },
         },

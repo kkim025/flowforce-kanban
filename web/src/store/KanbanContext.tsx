@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from 'react';
-import { BoardState, KanbanAction, Task, Checklist } from '../types';
+import { BoardState, KanbanAction, Checklist } from '../types';
 import { kanbanReducer, initialState } from './kanbanReducer';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
@@ -13,7 +13,9 @@ interface KanbanContextType {
     canUndo: boolean;
     canRedo: boolean;
     isSyncing: boolean;
+    isHydrated: boolean;
     activeBoardId: string | null;
+    updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
 const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
@@ -62,6 +64,21 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         stateRef.current = history.present;
     }, [history.present]);
 
+    // Helper to build board URL with optional sprintId filter
+    const getBoardUrl = (boardId: string, sprintId?: string | null) => {
+        const url = `/boards/${boardId}`;
+        if (sprintId) {
+            return `${url}?sprintId=${sprintId}`;
+        }
+        return url;
+    };
+
+    // Helper to refresh board state after API operations
+    const refreshBoardState = useCallback(async (boardId: string, sprintId: string | null, sprints?: any[]) => {
+        const refreshedBoard = await api.get(getBoardUrl(boardId, sprintId || undefined));
+        return mapApiBoardToState(refreshedBoard.data, sprints || stateRef.current.sprints);
+    }, []);
+
     // Initial Hydration
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -75,18 +92,10 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (response.data.length === 0) {
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
-                    
-                    const columns = [
-                        { title: 'Backlog', order: 0 },
-                        { title: 'To Do', order: 1 },
-                        { title: 'In Progress', order: 2 },
-                        { title: 'Review', order: 3 },
-                        { title: 'Done', order: 4 }
-                    ];
-                    for (let i = 0; i < columns.length; i++) {
-                        await api.post('/columns', { title: columns[i].title, boardId: board.id, order: i });
-                    }
-                    
+
+                    // Note: CreateBoardUseCase already adds default columns: To Do, In Progress, Done
+                    // But we might want the specific ones from the frontend template
+                    // For now, let's just use what's returned
                     const refreshed = await api.get(`/boards/${board.id}`);
                     board = refreshed.data;
                 } else {
@@ -95,12 +104,49 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 setActiveBoardId(board.id);
                 const mappedState = mapApiBoardToState(board);
-                
+
+                // Set default WIP limits if they exist in state
                 if (mappedState.columns['inprogress']) mappedState.columns['inprogress'].wipLimit = 3;
                 if (mappedState.columns['review']) mappedState.columns['review'].wipLimit = 2;
                 if (mappedState.columns['todo']) mappedState.columns['todo'].wipLimit = 10;
 
-                setHistory({ type: 'SET_STATE', payload: mappedState });
+                // Load sprints
+                let activeSprintId: string | null = null;
+                try {
+                    const sprintsResponse = await api.get(`/sprints/boards/${board.id}`);
+                    mappedState.sprints = sprintsResponse.data || [];
+
+                    // Restore active sprint from localStorage
+                    const savedSprintId = localStorage.getItem('flowforce_active_sprint_id');
+                    if (savedSprintId) {
+                        const sprintExists = mappedState.sprints.some((s: any) => s.id === savedSprintId);
+                        activeSprintId = sprintExists ? savedSprintId : null;
+                    } else {
+                        // Default to active sprint if one exists
+                        const activeSprint = mappedState.sprints.find((s: any) => s.status === 'ACTIVE');
+                        activeSprintId = activeSprint?.id || null;
+                    }
+                } catch (sprintErr) {
+                    console.warn('Could not load sprints:', sprintErr);
+                    mappedState.sprints = [];
+                    activeSprintId = null;
+                }
+
+                // If there's an active sprint, re-fetch board with sprint filter
+                if (activeSprintId) {
+                    const newState = {
+                        ...mapApiBoardToState((await api.get(getBoardUrl(board.id, activeSprintId))).data),
+                        sprints: mappedState.sprints,
+                        activeSprintId: activeSprintId,
+                    };
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                } else {
+                    // Pass sprints directly to refreshBoardState - stateRef not yet updated
+                    const loadedSprints = mappedState.sprints;
+                    mappedState.activeSprintId = activeSprintId;
+                    const refreshedState = await refreshBoardState(board.id, null, loadedSprints);
+                    setHistory({ type: 'SET_STATE', payload: { ...refreshedState, activeSprintId } });
+                }
                 setIsHydrated(true);
             } catch (err) {
                 console.error('Initial load error:', err);
@@ -114,23 +160,30 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
         for (const cl of checklists) {
-            let checklistId = cl.id;
             // 1. Create or Update Checklist
-            if (cl.id.length > 36) { // Client-side UUID is usually 36, but let's check for "temp" or length
-                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title });
-                checklistId = res.data.id;
-            } else {
-                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
-            }
+            // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
+            if (cl.id.includes('-')) {
+                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
+                const checklistId = res.data.id;
 
-            // 2. Sync Items
-            for (const item of cl.items) {
-                if (item.id.length > 36) {
+                // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
+                for (const item of cl.items) {
                     await api.post('/subtasks', {
                         content: item.title,
                         checklistId: checklistId,
+                        completed: item.isCompleted,
+                        priority: item.priority?.toUpperCase(),
                     });
-                } else {
+                }
+            } else {
+                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+
+                // 2b. For existing checklists, skip items with hyphens (already handled by ADD_SUBTASK)
+                // They will be refreshed with real DB IDs after board state refresh
+                for (const item of cl.items) {
+                    if (item.id.includes('-')) {
+                        continue;
+                    }
                     await api.patch(`/subtasks/${item.id}`, {
                         content: item.title,
                         completed: item.isCompleted,
@@ -142,6 +195,17 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Async Synchronizer
     const wrappedDispatch = useCallback(async (action: KanbanAction) => {
+        // Skip history for pure local-state actions (no API call needed)
+        if (action.type === 'SET_SPRINTS' || action.type === 'SET_VIEW_MODE') {
+            // These are pure local-state actions, no history or API needed
+            if (action.type === 'SET_VIEW_MODE') {
+                localStorage.setItem('flowforce_view_mode', action.payload);
+            }
+            // Update state via setHistory before early return
+            setHistory(action);
+            return;
+        }
+
         setHistory(action);
 
         if (!activeBoardId || !isHydrated) return;
@@ -150,24 +214,26 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             switch (action.type) {
                 case 'ADD_TASK': {
                     const { columnId, task } = action.payload;
+                    // Use the sprintId from the task payload if provided, otherwise use active sprint
+                    const sprintId = task.sprintId !== undefined ? task.sprintId : stateRef.current.activeSprintId;
                     const response = await api.post('/tasks', {
+                        id: task.id, // Pass the generated ID
                         content: task.title,
                         description: task.description,
                         priority: task.priority.toUpperCase(),
                         columnId: columnId,
                         order: stateRef.current.columns[columnId]?.taskIds.length || 0,
+                        sprintId: sprintId,
                     });
                     
-                    const realId = response.data.id;
+                    const _realId = response.data.id;
                     
-                    // Sync Checklists for new task
                     if (task.checklists?.length > 0) {
-                        await syncChecklistsForTask(realId, task.checklists);
+                        await syncChecklistsForTask(_realId, task.checklists);
                     }
 
-                    // Update local state with real IDs from DB
-                    const refreshedBoard = await api.get(`/boards/${activeBoardId}`);
-                    setHistory({ type: 'SET_STATE', payload: mapApiBoardToState(refreshedBoard.data) });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'UPDATE_TASK': {
@@ -176,12 +242,18 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         content: task.title,
                         description: task.description,
                         priority: task.priority.toUpperCase(),
+                        archived: task.isArchived,
+                        assigneeId: task.assigneeId,
+                        tags: task.tags,
+                        sprintId: task.sprintId,
                     });
 
-                    // Sync Checklists
                     if (task.checklists?.length > 0) {
                         await syncChecklistsForTask(task.id, task.checklists);
                     }
+
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_TASK': {
@@ -190,7 +262,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
                 case 'MOVE_TASK': {
                     const { taskId, destinationColId, destinationIndex } = action.payload;
-                    await api.patch(`/tasks/${taskId}`, {
+                    // Use the specific move endpoint
+                    await api.put(`/tasks/${taskId}/move`, {
                         columnId: destinationColId,
                         order: destinationIndex,
                     });
@@ -204,22 +277,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         order: stateRef.current.columnOrder.length,
                     });
 
-                    const realId = response.data.id;
-                    const updatedColumns = { ...stateRef.current.columns, [realId]: { ...column, id: realId } };
-                    delete updatedColumns[column.id];
-
-                    const updatedColumnOrder = stateRef.current.columnOrder.map(id => 
-                        id === column.id ? realId : id
-                    );
-
-                    setHistory({
-                        type: 'SET_STATE',
-                        payload: {
-                            ...stateRef.current,
-                            columns: updatedColumns,
-                            columnOrder: updatedColumnOrder
-                        }
-                    });
+                    const _realId = response.data.id;
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_COLUMN': {
@@ -227,7 +287,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     break;
                 }
                 case 'REORDER_COLUMN': {
-                    await api.post(`/boards/${activeBoardId}/columns/reorder`, {
+                    // Correct endpoint for reordering columns
+                    await api.put(`/columns/reorder`, {
+                        boardId: activeBoardId,
                         columnIds: action.payload.columnOrder,
                     });
                     break;
@@ -236,18 +298,12 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const { taskId, checklist } = action.payload;
                     const response = await api.post(`/tasks/${taskId}/checklists`, {
                         title: checklist.title,
+                        taskId: taskId
                     });
-                    
-                    const realId = response.data.id;
-                    const task = stateRef.current.tasks[taskId];
-                    const updatedChecklists = task.checklists.map(cl => 
-                        cl.id === checklist.id ? { ...cl, id: realId } : cl
-                    );
 
-                    setHistory({
-                        type: 'UPDATE_TASK',
-                        payload: { task: { ...task, checklists: updatedChecklists } }
-                    });
+                    const _realId = response.data.id;
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
                     break;
                 }
                 case 'DELETE_CHECKLIST': {
@@ -260,22 +316,18 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         title: checklist.title,
                     });
                     
-                    // Sync items
                     const task = stateRef.current.tasks[taskId];
-                    const localChecklist = task.checklists.find(cl => cl.id === checklist.id);
+                    const localChecklist = task.checklists?.find(cl => cl.id === checklist.id);
                     if (localChecklist) {
                         for (const item of localChecklist.items) {
-                            if (item.id.length > 36) {
-                                await api.post('/subtasks', {
-                                    content: item.title,
-                                    checklistId: checklist.id,
-                                });
-                            } else {
-                                await api.patch(`/subtasks/${item.id}`, {
-                                    content: item.title,
-                                    completed: item.isCompleted,
-                                });
+                            // Skip items with hyphens - they were already handled by ADD_SUBTASK
+                            if (item.id.includes('-')) {
+                                continue;
                             }
+                            await api.patch(`/subtasks/${item.id}`, {
+                                content: item.title,
+                                completed: item.isCompleted,
+                            });
                         }
                     }
                     break;
@@ -284,21 +336,115 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const { column } = action.payload;
                     await api.patch(`/columns/${column.id}`, {
                         title: column.title,
+                        wipLimit: column.wipLimit,
                     });
                     break;
                 }
-                case 'SET_VIEW_MODE': {
-                    localStorage.setItem('flowforce_view_mode', action.payload);
+                case 'ADD_COMMENT': {
+                    const { taskId, comment } = action.payload;
+                    await api.post(`/tasks/${taskId}/comments`, {
+                        content: comment.content,
+                    });
+
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'ADD_SPRINT': {
+                    // Sprint is already added to state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'UPDATE_SPRINT': {
+                    // Sprint is already updated in state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'DELETE_SPRINT': {
+                    // Sprint is already removed from state by setHistory, API call handled elsewhere
+                    break;
+                }
+                case 'SET_ACTIVE_SPRINT': {
+                    const newSprintId = action.payload.sprintId;
+                    localStorage.setItem('flowforce_active_sprint_id', newSprintId || '');
+                    // Re-fetch board with sprint filter to get only sprint tasks
+                    if (activeBoardId) {
+                        try {
+                            const newState = await refreshBoardState(activeBoardId, newSprintId, stateRef.current.sprints);
+                            setHistory({ type: 'SET_STATE', payload: { ...newState, activeSprintId: newSprintId } });
+                        } catch (err) {
+                            console.error('Failed to set active sprint:', err);
+                            // Revert to previous sprint on failure
+                            localStorage.setItem('flowforce_active_sprint_id', stateRef.current.activeSprintId || '');
+                        }
+                    }
+                    break;
+                }
+                case 'ASSIGN_TASK_TO_SPRINT': {
+                    const { taskId, sprintId } = action.payload;
+                    await api.patch(`/tasks/${taskId}/sprint`, { sprintId });
+                    break;
+                }
+                case 'ADD_SUBTASK': {
+                    const { checklistId, subtask } = action.payload;
+                    await api.post('/subtasks', {
+                        content: subtask.title,
+                        checklistId: checklistId,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'UPDATE_SUBTASK': {
+                    const { subtask } = action.payload;
+                    await api.patch(`/subtasks/${subtask.id}`, {
+                        content: subtask.title,
+                        completed: subtask.isCompleted,
+                        priority: subtask.priority?.toUpperCase(),
+                    });
+                    break;
+                }
+                case 'DELETE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.delete(`/subtasks/${subtaskId}`);
+                    break;
+                }
+                case 'TOGGLE_SUBTASK': {
+                    const { subtaskId } = action.payload;
+                    await api.patch(`/subtasks/${subtaskId}/toggle`);
+                    const newState = await refreshBoardState(activeBoardId, stateRef.current.activeSprintId);
+                    setHistory({ type: 'SET_STATE', payload: newState });
+                    break;
+                }
+                case 'REORDER_SUBTASKS': {
+                    const { checklistId, orderedSubtasks } = action.payload;
+                    await api.patch('/subtasks/reorder', {
+                        checklistId,
+                        orderedIds: orderedSubtasks.map((s: any) => s.id),
+                    });
                     break;
                 }
             }
         } catch (err) {
             console.error('Persistence failure:', err);
         }
-    }, [activeBoardId, isHydrated]);
+    }, [activeBoardId, isHydrated, refreshBoardState]);
 
     const undo = useCallback(() => setHistory({ type: 'INTERNAL_UNDO' }), []);
     const redo = useCallback(() => setHistory({ type: 'INTERNAL_REDO' }), []);
+
+    const updateTaskDueDate = useCallback((taskId: string, dueDate: string | null) => {
+        // Store previous value for potential rollback
+        const previousDueDate = stateRef.current.tasks[taskId]?.dueDate ?? null;
+
+        // Optimistic state update
+        setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate } });
+
+        // API call
+        api.patch(`/tasks/${taskId}`, { dueDate }).catch(() => {
+            // Rollback on failure
+            setHistory({ type: 'UPDATE_TASK_DUE_DATE', payload: { taskId, dueDate: previousDueDate } });
+        });
+    }, []);
 
     return (
         <KanbanContext.Provider
@@ -310,7 +456,9 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 canUndo: history.past.length > 0,
                 canRedo: history.future.length > 0,
                 isSyncing,
+                isHydrated,
                 activeBoardId,
+                updateTaskDueDate,
             }}
         >
             {children}

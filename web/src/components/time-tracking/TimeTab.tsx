@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Trash2, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Trash2, Plus } from 'lucide-react';
 import { formatTime } from '../../lib/utils';
 import { getTimeEntries, deleteTimeEntry as apiDeleteTimeEntry, logTime as apiLogTime } from '../../lib/api';
 import LogTimeModal from './LogTimeModal';
@@ -25,36 +25,36 @@ const TimeTab: React.FC<TimeTabProps> = ({ taskId, estimatedMinutes, onUpdateEst
   const [entries, setEntries] = useState<TimeEntryData[]>([]);
   const [showLogModal, setShowLogModal] = useState(false);
 
-  useEffect(() => {
-    loadEntries();
-  }, [taskId]);
-
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     try {
       const data = await getTimeEntries(taskId);
       setEntries(data);
     } catch (error) {
       console.error('Failed to load time entries:', error);
     }
-  };
+  }, [taskId]);
 
-  const handleLogTime = async (minutes: number) => {
+  useEffect(() => {
+    loadEntries();
+  }, [loadEntries]);
+
+  const handleLogTime = useCallback(async (minutes: number) => {
     try {
       await apiLogTime(taskId, minutes);
       await loadEntries();
     } catch (error) {
       console.error('Failed to log time:', error);
     }
-  };
+  }, [taskId, loadEntries]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await apiDeleteTimeEntry(id);
       await loadEntries();
     } catch (error) {
       console.error('Failed to delete time entry:', error);
     }
-  };
+  }, [loadEntries]);
 
   const totalLogged = entries.reduce((sum, e) => sum + e.minutes, 0);
   const variance = estimatedMinutes != null ? totalLogged - estimatedMinutes : null;

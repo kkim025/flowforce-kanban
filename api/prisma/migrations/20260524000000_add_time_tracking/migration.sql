@@ -2,9 +2,9 @@
 ALTER TABLE "Task" ADD COLUMN "estimatedMinutes" INTEGER;
 
 CREATE TABLE "TimeEntry" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "taskId" UUID NOT NULL,
-    "userId" UUID NOT NULL,
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
+    "taskId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "minutes" INTEGER NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT NOW(),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT NOW(),

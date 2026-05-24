@@ -16,6 +16,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   boards    Board[]
+  timeEntries TimeEntry[]
   tasks     Task[]
   comments  Comment[]
   activities Activity[]
@@ -89,6 +90,7 @@ model Task {
   archived    Boolean     @default(false)
   assigneeId  String?
   sprintId    String?
+  estimatedMinutes Int?
   dueDate     DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -96,6 +98,7 @@ model Task {
   subtasks    Subtask[]   @relation("TaskSubtasks")
   comments    Comment[]
   activities  Activity[]
+  timeEntries TimeEntry[]
   column      Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assignee    User?       @relation(fields: [assigneeId], references: [id])
   sprint      Sprint?     @relation(fields: [sprintId], references: [id])
@@ -158,4 +161,16 @@ enum SprintStatus {
   ACTIVE
   COMPLETED
   ARCHIVED
+}
+
+model TimeEntry {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  minutes   Int
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
 }

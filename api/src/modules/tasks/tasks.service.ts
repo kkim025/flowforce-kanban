@@ -87,6 +87,7 @@ export class TasksService {
       tags?: string[];
       sprintId?: string;
       dueDate?: string;
+      estimatedMinutes?: number;
     },
   ): Promise<Task> {
     const task = await this.prisma.task.findUnique({
@@ -116,6 +117,7 @@ export class TasksService {
         tags: data.tags,
         sprintId: data.sprintId,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        estimatedMinutes: data.estimatedMinutes,
       },
     });
 

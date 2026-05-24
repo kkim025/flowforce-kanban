@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-accent-blue: oklch(0.6 0.2 250);
   --color-glass-bg: rgba(255, 255, 255, 0.4);

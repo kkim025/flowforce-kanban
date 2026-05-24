@@ -1,18 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import type { ITimeEntriesRepository } from './domain/time-entry.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class TimeEntriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject('ITimeEntriesRepository')
+    private readonly timeEntriesRepository: ITimeEntriesRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async logTime(userId: string, taskId: string, minutes: number, date?: Date) {
-    const entry = await this.prisma.timeEntry.create({
-      data: {
-        taskId,
-        userId,
-        minutes,
-        date: date || new Date(),
-      },
+    const entry = await this.timeEntriesRepository.create({
+      taskId,
+      userId,
+      minutes,
+      date: date || new Date(),
     });
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -29,10 +37,7 @@ export class TimeEntriesService {
   }
 
   async getTimeEntriesForTask(taskId: string) {
-    const entries = await this.prisma.timeEntry.findMany({
-      where: { taskId },
-      orderBy: { date: 'desc' },
-    });
+    const entries = await this.timeEntriesRepository.findByTaskId(taskId);
 
     const enriched = await Promise.all(
       entries.map(async (entry) => {
@@ -55,11 +60,13 @@ export class TimeEntriesService {
   }
 
   async deleteTimeEntry(id: string, userId: string) {
-    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
-    if (!entry) throw new Error('Time entry not found');
-    if (entry.userId !== userId) throw new Error('Not authorized');
-
-    await this.prisma.timeEntry.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      const entry = await tx.timeEntry.findUnique({ where: { id } });
+      if (!entry) throw new NotFoundException('Time entry not found');
+      if (entry.userId !== userId)
+        throw new ForbiddenException('Not authorized');
+      await tx.timeEntry.delete({ where: { id } });
+    });
     return { success: true };
   }
 }

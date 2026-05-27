@@ -107,6 +107,8 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
         vi.mocked(useUsers).mockReturnValue({
@@ -136,6 +138,8 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -329,6 +333,8 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 
@@ -397,6 +403,8 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -515,6 +523,8 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 

@@ -64,6 +64,7 @@ interface ApiBoard {
   id: string;
   title: string;
   ownerId: string;
+  status?: 'ACTIVE' | 'ARCHIVED';
   columns?: ApiColumn[];
 }
 

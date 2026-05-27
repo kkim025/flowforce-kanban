@@ -159,6 +159,8 @@ export type KanbanAction =
     | { type: 'TOGGLE_SELECT_TASK'; payload: { taskId: string; multiSelect: boolean } }
     | { type: 'CLEAR_SELECTION' }
     | { type: 'SET_VIEW_MODE'; payload: ViewMode }
+    | { type: 'SET_ALL_BOARDS'; payload: { boards: any[] } }
+    | { type: 'SET_ACTIVE_BOARD'; payload: { boardId: string } }
     | { type: 'SET_SEARCH_QUERY'; payload: string }
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }

@@ -82,8 +82,9 @@ export class BoardsController {
     @GetUser('sub') userId: string,
     @Param('id') id: string,
     @Body('title') title: string,
+    @Body('status') status: string,
   ) {
-    return this.boardsService.update(userId, id, title);
+    return this.boardsService.update(userId, id, title, status);
   }
 
   @Delete(':id')

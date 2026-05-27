@@ -65,13 +65,17 @@ export class BoardsService {
     return board;
   }
 
-  async update(userId: string, id: string, title: string): Promise<Board> {
+  async update(userId: string, id: string, title?: string, status?: string): Promise<Board> {
     // Check ownership first
     await this.findOne(userId, id);
 
+    const data: any = {};
+    if (title !== undefined) data.title = title;
+    if (status !== undefined) data.status = status;
+
     return this.prisma.board.update({
       where: { id },
-      data: { title },
+      data,
     });
   }
 

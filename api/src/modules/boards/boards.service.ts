@@ -65,7 +65,12 @@ export class BoardsService {
     return board;
   }
 
-  async update(userId: string, id: string, title?: string, status?: string): Promise<Board> {
+  async update(
+    userId: string,
+    id: string,
+    title?: string,
+    status?: string,
+  ): Promise<Board> {
     // Check ownership first
     await this.findOne(userId, id);
 

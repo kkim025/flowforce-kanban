@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { TimeUnit, TIME_UNIT_CONVERSIONS } from '../../types';
 
 interface LogTimeModalProps {

@@ -248,7 +248,7 @@ describe('TaskEditor', () => {
     });
 
     it('should navigate back when close button is clicked', () => {
-        let navigateFn: (path: string) => void = () => {};
+        const navigateFn: (path: string) => void = () => {};
         vi.mocked(useKanban).mockReturnValue({
             state: {
                 tasks: {},

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Clock, AlertCircle, Save } from 'lucide-react';
 import { Task, Column } from '../types';
-import { UI_LABELS } from '../lib/constants';
 
 interface TaskTitleSectionProps {
     task: Task;

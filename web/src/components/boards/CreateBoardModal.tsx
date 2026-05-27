@@ -46,7 +46,7 @@ const CreateBoardModal: React.FC<CreateBoardModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1002] flex items-center justify-center">
+    <div className="fixed inset-0 z-[1150] flex items-center justify-center">
       <div className="absolute inset-0 bg-slate-950/50" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-white/10">
         <button

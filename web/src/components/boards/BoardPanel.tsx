@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';
+import ConfirmationModal from '../ConfirmationModal';
 import { X, Layout } from 'lucide-react';
+import api from '../../lib/api';
 
 interface Board {
   id: string;
@@ -16,6 +18,7 @@ interface BoardPanelProps {
   allBoards: Board[];
   onSwitchBoard: (boardId: string) => void;
   onBoardCreated: (board: Board) => void;
+  onBoardDeleted: (boardId: string) => void;
 }
 
 const BoardPanel: React.FC<BoardPanelProps> = ({
@@ -25,9 +28,11 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
   allBoards,
   onSwitchBoard,
   onBoardCreated,
+  onBoardDeleted,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
 
   const { activeBoards, archivedBoards } = useMemo(() => {
     return {
@@ -35,6 +40,17 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
       archivedBoards: allBoards.filter(b => b.status === 'ARCHIVED'),
     };
   }, [allBoards]);
+
+  const handleDeleteBoard = async () => {
+    if (!deletingBoard) return;
+    try {
+      await api.delete(`/boards/${deletingBoard.id}`);
+      onBoardDeleted(deletingBoard.id);
+      setDeletingBoard(null);
+    } catch (err) {
+      console.error('Failed to delete board:', err);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -107,6 +123,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
                         onClose();
                       }
                     }}
+                    onDelete={board.id !== activeBoardId ? () => setDeletingBoard(board) : undefined}
                   />
                 ))}
               </div>
@@ -131,6 +148,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
                       onSwitchBoard(board.id);
                       onClose();
                     }}
+                    onDelete={() => setDeletingBoard(board)}
                   />
                 ))}
               </div>
@@ -154,6 +172,17 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
           onBoardCreated(board as Board);
           setIsCreateModalOpen(false);
         }}
+      />
+
+      <ConfirmationModal
+        isOpen={!!deletingBoard}
+        title="Delete Board"
+        message={`Delete board "${deletingBoard?.title}"? This will permanently delete all columns and tasks in this board. This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteBoard}
+        onCancel={() => setDeletingBoard(null)}
       />
     </>
   );

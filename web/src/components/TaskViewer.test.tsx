@@ -108,6 +108,8 @@ describe('TaskViewer', () => {
             isHydrated: true,
             activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
@@ -139,6 +141,8 @@ describe('TaskViewer', () => {
             isHydrated: true,
             activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
@@ -334,6 +338,8 @@ describe('TaskViewer', () => {
                 isHydrated: true,
                 activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
@@ -404,6 +410,8 @@ describe('TaskViewer', () => {
             isHydrated: true,
             activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
@@ -524,6 +532,8 @@ describe('TaskViewer', () => {
                 isHydrated: true,
                 activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });

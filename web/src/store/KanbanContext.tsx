@@ -17,6 +17,8 @@ interface KanbanContextType {
     activeBoardId: string | null;
     allBoards: { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[];
     setActiveBoard: (boardId: string) => void;
+    deleteBoard: (boardId: string) => void;
+    addBoard: (board: { id: string; title: string; status?: string }) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
@@ -124,6 +126,23 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (err) {
             console.error('Failed to switch board:', err);
         }
+    }, []);
+
+    // Delete a board and switch to another if needed
+    const deleteBoard = useCallback((boardId: string) => {
+        setAllBoards(prev => {
+            const remaining = prev.filter(b => b.id !== boardId);
+            // If we deleted the active board, switch to another
+            if (boardId === activeBoardId && remaining.length > 0) {
+                setActiveBoard(remaining[0].id);
+            }
+            return remaining;
+        });
+    }, [activeBoardId, setActiveBoard]);
+
+    // Add a new board to the list
+    const addBoard = useCallback((board: { id: string; title: string; status?: string }) => {
+        setAllBoards(prev => [...prev, board as any]);
     }, []);
 
     // Initial Hydration
@@ -518,6 +537,8 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 activeBoardId,
                 allBoards,
                 setActiveBoard,
+                deleteBoard,
+                addBoard,
                 updateTaskDueDate,
             }}
         >

@@ -86,6 +86,8 @@ describe('TaskEditor', () => {
             isHydrated: true,
             activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
@@ -272,6 +274,8 @@ describe('TaskEditor', () => {
             isHydrated: true,
             activeBoardId: null,
             allBoards: [],
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
             setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });

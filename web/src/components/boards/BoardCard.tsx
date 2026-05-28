@@ -16,7 +16,7 @@ const BoardCard: React.FC<BoardCardProps> = ({ title, isActive, onClick, onEdit,
     return (
       <div className="group flex items-center gap-2 w-full px-4 py-3 bg-accent-blue/5 border border-accent-blue/20 rounded-lg cursor-default">
         <span className="w-2 h-2 rounded-full bg-accent-blue flex-shrink-0" />
-        <span className="font-semibold truncate flex-1 text-blue-950 dark:text-blue-300">{title}</span>
+        <span className="font-semibold truncate flex-1 text-blue-950 dark:text-blue-400">{title}</span>
         {onEdit && (
           <button
             onClick={(e) => {

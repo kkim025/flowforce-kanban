@@ -130,31 +130,40 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, []);
 
     // Delete a board and switch to another if needed
-    const deleteBoard = useCallback((boardId: string) => {
-        setAllBoards(prev => {
-            const remaining = prev.filter(b => b.id !== boardId);
-            // If we deleted the active board, switch to another
-            if (boardId === activeBoardId && remaining.length > 0) {
-                setActiveBoard(remaining[0].id);
-            }
-            return remaining;
-        });
-    }, [activeBoardId, setActiveBoard]);
+    const deleteBoard = useCallback(async (boardId: string) => {
+        const boardToDelete = allBoards.find(b => b.id === boardId);
+        const remaining = allBoards.filter(b => b.id !== boardId);
+
+        // Optimistic remove
+        setAllBoards(remaining);
+
+        // If we deleted the active board, switch to another
+        if (boardId === activeBoardId && remaining.length > 0) {
+            await setActiveBoard(remaining[0].id);
+        }
+    }, [activeBoardId, allBoards, setActiveBoard]);
 
     // Add a new board to the list
     const addBoard = useCallback((board: { id: string; title: string; status?: string }) => {
-        setAllBoards(prev => [...prev, board as any]);
+        setAllBoards(prev => [...prev, board as { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }]);
     }, []);
 
-    // Rename a board
-    const renameBoard = useCallback(async (boardId: string, title: string) => {
+    // Rename a board with optimistic update and rollback on failure
+    const renameBoard = useCallback(async (boardId: string, newTitle: string) => {
+        // Capture previous title before state update
+        const previousTitle = allBoards.find(b => b.id === boardId)?.title || '';
+
+        // Optimistic update
+        setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: newTitle } : b));
+
         try {
-            await api.patch(`/boards/${boardId}`, { title });
-            setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title } : b));
+            await api.patch(`/boards/${boardId}`, { title: newTitle });
         } catch (err) {
+            // Rollback on failure
+            setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: previousTitle } : b));
             console.error('Failed to rename board:', err);
         }
-    }, []);
+    }, [allBoards]);
 
     // Initial Hydration
     useEffect(() => {

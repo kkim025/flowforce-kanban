@@ -37,6 +37,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,12 +56,14 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 
   const handleDeleteBoard = async () => {
     if (!deletingBoard) return;
+    setDeleteError(null);
     try {
       await api.delete(`/boards/${deletingBoard.id}`);
       onBoardDeleted(deletingBoard.id);
       setDeletingBoard(null);
     } catch (err) {
       console.error('Failed to delete board:', err);
+      setDeleteError('Failed to delete board. Please try again.');
     }
   };
 
@@ -70,8 +73,10 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
   };
 
   const handleSaveEdit = () => {
-    if (editingBoard && editingTitle.trim() && editingTitle !== editingBoard.title) {
-      onBoardRenamed(editingBoard.id, editingTitle.trim());
+    if (!editingBoard) return;
+    const trimmedTitle = editingTitle.trim();
+    if (trimmedTitle && trimmedTitle !== editingBoard.title) {
+      onBoardRenamed(editingBoard.id, trimmedTitle);
     }
     setEditingBoard(null);
     setEditingTitle('');
@@ -186,7 +191,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
 
           {/* Archived section */}
           {archivedBoards.length > 0 && showArchived && (
-            <div>
+            <div className="mb-6">
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 px-4">
                 Archived
               </div>
@@ -238,19 +243,18 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
         onClose={() => setIsCreateModalOpen(false)}
         onCreated={(board) => {
           onBoardCreated(board as Board);
-          setIsCreateModalOpen(false);
         }}
       />
 
       <ConfirmationModal
         isOpen={!!deletingBoard}
         title="Delete Board"
-        message={`Delete board "${deletingBoard?.title}"? This will permanently delete all columns and tasks in this board. This action cannot be undone.`}
+        message={deleteError || `Delete board "${deletingBoard?.title}"? This will permanently delete all columns and tasks in this board. This action cannot be undone.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         variant="danger"
         onConfirm={handleDeleteBoard}
-        onCancel={() => setDeletingBoard(null)}
+        onCancel={() => { setDeletingBoard(null); setDeleteError(null); }}
       />
     </>
   );

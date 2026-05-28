@@ -16,8 +16,8 @@ interface KanbanContextType {
     isHydrated: boolean;
     activeBoardId: string | null;
     allBoards: { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[];
-    setActiveBoard: (boardId: string) => void;
-    deleteBoard: (boardId: string) => void;
+    setActiveBoard: (boardId: string) => Promise<void>;
+    deleteBoard: (boardId: string) => Promise<void>;
     addBoard: (board: { id: string; title: string; status?: string }) => void;
     renameBoard: (boardId: string, title: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
@@ -131,7 +131,6 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Delete a board and switch to another if needed
     const deleteBoard = useCallback(async (boardId: string) => {
-        const boardToDelete = allBoards.find(b => b.id === boardId);
         const remaining = allBoards.filter(b => b.id !== boardId);
 
         // Optimistic remove

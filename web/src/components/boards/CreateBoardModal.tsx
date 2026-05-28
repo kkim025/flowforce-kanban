@@ -15,11 +15,13 @@ const CreateBoardModal: React.FC<CreateBoardModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setTitle('');
+      setError(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
@@ -33,6 +35,7 @@ const CreateBoardModal: React.FC<CreateBoardModalProps> = ({
       onClose();
     } catch (err) {
       console.error('Failed to create board:', err);
+      setError('Failed to create board. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -62,11 +65,14 @@ const CreateBoardModal: React.FC<CreateBoardModalProps> = ({
           ref={inputRef}
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setTitle(e.target.value); setError(null); }}
           onKeyDown={handleKeyDown}
           placeholder="Board name"
-          className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-blue/50 mb-4"
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-blue/50 mb-2"
         />
+        {error && (
+          <p className="text-sm text-red-500 mb-3">{error}</p>
+        )}
 
         <div className="flex gap-3">
           <button

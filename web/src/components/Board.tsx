@@ -21,7 +21,7 @@ import CreateSprintModal from './sprints/CreateSprintModal';
 import BoardPanel from './boards/BoardPanel';
 
 const Board: React.FC = () => {
-    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard } = useKanban();
+    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard, renameBoard } = useKanban();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
@@ -676,6 +676,7 @@ const Board: React.FC = () => {
                 onSwitchBoard={setActiveBoard}
                 onBoardCreated={addBoard}
                 onBoardDeleted={deleteBoard}
+                onBoardRenamed={renameBoard}
             />
 
             {/* Create Sprint Modal (triggered from SprintFilterBar) */}

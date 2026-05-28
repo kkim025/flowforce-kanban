@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';
 import ConfirmationModal from '../ConfirmationModal';
@@ -19,6 +19,7 @@ interface BoardPanelProps {
   onSwitchBoard: (boardId: string) => void;
   onBoardCreated: (board: Board) => void;
   onBoardDeleted: (boardId: string) => void;
+  onBoardRenamed: (boardId: string, title: string) => void;
 }
 
 const BoardPanel: React.FC<BoardPanelProps> = ({
@@ -29,10 +30,21 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
   onSwitchBoard,
   onBoardCreated,
   onBoardDeleted,
+  onBoardRenamed,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingBoard && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingBoard]);
 
   const { activeBoards, archivedBoards } = useMemo(() => {
     return {
@@ -49,6 +61,34 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
       setDeletingBoard(null);
     } catch (err) {
       console.error('Failed to delete board:', err);
+    }
+  };
+
+  const handleStartEdit = (board: Board) => {
+    setEditingBoard(board);
+    setEditingTitle(board.title);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingBoard && editingTitle.trim() && editingTitle !== editingBoard.title) {
+      onBoardRenamed(editingBoard.id, editingTitle.trim());
+    }
+    setEditingBoard(null);
+    setEditingTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBoard(null);
+    setEditingTitle('');
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit();
     }
   };
 
@@ -111,20 +151,34 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
               </div>
               <div className="space-y-1">
                 {activeBoards.map((board) => (
-                  <BoardCard
-                    key={board.id}
-                    id={board.id}
-                    title={board.title}
-                    status={board.status}
-                    isActive={board.id === activeBoardId}
-                    onClick={() => {
-                      if (board.id !== activeBoardId) {
-                        onSwitchBoard(board.id);
-                        onClose();
-                      }
-                    }}
-                    onDelete={board.id !== activeBoardId ? () => setDeletingBoard(board) : undefined}
-                  />
+                  editingBoard?.id === board.id ? (
+                    <div key={board.id} className="px-4 py-3 flex items-center gap-2">
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={handleEditKeyDown}
+                        onBlur={handleSaveEdit}
+                        className="flex-1 px-3 py-2 border border-accent-blue rounded-lg text-sm font-medium bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-accent-blue/50"
+                      />
+                    </div>
+                  ) : (
+                    <BoardCard
+                      key={board.id}
+                      id={board.id}
+                      title={board.title}
+                      status={board.status}
+                      isActive={board.id === activeBoardId}
+                      onClick={() => {
+                        if (board.id !== activeBoardId) {
+                          onSwitchBoard(board.id);
+                        }
+                      }}
+                      onEdit={() => handleStartEdit(board)}
+                      onDelete={board.id !== activeBoardId ? () => setDeletingBoard(board) : undefined}
+                    />
+                  )
                 ))}
               </div>
             </div>
@@ -138,18 +192,32 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
               </div>
               <div className="space-y-1">
                 {archivedBoards.map((board) => (
-                  <BoardCard
-                    key={board.id}
-                    id={board.id}
-                    title={board.title}
-                    status={board.status}
-                    isActive={false}
-                    onClick={() => {
-                      onSwitchBoard(board.id);
-                      onClose();
-                    }}
-                    onDelete={() => setDeletingBoard(board)}
-                  />
+                  editingBoard?.id === board.id ? (
+                    <div key={board.id} className="px-4 py-3 flex items-center gap-2">
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={handleEditKeyDown}
+                        onBlur={handleSaveEdit}
+                        className="flex-1 px-3 py-2 border border-accent-blue rounded-lg text-sm font-medium bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-accent-blue/50"
+                      />
+                    </div>
+                  ) : (
+                    <BoardCard
+                      key={board.id}
+                      id={board.id}
+                      title={board.title}
+                      status={board.status}
+                      isActive={false}
+                      onClick={() => {
+                        onSwitchBoard(board.id);
+                      }}
+                      onEdit={() => handleStartEdit(board)}
+                      onDelete={() => setDeletingBoard(board)}
+                    />
+                  )
                 ))}
               </div>
             </div>

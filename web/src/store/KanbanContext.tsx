@@ -19,6 +19,7 @@ interface KanbanContextType {
     setActiveBoard: (boardId: string) => void;
     deleteBoard: (boardId: string) => void;
     addBoard: (board: { id: string; title: string; status?: string }) => void;
+    renameBoard: (boardId: string, title: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
@@ -143,6 +144,16 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Add a new board to the list
     const addBoard = useCallback((board: { id: string; title: string; status?: string }) => {
         setAllBoards(prev => [...prev, board as any]);
+    }, []);
+
+    // Rename a board
+    const renameBoard = useCallback(async (boardId: string, title: string) => {
+        try {
+            await api.patch(`/boards/${boardId}`, { title });
+            setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title } : b));
+        } catch (err) {
+            console.error('Failed to rename board:', err);
+        }
     }, []);
 
     // Initial Hydration
@@ -539,6 +550,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 setActiveBoard,
                 deleteBoard,
                 addBoard,
+                renameBoard,
                 updateTaskDueDate,
             }}
         >

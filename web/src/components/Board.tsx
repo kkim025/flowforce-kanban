@@ -18,9 +18,10 @@ import SprintFilterBar from './sprints/SprintFilterBar';
 import FilterBar from './FilterBar';
 import SprintPanel from './sprints/SprintPanel';
 import CreateSprintModal from './sprints/CreateSprintModal';
+import BoardPanel from './boards/BoardPanel';
 
 const Board: React.FC = () => {
-    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId } = useKanban();
+    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard, renameBoard } = useKanban();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
@@ -35,6 +36,9 @@ const Board: React.FC = () => {
     // Sprint panel state
     const [isSprintPanelOpen, setIsSprintPanelOpen] = useState(false);
     const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
+
+    // Board panel state
+    const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
 
     // Column Management
     const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -259,9 +263,17 @@ const Board: React.FC = () => {
                 {/* Top Row: Logo and User Profile */}
                 <div className="flex justify-between items-start w-full">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
-                            FlowForce<span className="text-accent-blue">.</span>
-                        </h1>
+                        <button
+                            onClick={() => setIsBoardPanelOpen(true)}
+                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        >
+                            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
+                                FlowForce<span className="text-accent-blue">.</span>
+                            </h1>
+                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Streamline your workflow with precision.</p>
                     </div>
 
@@ -653,6 +665,18 @@ const Board: React.FC = () => {
                 isOpen={isSprintPanelOpen}
                 onClose={() => setIsSprintPanelOpen(false)}
                 boardId={activeBoardId || ''}
+            />
+
+            {/* Board Panel for multi-board support */}
+            <BoardPanel
+                isOpen={isBoardPanelOpen}
+                onClose={() => setIsBoardPanelOpen(false)}
+                activeBoardId={activeBoardId}
+                allBoards={allBoards}
+                onSwitchBoard={setActiveBoard}
+                onBoardCreated={addBoard}
+                onBoardDeleted={deleteBoard}
+                onBoardRenamed={renameBoard}
             />
 
             {/* Create Sprint Modal (triggered from SprintFilterBar) */}

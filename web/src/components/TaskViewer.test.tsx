@@ -107,6 +107,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
         vi.mocked(useUsers).mockReturnValue({
@@ -136,6 +141,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -329,6 +339,11 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 
@@ -397,6 +412,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -515,6 +535,11 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 

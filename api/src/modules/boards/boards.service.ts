@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Board } from '@prisma/client';
+import { Board, BoardStatus, Prisma } from '@prisma/client';
 import { BOARD_LIST_CONFIG, BOARD_DETAIL_CONFIG } from './boards-query.config';
 
 @Injectable()
@@ -65,13 +65,22 @@ export class BoardsService {
     return board;
   }
 
-  async update(userId: string, id: string, title: string): Promise<Board> {
+  async update(
+    userId: string,
+    id: string,
+    title?: string,
+    status?: BoardStatus,
+  ): Promise<Board> {
     // Check ownership first
     await this.findOne(userId, id);
 
+    const data: Prisma.BoardUpdateInput = {};
+    if (title !== undefined) data.title = title;
+    if (status !== undefined) data.status = status;
+
     return this.prisma.board.update({
       where: { id },
-      data: { title },
+      data,
     });
   }
 

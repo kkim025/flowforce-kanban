@@ -7,6 +7,7 @@ interface ConfirmationModalProps {
     isOpen: boolean;
     title: string;
     message: string;
+    error?: string | null;
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm: () => void;
@@ -18,6 +19,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     isOpen,
     title,
     message,
+    error,
     confirmLabel = UI_LABELS.CONFIRM,
     cancelLabel = UI_LABELS.CANCEL,
     onConfirm,
@@ -27,7 +29,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[1160] flex items-center justify-center p-4">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -63,6 +65,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
                                 {message}
                             </p>
+                            {error && (
+                                <p className="mt-3 text-sm text-red-500 font-medium">{error}</p>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-3 p-6 bg-slate-50 dark:bg-white/5">
@@ -73,10 +78,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 {cancelLabel}
                             </button>
                             <button
-                                onClick={() => {
-                                    onConfirm();
-                                    onCancel();
-                                }}
+                                onClick={onConfirm}
                                 className={`flex-1 px-4 py-3 rounded-2xl font-bold text-sm text-white transition-all shadow-lg shadow-current/20 ${
                                     variant === 'danger' ? 'bg-red-500 hover:bg-red-600' : 
                                     variant === 'warning' ? 'bg-amber-500 hover:bg-amber-600' : 

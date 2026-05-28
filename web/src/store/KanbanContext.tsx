@@ -15,6 +15,11 @@ interface KanbanContextType {
     isSyncing: boolean;
     isHydrated: boolean;
     activeBoardId: string | null;
+    allBoards: { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[];
+    setActiveBoard: (boardId: string) => Promise<void>;
+    deleteBoard: (boardId: string) => Promise<void>;
+    addBoard: (board: { id: string; title: string; status?: string }) => void;
+    renameBoard: (boardId: string, title: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
@@ -24,6 +29,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const { isAuthenticated } = useAuth();
     const [isSyncing, setIsSyncing] = useState(false);
     const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+    const [allBoards, setAllBoards] = useState<{ id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[]>([]);
     const [isHydrated, setIsHydrated] = useState(false);
     
     const [history, setHistory] = useReducer(
@@ -79,6 +85,85 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return mapApiBoardToState(refreshedBoard.data, sprints || stateRef.current.sprints);
     }, []);
 
+    // Switch to a different board
+    const setActiveBoard = useCallback(async (boardId: string) => {
+        try {
+            // Save to localStorage
+            localStorage.setItem('flowforce_active_board_id', boardId);
+            setActiveBoardId(boardId);
+
+            // Fetch full board data
+            const refreshed = await api.get(getBoardUrl(boardId));
+            const newState = mapApiBoardToState(refreshed.data);
+
+            // Load sprints for the new board
+            let sprints: any[] = [];
+            let activeSprintId: string | null = null;
+            try {
+                const sprintsResponse = await api.get(`/sprints/boards/${boardId}`);
+                sprints = sprintsResponse.data || [];
+
+                // Default to active sprint if one exists
+                const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
+                activeSprintId = activeSprint?.id || null;
+            } catch (err) {
+                console.warn('Could not load sprints:', err);
+            }
+
+            newState.sprints = sprints;
+            newState.activeSprintId = activeSprintId;
+
+            // If there's an active sprint, re-fetch board with sprint filter
+            if (activeSprintId) {
+                const sprintFilteredState = {
+                    ...mapApiBoardToState((await api.get(getBoardUrl(boardId, activeSprintId))).data),
+                    sprints: sprints,
+                    activeSprintId: activeSprintId,
+                };
+                setHistory({ type: 'SET_STATE', payload: sprintFilteredState });
+            } else {
+                setHistory({ type: 'SET_STATE', payload: newState });
+            }
+        } catch (err) {
+            console.error('Failed to switch board:', err);
+        }
+    }, []);
+
+    // Delete a board and switch to another if needed
+    const deleteBoard = useCallback(async (boardId: string) => {
+        const remaining = allBoards.filter(b => b.id !== boardId);
+
+        // Optimistic remove
+        setAllBoards(remaining);
+
+        // If we deleted the active board, switch to another
+        if (boardId === activeBoardId && remaining.length > 0) {
+            await setActiveBoard(remaining[0].id);
+        }
+    }, [activeBoardId, allBoards, setActiveBoard]);
+
+    // Add a new board to the list
+    const addBoard = useCallback((board: { id: string; title: string; status?: string }) => {
+        setAllBoards(prev => [...prev, board as { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }]);
+    }, []);
+
+    // Rename a board with optimistic update and rollback on failure
+    const renameBoard = useCallback(async (boardId: string, newTitle: string) => {
+        // Capture previous title before state update
+        const previousTitle = allBoards.find(b => b.id === boardId)?.title || '';
+
+        // Optimistic update
+        setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: newTitle } : b));
+
+        try {
+            await api.patch(`/boards/${boardId}`, { title: newTitle });
+        } catch (err) {
+            // Rollback on failure
+            setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: previousTitle } : b));
+            console.error('Failed to rename board:', err);
+        }
+    }, [allBoards]);
+
     // Initial Hydration
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -87,9 +172,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setIsSyncing(true);
             try {
                 const response = await api.get('/boards');
+                const boards = response.data;
+                setAllBoards(boards);
                 let board;
 
-                if (response.data.length === 0) {
+                // Restore active board from localStorage if available
+                const savedBoardId = localStorage.getItem('flowforce_active_board_id');
+                const savedBoardExists = boards.some((b: any) => b.id === savedBoardId);
+
+                if (boards.length === 0) {
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
 
@@ -98,11 +189,16 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // For now, let's just use what's returned
                     const refreshed = await api.get(`/boards/${board.id}`);
                     board = refreshed.data;
+                } else if (savedBoardExists) {
+                    // Load saved board
+                    const refreshed = await api.get(`/boards/${savedBoardId}`);
+                    board = refreshed.data;
                 } else {
-                    board = response.data[0];
+                    board = boards[0];
                 }
 
                 setActiveBoardId(board.id);
+                localStorage.setItem('flowforce_active_board_id', board.id);
                 const mappedState = mapApiBoardToState(board);
 
                 // Set default WIP limits if they exist in state
@@ -458,6 +554,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 isSyncing,
                 isHydrated,
                 activeBoardId,
+                allBoards,
+                setActiveBoard,
+                deleteBoard,
+                addBoard,
+                renameBoard,
                 updateTaskDueDate,
             }}
         >

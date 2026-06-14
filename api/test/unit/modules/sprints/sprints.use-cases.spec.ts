@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateSprintUseCase } from 'src/modules/sprints/application/use-cases/create-sprint.use-case';
 import { UpdateSprintUseCase } from 'src/modules/sprints/application/use-cases/update-sprint.use-case';
 import { DeleteSprintUseCase } from 'src/modules/sprints/application/use-cases/delete-sprint.use-case';
@@ -194,6 +195,7 @@ describe('Sprint Use Cases', () => {
     let useCase: ActivateSprintUseCase;
     let mockRepository: any;
     let mockPrisma: any;
+    let eventEmitter: { emit: jest.Mock };
 
     beforeEach(async () => {
       mockRepository = { findById: jest.fn() };
@@ -204,12 +206,17 @@ describe('Sprint Use Cases', () => {
           update: jest.fn(),
           findUnique: jest.fn(),
         },
+        board: {
+          findUnique: jest.fn().mockResolvedValue({ ownerId: 'board-owner' }),
+        },
       };
+      eventEmitter = { emit: jest.fn() };
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           ActivateSprintUseCase,
           { provide: 'ISprintRepository', useValue: mockRepository },
           { provide: PrismaService, useValue: mockPrisma },
+          { provide: EventEmitter2, useValue: eventEmitter },
         ],
       }).compile();
       useCase = module.get(ActivateSprintUseCase);
@@ -218,7 +225,7 @@ describe('Sprint Use Cases', () => {
     it('should throw NotFoundException when sprint not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute('non-existent')).rejects.toThrow(
+      await expect(useCase.execute('non-existent', 'actor-1')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -227,7 +234,7 @@ describe('Sprint Use Cases', () => {
       const sprint = createMockSprint({ name: 'Done', status: 'COMPLETED' });
       mockRepository.findById.mockResolvedValue(sprint);
 
-      await expect(useCase.execute('sprint-1')).rejects.toThrow(
+      await expect(useCase.execute('sprint-1', 'actor-1')).rejects.toThrow(
         ConflictException,
       );
     });
@@ -251,7 +258,7 @@ describe('Sprint Use Cases', () => {
         endDate: new Date(),
       });
 
-      await useCase.execute('sprint-1');
+      await useCase.execute('sprint-1', 'actor-1');
 
       expect(mockPrisma.sprint.updateMany).toHaveBeenCalledWith({
         where: { boardId: 'board-1', status: 'ACTIVE' },
@@ -346,6 +353,8 @@ describe('Sprint Use Cases', () => {
 
   describe('ArchiveSprintUseCase', () => {
     let sprintRepository: jest.Mocked<ISprintRepository>;
+    let eventEmitter: { emit: jest.Mock };
+    let mockPrisma: any;
     let useCase: ArchiveSprintUseCase;
 
     beforeEach(() => {
@@ -354,7 +363,17 @@ describe('Sprint Use Cases', () => {
         save: jest.fn(),
         findByBoard: jest.fn(),
       };
-      useCase = new ArchiveSprintUseCase(sprintRepository);
+      eventEmitter = { emit: jest.fn() };
+      mockPrisma = {
+        board: {
+          findUnique: jest.fn().mockResolvedValue({ ownerId: 'board-owner' }),
+        },
+      };
+      useCase = new ArchiveSprintUseCase(
+        sprintRepository,
+        mockPrisma,
+        eventEmitter as any,
+      );
     });
 
     it('should archive a sprint', async () => {
@@ -362,7 +381,7 @@ describe('Sprint Use Cases', () => {
       sprintRepository.findById.mockResolvedValue(sprint);
       sprintRepository.save.mockResolvedValue(sprint);
 
-      const result = await useCase.execute('sprint-1');
+      const result = await useCase.execute('sprint-1', 'actor-1');
 
       expect(sprintRepository.save).toHaveBeenCalled();
       expect(result.props.status).toBe('ARCHIVED');
@@ -372,7 +391,7 @@ describe('Sprint Use Cases', () => {
       const sprint = createMockSprint({ status: 'ARCHIVED' });
       sprintRepository.findById.mockResolvedValue(sprint);
 
-      await useCase.execute('sprint-1');
+      await useCase.execute('sprint-1', 'actor-1');
 
       expect(sprintRepository.save).not.toHaveBeenCalled();
     });
@@ -380,7 +399,7 @@ describe('Sprint Use Cases', () => {
     it('should throw NotFoundException if sprint does not exist', async () => {
       sprintRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute('sprint-1')).rejects.toThrow(
+      await expect(useCase.execute('sprint-1', 'actor-1')).rejects.toThrow(
         NotFoundException,
       );
     });

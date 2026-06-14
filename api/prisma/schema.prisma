@@ -20,6 +20,9 @@ model User {
   tasks     Task[]
   comments  Comment[]
   activities Activity[]
+  receivedNotifications  Notification[] @relation("NotificationRecipient")
+  authoredNotifications   Notification[] @relation("NotificationActor")
+  notificationPrefs       UserNotificationPref[]
 }
 
 model Invitation {
@@ -52,6 +55,7 @@ model Board {
   owner     User    @relation(fields: [ownerId], references: [id])
   columns   Column[]
   sprints   Sprint[]
+  notifications Notification[]
 }
 
 model Column {
@@ -103,17 +107,22 @@ model Task {
   column      Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assignee    User?       @relation(fields: [assigneeId], references: [id])
   sprint      Sprint?     @relation(fields: [sprintId], references: [id])
+
+  // Backs the DueDateScanner query: `dueDate IN window AND assigneeId IS NOT NULL AND archived = false`.
+  // Without this, the scanner degrades to a sequential scan on the tasks table as it grows.
+  @@index([dueDate, assigneeId, archived])
 }
 
 model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  taskId    String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  id                String   @id @default(uuid())
+  content           String
+  taskId            String
+  userId            String
+  mentionedUserIds  String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  task              Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id])
 }
 
 model Activity {
@@ -179,4 +188,43 @@ model TimeEntry {
   updatedAt DateTime @updatedAt
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  recipientId  String
+  actorId      String?
+  type         NotificationType
+  title        String
+  body         String?
+  refType      String
+  refId        String
+  boardId      String?
+  milestone    String?
+  readAt       DateTime?
+  createdAt    DateTime @default(now())
+  recipient    User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor        User?    @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  board        Board?   @relation(fields: [boardId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt])
+  @@index([recipientId, createdAt])
+  @@unique([recipientId, type, refId, milestone])
+}
+
+model UserNotificationPref {
+  id            String   @id @default(uuid())
+  userId        String
+  type          NotificationType
+  inAppEnabled  Boolean  @default(true)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+enum NotificationType {
+  ASSIGNMENT
+  MENTION
+  SPRINT_STATUS
+  DUE_DATE
 }

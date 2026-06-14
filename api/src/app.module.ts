@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -11,6 +13,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { SubtasksModule } from './modules/subtasks/subtasks.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { SprintsModule } from './modules/sprints/sprints.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -28,6 +31,8 @@ import { SprintsModule } from './modules/sprints/sprints.module';
         return config;
       },
     }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -37,6 +42,7 @@ import { SprintsModule } from './modules/sprints/sprints.module';
     SubtasksModule,
     ChecklistsModule,
     SprintsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

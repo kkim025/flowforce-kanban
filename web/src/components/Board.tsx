@@ -19,6 +19,7 @@ import FilterBar from './FilterBar';
 import SprintPanel from './sprints/SprintPanel';
 import CreateSprintModal from './sprints/CreateSprintModal';
 import BoardPanel from './boards/BoardPanel';
+import { NotificationBell } from './notifications/NotificationBell';
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard, renameBoard } = useKanban();
@@ -279,6 +280,7 @@ const Board: React.FC = () => {
 
                     {user && (
                         <div className="flex items-center gap-6">
+                            <NotificationBell />
                             {user.role === 'ADMIN' && (
                                 <Link 
                                     to="/admin/users" 

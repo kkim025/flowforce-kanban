@@ -8,6 +8,32 @@ export type AssigneeFilter = string | null;
 export type PriorityFilter = Priority | null;
 export type TagFilter = string[];
 
+export type NotificationType = 'ASSIGNMENT' | 'MENTION' | 'SPRINT_STATUS' | 'DUE_DATE';
+export type NotificationRefType = 'task' | 'sprint';
+export type DueDateMilestone = '24h' | '1h' | 'due';
+
+export interface AppNotification {
+    id: string;
+    type: NotificationType;
+    title: string;
+    body?: string | null;
+    refType: NotificationRefType;
+    refId: string;
+    boardId?: string | null;
+    actorId?: string | null;
+    actorName?: string | null;
+    milestone?: DueDateMilestone | null;
+    readAt?: string | null;
+    createdAt: string;
+}
+
+export interface UserNotificationPref {
+    id: string;
+    userId: string;
+    type: NotificationType;
+    inAppEnabled: boolean;
+}
+
 export interface Sprint {
     id: string;
     boardId: string;

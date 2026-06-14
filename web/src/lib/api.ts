@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { User, UserRole, Sprint, SprintStatus, SubTask, Priority } from '../types';
+import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref } from '../types';
 
 const api_url = import.meta.env.VITE_API_URL;
 
@@ -231,6 +231,53 @@ export const deleteTimeEntry = async (id: string): Promise<{ success: boolean }>
 
 export const getSprintReport = async (boardId: string, sprintId: string): Promise<SprintReportApiResponse> => {
   const response = await api.get<SprintReportApiResponse>(`/boards/${boardId}/sprint-reports`, { params: { sprintId } });
+  return response.data;
+};
+
+// Notifications API
+export interface NotificationsListResponse {
+  items: AppNotification[];
+  nextCursor: string | null;
+}
+
+export interface ListNotificationsParams {
+  limit?: number;
+  cursor?: string;
+  unreadOnly?: boolean;
+}
+
+export const getNotifications = async (params?: ListNotificationsParams): Promise<NotificationsListResponse> => {
+  const response = await api.get<NotificationsListResponse>('/notifications', { params });
+  return response.data;
+};
+
+export const getUnreadCount = async (): Promise<number> => {
+  const response = await api.get<{ count: number }>('/notifications/unread-count');
+  return response.data.count;
+};
+
+export const markNotificationRead = async (id: string): Promise<AppNotification> => {
+  const response = await api.patch<AppNotification>(`/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllNotificationsRead = async (): Promise<number> => {
+  const response = await api.post<{ updated: number }>('/notifications/mark-all-read');
+  return response.data.updated;
+};
+
+export const getNotificationPrefs = async (): Promise<UserNotificationPref[]> => {
+  const response = await api.get<UserNotificationPref[]>('/users/me/notification-prefs');
+  return response.data;
+};
+
+export const upsertNotificationPref = async (
+  type: NotificationType,
+  inAppEnabled: boolean,
+): Promise<UserNotificationPref> => {
+  const response = await api.put<UserNotificationPref>(`/users/me/notification-prefs/${type}`, {
+    inAppEnabled,
+  });
   return response.data;
 };
 

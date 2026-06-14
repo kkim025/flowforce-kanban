@@ -37,9 +37,10 @@ interface TaskCardProps {
     onDelete?: () => void;
     isSelected?: boolean;
     onSelect?: (multiSelect: boolean) => void;
+    isFocused?: boolean;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onDelete, isSelected, onSelect }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onDelete, isSelected, onSelect, isFocused }) => {
     const navigate = useNavigate();
     const { state, dispatch } = useKanban();
     const { sprints } = state;
@@ -115,6 +116,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                             }}
                             className={`
                 glass group p-4 rounded-xl transition-all duration-300 cursor-pointer relative overflow-hidden
+                ${isFocused ? 'ring-2 ring-accent-blue shadow-[0_0_0_4px_rgba(37,99,235,0.15)]' : ''}
                 ${isSelected ? 'ring-2 ring-accent-blue bg-accent-blue/5' : ''}
                 ${snapshot.isDragging
                                     ? 'rotate-[2deg] scale-[1.02] shadow-[0_20px_50px_rgba(37,99,235,0.3)] z-[1000] ring-2 ring-accent-blue/50 bg-white dark:bg-slate-900'

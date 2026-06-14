@@ -153,8 +153,6 @@ const Board: React.FC = () => {
     const handleCardNavigation = useCallback((direction: NavigationDirection) => {
         if (flatVisibleTasks.length === 0) return;
 
-        const isInputFocused = document.activeElement instanceof HTMLInputElement
-            || document.activeElement instanceof HTMLTextAreaElement;
 
         if (direction === 'left' || direction === 'right') {
             // Column navigation: move to first card in adjacent column, preserving row if possible

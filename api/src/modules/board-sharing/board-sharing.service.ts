@@ -129,7 +129,7 @@ export class BoardSharingService {
     return this.repo.findMembersByUserId(userId);
   }
 
-  async removeMember(boardId: string, memberId: string, requestingUserId: string): Promise<void> {
+  async removeMember(boardId: string, memberId: string, _requestingUserId: string): Promise<void> {
     const member = await this.repo.findMemberByBoardAndUser(boardId, memberId);
     if (!member) throw new NotFoundException('Member not found');
     await this.repo.deleteMember(member.id);

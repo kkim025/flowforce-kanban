@@ -1,6 +1,5 @@
 import { BoardSharingService } from '../../../../src/modules/board-sharing/board-sharing.service';
 import { IBoardSharingRepository } from '../../../../src/modules/board-sharing/domain/board-sharing.repository.interface';
-import { BoardMember } from '../../../../src/modules/board-sharing/domain/board-member.entity';
 
 const mockRepo = {
   findShareByToken: jest.fn(),

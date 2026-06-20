@@ -9,7 +9,7 @@ describe('Notification entity', () => {
     actorId: 'user-actor',
     type: NotificationType.ASSIGNMENT,
     title: 'Alice assigned you "Fix bug"',
-    refType: 'task',
+    refType: 'task' as NotificationRefType,
     refId: 'task-1',
   };
 
@@ -64,7 +64,7 @@ describe('Notification entity', () => {
     });
 
     it('returns Result.fail when refType is empty', () => {
-      const result = Notification.create({ ...validProps, refType: '' });
+      const result = Notification.create({ ...validProps, refType: '' as unknown as NotificationRefType });
       expect(result.isFailure).toBe(true);
     });
 

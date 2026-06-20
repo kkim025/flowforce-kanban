@@ -45,7 +45,7 @@ describe('AuthService', () => {
       const emailStr = 'test@example.com';
       const email = Email.create(emailStr).getValue();
       const mockUser = User.create(
-        { email, password: 'hashedPassword', name: 'Test User' },
+        { email, password: 'hashedPassword', name: 'Test User', role: 'MEMBER' as const, status: 'ACTIVE' as const },
         'user-1',
       ).getValue();
 
@@ -56,6 +56,8 @@ describe('AuthService', () => {
         id: 'user-1',
         email: emailStr,
         name: 'Test User',
+        role: 'MEMBER',
+        status: 'ACTIVE',
       });
     });
 

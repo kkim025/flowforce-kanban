@@ -8,6 +8,7 @@ describe('UserNotificationPref entity', () => {
         userId: 'user-1',
         type: NotificationType.ASSIGNMENT,
         inAppEnabled: false,
+        inAppEnabled: false,
       });
       expect(result.isSuccess).toBe(true);
       const pref = result.getValue();
@@ -20,6 +21,7 @@ describe('UserNotificationPref entity', () => {
       const pref = UserNotificationPref.create({
         userId: 'user-1',
         type: NotificationType.MENTION,
+        inAppEnabled: true,
       }).getValue();
       expect(pref.inAppEnabled).toBe(true);
     });
@@ -36,6 +38,7 @@ describe('UserNotificationPref entity', () => {
       const result = UserNotificationPref.create({
         userId: '',
         type: NotificationType.ASSIGNMENT,
+        inAppEnabled: false,
       });
       expect(result.isFailure).toBe(true);
     });

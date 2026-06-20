@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export enum CreateSharePermissionLevel {
   VIEW = 'VIEW',

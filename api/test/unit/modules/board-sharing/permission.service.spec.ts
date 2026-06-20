@@ -1,7 +1,7 @@
 import { PermissionService } from '../../../../src/modules/board-sharing/permission.service';
 import { IBoardSharingRepository } from '../../../../src/modules/board-sharing/domain/board-sharing.repository.interface';
 import { PrismaService } from '../../../../src/modules/common/prisma/prisma.service';
-import { BoardMember, BoardMemberRole } from '../../../../src/modules/board-sharing/domain/board-member.entity';
+import { BoardMember } from '../../../../src/modules/board-sharing/domain/board-member.entity';
 
 const mockPrisma = {
   board: {

@@ -103,10 +103,10 @@ export class BoardSharingService {
     await this.repo.saveShare(share);
   }
 
-  async revokeShare(shareId: string, requestingUserId: string): Promise<void> {
+  async revokeShare(shareId: string, _requestingUserId: string): Promise<void> {
     const share = await this.repo.findShareById(shareId);
     if (!share) throw new NotFoundException('Invite not found');
-    if (share.invitedById !== requestingUserId) {
+    if (share.invitedById !== _requestingUserId) {
       throw new BadRequestException('Only the inviter can revoke this invite');
     }
     share.revoke();

@@ -15,7 +15,6 @@ import { UpdateShareUseCase } from './application/use-cases/update-share.use-cas
 import { RevokeShareUseCase } from './application/use-cases/revoke-share.use-case';
 import {
   BOARD_SHARING_REPOSITORY,
-  IBoardSharingRepository,
 } from './domain/board-sharing.repository.interface';
 
 @Module({

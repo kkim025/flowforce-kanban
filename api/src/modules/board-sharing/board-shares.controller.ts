@@ -7,7 +7,6 @@ import {
   Body,
   UseGuards,
   Logger,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';

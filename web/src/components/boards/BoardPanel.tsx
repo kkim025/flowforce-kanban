@@ -20,6 +20,8 @@ interface BoardPanelProps {
   onBoardCreated: (board: Board) => void;
   onBoardDeleted: (boardId: string) => void;
   onBoardRenamed: (boardId: string, title: string) => void;
+  /** Called when a board operation (delete/rename) fails so the parent can show a toast */
+  onError?: (message: string) => void;
 }
 
 const BoardPanel: React.FC<BoardPanelProps> = ({
@@ -31,6 +33,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
   onBoardCreated,
   onBoardDeleted,
   onBoardRenamed,
+  onError,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -64,6 +67,7 @@ const BoardPanel: React.FC<BoardPanelProps> = ({
     } catch (err) {
       console.error('Failed to delete board:', err);
       setDeleteError('Failed to delete board. Please try again.');
+      onError?.('Failed to delete board. Please try again.');
     }
   };
 

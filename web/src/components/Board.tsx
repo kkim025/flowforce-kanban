@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import ListView from './ListView';
@@ -24,6 +25,7 @@ import { useKeyboardNavigation, NavigationDirection } from '../hooks/useKeyboard
 
 const Board: React.FC = () => {
     const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard, renameBoard } = useKanban();
+    const { showToast } = useToast();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
@@ -216,6 +218,7 @@ const Board: React.FC = () => {
         onEnter: handleEnter,
         onEscape: handleEscape,
         disabled: isDrawerOpen, // disable nav while drawer open (Escape still works via dispatch path)
+        containerRef: scrollContainerRef,
     });
 
     // Global Keyboard Shortcuts
@@ -761,6 +764,7 @@ const Board: React.FC = () => {
                 onBoardCreated={addBoard}
                 onBoardDeleted={deleteBoard}
                 onBoardRenamed={renameBoard}
+                onError={showToast}
             />
 
             {/* Create Sprint Modal (triggered from SprintFilterBar) */}

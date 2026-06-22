@@ -58,10 +58,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   // (no closure deps, no StrictMode double-invoke hazard). The ref is synced
   // in an effect — writing to ref.current during render is flagged by the
   // react-hooks/refs rule and breaks concurrent rendering.
-  const stateRef = useRef({ notifications, unreadCount });
-  useEffect(() => {
-    stateRef.current = { notifications, unreadCount };
-  }, [notifications, unreadCount]);
+
 
   // Hoisted: only uses stable setters, the cursorRef, and module-level API
   // imports, so it's safe to call from the auth-state effect without a
@@ -157,29 +154,28 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isAuthenticated, token, loadInitial, startPolling, stopPolling]);
 
   const markAsRead = useCallback(async (id: string) => {
-    // Snapshot synchronously from the ref so the optimistic update and
-    // rollback are stable under StrictMode (where functional setters are
-    // invoked twice).
-    const target = stateRef.current.notifications.find((n) => n.id === id);
-    if (!target) return;
-    const wasUnread = !target.readAt;
+    // Capture the notification snapshot directly from state so the rollback
+    // is stable regardless of concurrent renders or ref-sync timing.
+    let wasUnread = false;
+    const rollback = (prev: AppNotification[]) =>
+      prev.map((n) => (n.id === id ? { ...n, readAt: null } : n));
 
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
-    );
+    setNotifications((prev) => {
+      const target = prev.find((n) => n.id === id);
+      if (!target) return prev;
+      wasUnread = !target.readAt;
+      return prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+    });
+
     if (wasUnread) {
-      // Functional setter: survives concurrent markAsRead calls so two rapid
-      // decrements compose correctly, and the matching rollback (c + 1)
-      // composes with any third concurrent mark.
       setUnreadCount((c) => Math.max(0, c - 1));
     }
+
     try {
       await markNotificationRead(id);
     } catch (err) {
       console.error('markNotificationRead failed, rolling back', err);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, readAt: target.readAt ?? null } : n)),
-      );
+      setNotifications(rollback);
       if (wasUnread) {
         setUnreadCount((c) => c + 1);
       }

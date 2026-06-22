@@ -11,6 +11,6 @@ export class RevokeShareUseCase {
 
   async execute(shareId: string, boardId: string, requestingUserId: string): Promise<void> {
     await this.permissionService.enforceAdminBoard(requestingUserId, boardId);
-    await this.sharingService.revokeShare(shareId, requestingUserId);
+    await this.sharingService.revokeShare(shareId);
   }
 }

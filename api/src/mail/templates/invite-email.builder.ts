@@ -43,7 +43,7 @@ export class InviteEmailBuilder {
   private renderHtml(p: InviteEmailParams): string {
     // Keep the formatting minimal — no external assets, no JS, no tracking
     // pixels. The two CTAs are the only call to action.
-    const action = p.permissionLabel === 'edit' ? 'edit' : 'view';
+    const action = p.permissionLabel;
     return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#f6f7f9;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;">

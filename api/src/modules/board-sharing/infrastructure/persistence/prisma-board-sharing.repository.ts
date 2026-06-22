@@ -24,6 +24,7 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
       declinedAt: raw.declinedAt ?? undefined,
       revokedAt: raw.revokedAt ?? undefined,
       publicId: raw.publicId,
+      createdAt: raw.createdAt,
     };
     return BoardShare.create(props, raw.id).getValue();
   }
@@ -107,6 +108,11 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return BoardMember.create(props, raw.id).getValue();
   }
 
+  async findMemberById(memberId: string): Promise<BoardMember | null> {
+    const raw = await this.prisma.boardMember.findUnique({ where: { id: memberId } });
+    return raw ? this.rawToMember(raw) : null;
+  }
+
   async findMemberByBoardAndUser(boardId: string, userId: string): Promise<BoardMember | null> {
     const raw = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
@@ -152,7 +158,4 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     await this.prisma.boardMember.delete({ where: { id } });
   }
 
-  async deleteMembersByBoardId(boardId: string): Promise<void> {
-    await this.prisma.boardMember.deleteMany({ where: { boardId } });
-  }
 }

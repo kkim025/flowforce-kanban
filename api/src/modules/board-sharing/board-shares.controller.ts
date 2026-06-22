@@ -7,6 +7,8 @@ import {
   Body,
   UseGuards,
   Logger,
+  NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -16,7 +18,8 @@ import { RevokeShareUseCase } from './application/use-cases/revoke-share.use-cas
 import { BoardSharingService } from './board-sharing.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateShareDto } from './application/dto/create-share.dto';
-import { IBoardSharingRepository } from './domain/board-sharing.repository.interface';
+import type { IBoardSharingRepository } from './domain/board-sharing.repository.interface';
+import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.interface';
 
 // ── Board shares (admin) ─────────────────────────────────────────────────────
 
@@ -46,7 +49,7 @@ export class BoardSharesController {
       this.prisma.board.findUnique({ where: { id: boardId } }),
     ]);
 
-    if (!board) throw new Error('Board not found');
+    if (!board) throw new NotFoundException('Board not found');
     const inviterName = inviter?.name ?? inviter?.email ?? 'A user';
 
     return this.createShareUseCase.execute(dto, boardId, userId, inviterName, board.title);
@@ -80,14 +83,14 @@ export class InviteAcceptController {
   constructor(
     private readonly sharingService: BoardSharingService,
     private readonly prisma: PrismaService,
+    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
   ) {}
 
   // Public — no auth required (user may not be logged in yet)
   @Get(':token')
   async getInvite(@Param('token') token: string) {
-    const repo: IBoardSharingRepository = (this.sharingService as any).repo;
-    const share = await repo.findShareByToken(token);
-    if (!share) throw new Error('Invite not found');
+    const share = await this.repo.findShareByToken(token);
+    if (!share) throw new NotFoundException('Invite not found');
 
     const board = await this.prisma.board.findUnique({ where: { id: share.boardId } });
     return {
@@ -96,7 +99,7 @@ export class InviteAcceptController {
       permissionLevel: share.permissionLevel,
       status: share.status,
       expiresAt: share.tokenExpiresAt.toISOString(),
-      boardName: board?.title,
+      boardName: board?.title ?? 'Unknown board',
       boardId: share.boardId,
     };
   }

@@ -14,10 +14,10 @@ export interface IBoardSharingRepository {
   deleteShare(id: string): Promise<void>;
 
   // BoardMember operations
+  findMemberById(memberId: string): Promise<BoardMember | null>;
   findMemberByBoardAndUser(boardId: string, userId: string): Promise<BoardMember | null>;
   findMembersByBoardId(boardId: string): Promise<BoardMember[]>;
   findMembersByUserId(userId: string): Promise<BoardMember[]>;
   saveMember(member: BoardMember): Promise<void>;
   deleteMember(id: string): Promise<void>;
-  deleteMembersByBoardId(boardId: string): Promise<void>;
 }

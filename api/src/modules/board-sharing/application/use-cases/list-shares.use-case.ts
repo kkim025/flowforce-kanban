@@ -25,7 +25,7 @@ export class ListSharesUseCase {
       status: share.status,
       invitedById: share.invitedById,
       tokenExpiresAt: share.tokenExpiresAt.toISOString(),
-      createdAt: share.id,
+      createdAt: share.createdAt.toISOString(),
     }));
   }
 

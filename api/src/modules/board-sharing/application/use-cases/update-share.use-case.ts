@@ -30,23 +30,20 @@ export class UpdateShareUseCase {
     }
 
     if (dto.permissionLevel) {
-      // Access internal props via getter — update by replacing with new entity
-      const updated = await this.repo.findShareById(shareId);
-      if (!updated) throw new BadRequestException('Share not found');
-      // Mutate and re-persist
-      (share as any).props.permissionLevel = dto.permissionLevel;
+      share.updatePermissionLevel(dto.permissionLevel);
       await this.repo.saveShare(share);
     }
 
+    const saved = await this.repo.findShareById(share.id);
     return {
-      id: share.id,
-      publicId: share.publicId,
-      email: share.email,
-      permissionLevel: share.permissionLevel,
-      status: share.status,
-      invitedById: share.invitedById,
-      tokenExpiresAt: share.tokenExpiresAt.toISOString(),
-      createdAt: share.id,
+      id: saved!.id,
+      publicId: saved!.publicId,
+      email: saved!.email,
+      permissionLevel: saved!.permissionLevel,
+      status: saved!.status,
+      invitedById: saved!.invitedById,
+      tokenExpiresAt: saved!.tokenExpiresAt.toISOString(),
+      createdAt: saved!.createdAt.toISOString(),
     };
   }
 }

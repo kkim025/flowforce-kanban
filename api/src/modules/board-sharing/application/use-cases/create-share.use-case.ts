@@ -17,8 +17,11 @@ export class CreateShareUseCase {
     invitedById: string,
     inviterName: string,
     boardName: string,
-    baseUrl = 'http://localhost:5173',
   ): Promise<ShareResponseDto> {
+    const baseUrl = process.env.FRONTEND_URL;
+    if (!baseUrl) {
+      throw new Error('FRONTEND_URL environment variable is required');
+    }
     await this.permissionService.enforceAdminBoard(invitedById, boardId);
 
     const share = await this.sharingService.createShare(
@@ -39,7 +42,7 @@ export class CreateShareUseCase {
       status: share.status,
       invitedById: share.invitedById,
       tokenExpiresAt: share.tokenExpiresAt.toISOString(),
-      createdAt: share.id,
+      createdAt: share.createdAt.toISOString(),
     };
   }
 }

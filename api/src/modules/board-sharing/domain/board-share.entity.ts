@@ -16,6 +16,7 @@ export interface BoardShareProps {
   declinedAt?: Date;
   revokedAt?: Date;
   publicId: string;
+  createdAt: Date;
 }
 
 export class BoardShare extends AggregateRoot<BoardShareProps> {
@@ -30,6 +31,7 @@ export class BoardShare extends AggregateRoot<BoardShareProps> {
   get declinedAt(): Date | undefined { return this.props.declinedAt; }
   get revokedAt(): Date | undefined { return this.props.revokedAt; }
   get publicId(): string { return this.props.publicId; }
+  get createdAt(): Date { return this.props.createdAt; }
 
   isExpired(): boolean {
     return this.props.status === 'PENDING' && new Date() > this.props.tokenExpiresAt;
@@ -58,6 +60,13 @@ export class BoardShare extends AggregateRoot<BoardShareProps> {
     }
     this.props.status = 'REVOKED';
     this.props.revokedAt = new Date();
+  }
+
+  updatePermissionLevel(level: PermissionLevel): void {
+    if (this.props.status !== 'PENDING') {
+      throw new Error(`Cannot update permission level: status is ${this.props.status}`);
+    }
+    this.props.permissionLevel = level;
   }
 
   private constructor(props: BoardShareProps, id?: string) {

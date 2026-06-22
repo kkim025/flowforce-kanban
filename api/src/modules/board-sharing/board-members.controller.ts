@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
-import { ListSharesUseCase } from './application/use-cases/list-shares.use-case';
 import { BoardSharingService } from './board-sharing.service';
+import { PermissionService } from './permission.service';
 
 @Controller('boards/:boardId/members')
 @UseGuards(JwtAuthGuard)
@@ -17,8 +17,8 @@ export class BoardMembersController {
   private readonly logger = new Logger(BoardMembersController.name);
 
   constructor(
-    private readonly listSharesUseCase: ListSharesUseCase,
     private readonly sharingService: BoardSharingService,
+    private readonly permissionService: PermissionService,
   ) {}
 
   @Get()
@@ -26,7 +26,8 @@ export class BoardMembersController {
     @GetUser('sub') userId: string,
     @Param('boardId') boardId: string,
   ) {
-    return this.listSharesUseCase.listMembersForBoard(boardId, userId);
+    await this.permissionService.enforceEditBoard(userId, boardId);
+    return this.sharingService.listMembersForBoard(boardId);
   }
 
   @Delete(':memberId')

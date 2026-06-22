@@ -1,12 +1,13 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { IBoardSharingRepository } from './domain/board-sharing.repository.interface';
+import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.interface';
 
 @Injectable()
 export class PermissionService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sharingRepo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY) private readonly sharingRepo: IBoardSharingRepository,
   ) {}
 
   /**

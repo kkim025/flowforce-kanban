@@ -48,7 +48,7 @@ import { JwtAuthModule } from '../../auth/jwt-auth.module';
     UpsertPrefUseCase,
     // Re-export the pref repo so legacy consumers that imported it from
     // UsersModule keep working. NotificationPrefsModule is the source of truth.
-    USER_NOTIFICATION_PREF_REPOSITORY,
+    NotificationPrefsModule,
   ],
 })
 export class UsersModule {}

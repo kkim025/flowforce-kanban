@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { IBoardSharingRepository } from './domain/board-sharing.repository.interface';
+import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.interface';
 import { BoardShare } from './domain/board-share.entity';
 import { BoardMember } from './domain/board-member.entity';
 import { InviteEmailBuilder } from '../../mail/templates/invite-email.builder';
@@ -11,7 +12,7 @@ const TOKEN_EXPIRY_HOURS = 7 * 24; // 7 days
 @Injectable()
 export class BoardSharingService {
   constructor(
-    private readonly repo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
     private readonly emailBuilder: InviteEmailBuilder,
     private readonly mailService: MailService,
   ) {}

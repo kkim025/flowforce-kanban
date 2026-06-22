@@ -1,16 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { BoardSharingService } from '../../board-sharing.service';
 import { PermissionService } from '../../permission.service';
 import { UpdateShareDto } from '../dto/update-share.dto';
 import { ShareResponseDto } from '../dto/share-response.dto';
 import type { IBoardSharingRepository } from '../../domain/board-sharing.repository.interface';
+import { BOARD_SHARING_REPOSITORY } from '../../domain/board-sharing.repository.interface';
 
 @Injectable()
 export class UpdateShareUseCase {
   constructor(
     private readonly sharingService: BoardSharingService,
     private readonly permissionService: PermissionService,
-    private readonly repo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
   ) {}
 
   async execute(

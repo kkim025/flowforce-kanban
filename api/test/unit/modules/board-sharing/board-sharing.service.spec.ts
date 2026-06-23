@@ -20,7 +20,9 @@ const mockRepo = {
 } as unknown as jest.Mocked<IBoardSharingRepository>;
 
 const mockEmailBuilder = {
-  build: jest.fn().mockReturnValue({ subject: 'Invite', text: 'text', html: '<p>html</p>' }),
+  build: jest
+    .fn()
+    .mockReturnValue({ subject: 'Invite', text: 'text', html: '<p>html</p>' }),
 };
 
 const mockMailService = {
@@ -51,19 +53,24 @@ describe('BoardSharingService', () => {
     );
   });
 
-  const makeShare = (overrides: Partial<Parameters<typeof BoardShare.create>[0]> = {}) =>
-    BoardShare.create({
-      boardId: 'board-1',
-      email: 'alice@example.com',
-      permissionLevel: 'VIEW',
-      status: 'PENDING',
-      invitedById: 'user-1',
-      inviteToken: 'token-abc',
-      tokenExpiresAt: new Date(Date.now() + 86400000),
-      publicId: 'pub-1',
-      createdAt: new Date(),
-      ...overrides,
-    }, 'share-1').getValue();
+  const makeShare = (
+    overrides: Partial<Parameters<typeof BoardShare.create>[0]> = {},
+  ) =>
+    BoardShare.create(
+      {
+        boardId: 'board-1',
+        email: 'alice@example.com',
+        permissionLevel: 'VIEW',
+        status: 'PENDING',
+        invitedById: 'user-1',
+        inviteToken: 'token-abc',
+        tokenExpiresAt: new Date(Date.now() + 86400000),
+        publicId: 'pub-1',
+        createdAt: new Date(),
+        ...overrides,
+      },
+      'share-1',
+    ).getValue();
 
   describe('createShare', () => {
     beforeEach(() => {
@@ -74,8 +81,12 @@ describe('BoardSharingService', () => {
       mockRepo.findPendingShare.mockResolvedValue(null);
 
       const share = await service.createShare(
-        'board-1', 'alice@example.com', 'VIEW',
-        'user-1', 'Bob', 'My Board',
+        'board-1',
+        'alice@example.com',
+        'VIEW',
+        'user-1',
+        'Bob',
+        'My Board',
       );
 
       expect(share.boardId).toBe('board-1');
@@ -91,18 +102,26 @@ describe('BoardSharingService', () => {
       mockRepo.findPendingShare.mockResolvedValue(makeShare());
 
       await expect(
-        service.createShare('board-1', 'alice@example.com', 'VIEW', 'user-1', 'Bob', 'My Board'),
+        service.createShare(
+          'board-1',
+          'alice@example.com',
+          'VIEW',
+          'user-1',
+          'Bob',
+          'My Board',
+        ),
       ).rejects.toThrow('pending invite already exists');
     });
-
-;
   });
 
   describe('acceptShare', () => {
     it('creates BoardMember when user email matches share email', async () => {
       const share = makeShare();
       mockRepo.findShareByToken.mockResolvedValue(share);
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-2', email: 'alice@example.com' } as any);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
 
       const member = await service.acceptShare('token-abc', 'user-2');
 
@@ -114,21 +133,30 @@ describe('BoardSharingService', () => {
     it('throws if user email does not match share email', async () => {
       const share = makeShare();
       mockRepo.findShareByToken.mockResolvedValue(share);
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-2', email: 'bob@example.com' } as any);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'bob@example.com',
+      } as any);
 
-      await expect(service.acceptShare('token-abc', 'user-2')).rejects.toThrow('different email address');
+      await expect(service.acceptShare('token-abc', 'user-2')).rejects.toThrow(
+        'different email address',
+      );
     });
 
     it('throws if invite not found', async () => {
       mockRepo.findShareByToken.mockResolvedValue(null);
-      await expect(service.acceptShare('bad-token', 'user-2')).rejects.toThrow('Invite not found');
+      await expect(service.acceptShare('bad-token', 'user-2')).rejects.toThrow(
+        'Invite not found',
+      );
     });
 
     it('throws if invite expired', async () => {
       const share = makeShare({ tokenExpiresAt: new Date(Date.now() - 1000) });
       mockRepo.findShareByToken.mockResolvedValue(share);
 
-      await expect(service.acceptShare('token-abc', 'user-2')).rejects.toThrow('expired');
+      await expect(service.acceptShare('token-abc', 'user-2')).rejects.toThrow(
+        'expired',
+      );
     });
   });
 
@@ -156,17 +184,28 @@ describe('BoardSharingService', () => {
 
     it('throws if share not found', async () => {
       mockRepo.findShareById.mockResolvedValue(null);
-      await expect(service.revokeShare('share-1')).rejects.toThrow('Invite not found');
+      await expect(service.revokeShare('share-1')).rejects.toThrow(
+        'Invite not found',
+      );
     });
   });
 
   describe('removeMember', () => {
-    const member = BoardMember.create({
-      boardId: 'board-1', userId: 'member-user', role: 'VIEWER', publicId: 'pub-mem',
-    }, 'member-1').getValue();
+    const member = BoardMember.create(
+      {
+        boardId: 'board-1',
+        userId: 'member-user',
+        role: 'VIEWER',
+        publicId: 'pub-mem',
+      },
+      'member-1',
+    ).getValue();
 
     it('allows board owner to remove any member', async () => {
-      mockPrisma.board.findUnique.mockResolvedValue({ id: 'board-1', ownerId: 'owner-user' } as any);
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'owner-user',
+      } as any);
       mockRepo.findMemberById.mockResolvedValue(member);
 
       await service.removeMember('board-1', 'member-1', 'owner-user');
@@ -175,11 +214,20 @@ describe('BoardSharingService', () => {
     });
 
     it('allows ADMIN member to remove another member', async () => {
-      const adminMember = BoardMember.create({
-        boardId: 'board-1', userId: 'admin-user', role: 'ADMIN', publicId: 'pub-admin',
-      }, 'admin-member-1').getValue();
+      const adminMember = BoardMember.create(
+        {
+          boardId: 'board-1',
+          userId: 'admin-user',
+          role: 'ADMIN',
+          publicId: 'pub-admin',
+        },
+        'admin-member-1',
+      ).getValue();
 
-      mockPrisma.board.findUnique.mockResolvedValue({ id: 'board-1', ownerId: 'other-owner' } as any);
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'other-owner',
+      } as any);
       mockRepo.findMemberByBoardAndUser.mockResolvedValue(adminMember);
       mockRepo.findMemberById.mockResolvedValue(member);
 
@@ -189,35 +237,59 @@ describe('BoardSharingService', () => {
     });
 
     it('throws ForbiddenException for non-admin', async () => {
-      const viewerMember = BoardMember.create({
-        boardId: 'board-1', userId: 'viewer-user', role: 'VIEWER', publicId: 'pub-view',
-      }, 'viewer-member-1').getValue();
+      const viewerMember = BoardMember.create(
+        {
+          boardId: 'board-1',
+          userId: 'viewer-user',
+          role: 'VIEWER',
+          publicId: 'pub-view',
+        },
+        'viewer-member-1',
+      ).getValue();
 
-      mockPrisma.board.findUnique.mockResolvedValue({ id: 'board-1', ownerId: 'other-owner' } as any);
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'other-owner',
+      } as any);
       mockRepo.findMemberByBoardAndUser.mockResolvedValue(viewerMember);
 
-      await expect(service.removeMember('board-1', 'member-1', 'viewer-user'))
-        .rejects.toThrow('Admin access required');
+      await expect(
+        service.removeMember('board-1', 'member-1', 'viewer-user'),
+      ).rejects.toThrow('Admin access required');
     });
 
     it('throws NotFoundException if member does not exist', async () => {
-      mockPrisma.board.findUnique.mockResolvedValue({ id: 'board-1', ownerId: 'owner-user' } as any);
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'owner-user',
+      } as any);
       mockRepo.findMemberById.mockResolvedValue(null);
 
-      await expect(service.removeMember('board-1', 'member-1', 'owner-user'))
-        .rejects.toThrow('Member not found');
+      await expect(
+        service.removeMember('board-1', 'member-1', 'owner-user'),
+      ).rejects.toThrow('Member not found');
     });
 
     it('throws NotFoundException if member belongs to different board', async () => {
-      const otherBoardMember = BoardMember.create({
-        boardId: 'other-board', userId: 'member-user', role: 'VIEWER', publicId: 'pub-mem',
-      }, 'member-other').getValue();
+      const otherBoardMember = BoardMember.create(
+        {
+          boardId: 'other-board',
+          userId: 'member-user',
+          role: 'VIEWER',
+          publicId: 'pub-mem',
+        },
+        'member-other',
+      ).getValue();
 
-      mockPrisma.board.findUnique.mockResolvedValue({ id: 'board-1', ownerId: 'owner-user' } as any);
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'owner-user',
+      } as any);
       mockRepo.findMemberById.mockResolvedValue(otherBoardMember);
 
-      await expect(service.removeMember('board-1', 'member-other', 'owner-user'))
-        .rejects.toThrow('Member not found');
+      await expect(
+        service.removeMember('board-1', 'member-other', 'owner-user'),
+      ).rejects.toThrow('Member not found');
     });
   });
 

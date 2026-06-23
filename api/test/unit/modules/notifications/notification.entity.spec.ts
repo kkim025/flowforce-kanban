@@ -64,7 +64,10 @@ describe('Notification entity', () => {
     });
 
     it('returns Result.fail when refType is empty', () => {
-      const result = Notification.create({ ...validProps, refType: '' as unknown as NotificationRefType });
+      const result = Notification.create({
+        ...validProps,
+        refType: '' as unknown as NotificationRefType,
+      });
       expect(result.isFailure).toBe(true);
     });
 

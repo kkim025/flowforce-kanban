@@ -2,7 +2,12 @@ import { AggregateRoot } from '../../../common/domain/aggregate-root';
 import { Result } from '../../../common/domain/result';
 
 export type PermissionLevel = 'VIEW' | 'EDIT';
-export type BoardShareStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REVOKED' | 'EXPIRED';
+export type BoardShareStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'REVOKED'
+  | 'EXPIRED';
 
 export interface BoardShareProps {
   boardId: string;
@@ -20,21 +25,47 @@ export interface BoardShareProps {
 }
 
 export class BoardShare extends AggregateRoot<BoardShareProps> {
-  get boardId(): string { return this.props.boardId; }
-  get email(): string { return this.props.email; }
-  get permissionLevel(): PermissionLevel { return this.props.permissionLevel; }
-  get status(): BoardShareStatus { return this.props.status; }
-  get invitedById(): string { return this.props.invitedById; }
-  get inviteToken(): string { return this.props.inviteToken; }
-  get tokenExpiresAt(): Date { return this.props.tokenExpiresAt; }
-  get acceptedAt(): Date | undefined { return this.props.acceptedAt; }
-  get declinedAt(): Date | undefined { return this.props.declinedAt; }
-  get revokedAt(): Date | undefined { return this.props.revokedAt; }
-  get publicId(): string { return this.props.publicId; }
-  get createdAt(): Date { return this.props.createdAt; }
+  get boardId(): string {
+    return this.props.boardId;
+  }
+  get email(): string {
+    return this.props.email;
+  }
+  get permissionLevel(): PermissionLevel {
+    return this.props.permissionLevel;
+  }
+  get status(): BoardShareStatus {
+    return this.props.status;
+  }
+  get invitedById(): string {
+    return this.props.invitedById;
+  }
+  get inviteToken(): string {
+    return this.props.inviteToken;
+  }
+  get tokenExpiresAt(): Date {
+    return this.props.tokenExpiresAt;
+  }
+  get acceptedAt(): Date | undefined {
+    return this.props.acceptedAt;
+  }
+  get declinedAt(): Date | undefined {
+    return this.props.declinedAt;
+  }
+  get revokedAt(): Date | undefined {
+    return this.props.revokedAt;
+  }
+  get publicId(): string {
+    return this.props.publicId;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
 
   isExpired(): boolean {
-    return this.props.status === 'PENDING' && new Date() > this.props.tokenExpiresAt;
+    return (
+      this.props.status === 'PENDING' && new Date() > this.props.tokenExpiresAt
+    );
   }
 
   isPending(): boolean {
@@ -42,14 +73,16 @@ export class BoardShare extends AggregateRoot<BoardShareProps> {
   }
 
   accept(): void {
-    if (this.props.status !== 'PENDING') throw new Error(`Cannot accept: status is ${this.props.status}`);
+    if (this.props.status !== 'PENDING')
+      throw new Error(`Cannot accept: status is ${this.props.status}`);
     if (this.isExpired()) throw new Error('Cannot accept expired share');
     this.props.status = 'ACCEPTED';
     this.props.acceptedAt = new Date();
   }
 
   decline(): void {
-    if (this.props.status !== 'PENDING') throw new Error(`Cannot decline: status is ${this.props.status}`);
+    if (this.props.status !== 'PENDING')
+      throw new Error(`Cannot decline: status is ${this.props.status}`);
     this.props.status = 'DECLINED';
     this.props.declinedAt = new Date();
   }
@@ -64,7 +97,9 @@ export class BoardShare extends AggregateRoot<BoardShareProps> {
 
   updatePermissionLevel(level: PermissionLevel): void {
     if (this.props.status !== 'PENDING') {
-      throw new Error(`Cannot update permission level: status is ${this.props.status}`);
+      throw new Error(
+        `Cannot update permission level: status is ${this.props.status}`,
+      );
     }
     this.props.permissionLevel = level;
   }
@@ -73,12 +108,18 @@ export class BoardShare extends AggregateRoot<BoardShareProps> {
     super(props, id);
   }
 
-  public static create(props: BoardShareProps, id?: string): Result<BoardShare> {
+  public static create(
+    props: BoardShareProps,
+    id?: string,
+  ): Result<BoardShare> {
     if (!props.boardId) return Result.fail<BoardShare>('boardId is required');
     if (!props.email) return Result.fail<BoardShare>('email is required');
-    if (!props.invitedById) return Result.fail<BoardShare>('invitedById is required');
-    if (!props.inviteToken) return Result.fail<BoardShare>('inviteToken is required');
-    if (!props.tokenExpiresAt) return Result.fail<BoardShare>('tokenExpiresAt is required');
+    if (!props.invitedById)
+      return Result.fail<BoardShare>('invitedById is required');
+    if (!props.inviteToken)
+      return Result.fail<BoardShare>('inviteToken is required');
+    if (!props.tokenExpiresAt)
+      return Result.fail<BoardShare>('tokenExpiresAt is required');
     return Result.ok<BoardShare>(new BoardShare(props, id));
   }
 }

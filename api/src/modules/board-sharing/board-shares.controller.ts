@@ -52,7 +52,13 @@ export class BoardSharesController {
     if (!board) throw new NotFoundException('Board not found');
     const inviterName = inviter?.name ?? inviter?.email ?? 'A user';
 
-    return this.createShareUseCase.execute(dto, boardId, userId, inviterName, board.title);
+    return this.createShareUseCase.execute(
+      dto,
+      boardId,
+      userId,
+      inviterName,
+      board.title,
+    );
   }
 
   @Get()
@@ -83,7 +89,8 @@ export class InviteAcceptController {
   constructor(
     private readonly sharingService: BoardSharingService,
     private readonly prisma: PrismaService,
-    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY)
+    private readonly repo: IBoardSharingRepository,
   ) {}
 
   // Public — no auth required (user may not be logged in yet)
@@ -92,7 +99,9 @@ export class InviteAcceptController {
     const share = await this.repo.findShareByToken(token);
     if (!share) throw new NotFoundException('Invite not found');
 
-    const board = await this.prisma.board.findUnique({ where: { id: share.boardId } });
+    const board = await this.prisma.board.findUnique({
+      where: { id: share.boardId },
+    });
     return {
       token,
       email: share.email,
@@ -107,7 +116,10 @@ export class InviteAcceptController {
   // Protected — requires JWT auth
   @Post(':token/accept')
   @UseGuards(JwtAuthGuard)
-  async acceptInvite(@Param('token') token: string, @GetUser('sub') userId: string) {
+  async acceptInvite(
+    @Param('token') token: string,
+    @GetUser('sub') userId: string,
+  ) {
     this.logger.log(`User ${userId} accepting invite ${token}`);
     const member = await this.sharingService.acceptShare(token, userId);
     return { success: true, memberId: member.id, boardId: member.boardId };
@@ -116,7 +128,10 @@ export class InviteAcceptController {
   // Protected — requires JWT auth
   @Post(':token/decline')
   @UseGuards(JwtAuthGuard)
-  async declineInvite(@Param('token') token: string, @GetUser('sub') userId: string) {
+  async declineInvite(
+    @Param('token') token: string,
+    @GetUser('sub') userId: string,
+  ) {
     this.logger.log(`User ${userId} declining invite ${token}`);
     await this.sharingService.declineShare(token);
     return { success: true };

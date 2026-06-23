@@ -20,7 +20,11 @@ export interface InviteEmailParams {
 // Gmail "view as text" fallback shows.
 @Injectable()
 export class InviteEmailBuilder {
-  build(params: InviteEmailParams): { subject: string; text: string; html: string } {
+  build(params: InviteEmailParams): {
+    subject: string;
+    text: string;
+    html: string;
+  } {
     const subject = `${params.inviterName} invited you to ${params.permissionLabel === 'edit' ? 'edit' : 'view'} ${params.boardName} on FlowForce`;
     const text = this.renderText(params);
     const html = this.renderHtml(params);

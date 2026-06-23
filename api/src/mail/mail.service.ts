@@ -1,5 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { MailTransport, MailMessage } from './transports/transport.interface';
+import type {
+  MailTransport,
+  MailMessage,
+} from './transports/transport.interface';
 
 export const MAIL_TRANSPORT = Symbol('MAIL_TRANSPORT');
 
@@ -19,7 +22,9 @@ export interface SendArgs {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  constructor(@Inject(MAIL_TRANSPORT) private readonly transport: MailTransport) {}
+  constructor(
+    @Inject(MAIL_TRANSPORT) private readonly transport: MailTransport,
+  ) {}
 
   async send(args: SendArgs): Promise<void> {
     const message: MailMessage = {

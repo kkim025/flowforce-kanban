@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../common/prisma/prisma.service';
 import { IBoardSharingRepository } from '../../domain/board-sharing.repository.interface';
-import { BoardShare, BoardShareStatus, PermissionLevel } from '../../domain/board-share.entity';
+import {
+  BoardShare,
+  BoardShareStatus,
+  PermissionLevel,
+} from '../../domain/board-share.entity';
 import { BoardMember, BoardMemberRole } from '../../domain/board-member.entity';
 import { Prisma } from '@prisma/client';
 
@@ -30,7 +34,9 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
   }
 
   async findShareByToken(token: string): Promise<BoardShare | null> {
-    const raw = await this.prisma.boardShare.findUnique({ where: { inviteToken: token } });
+    const raw = await this.prisma.boardShare.findUnique({
+      where: { inviteToken: token },
+    });
     return raw ? this.rawToShare(raw) : null;
   }
 
@@ -39,7 +45,10 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return raw ? this.rawToShare(raw) : null;
   }
 
-  async findSharesByBoardId(boardId: string, status?: BoardShareStatus): Promise<BoardShare[]> {
+  async findSharesByBoardId(
+    boardId: string,
+    status?: BoardShareStatus,
+  ): Promise<BoardShare[]> {
     const raws = await this.prisma.boardShare.findMany({
       where: { boardId, ...(status ? { status } : undefined) },
       orderBy: { createdAt: 'desc' },
@@ -47,7 +56,10 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return raws.map((r) => this.rawToShare(r));
   }
 
-  async findSharesByEmail(email: string, status?: BoardShareStatus): Promise<BoardShare[]> {
+  async findSharesByEmail(
+    email: string,
+    status?: BoardShareStatus,
+  ): Promise<BoardShare[]> {
     const raws = await this.prisma.boardShare.findMany({
       where: { email, ...(status ? { status } : undefined) },
       orderBy: { createdAt: 'desc' },
@@ -55,7 +67,10 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return raws.map((r) => this.rawToShare(r));
   }
 
-  async findPendingShare(boardId: string, email: string): Promise<BoardShare | null> {
+  async findPendingShare(
+    boardId: string,
+    email: string,
+  ): Promise<BoardShare | null> {
     const raw = await this.prisma.boardShare.findUnique({
       where: { boardId_email: { boardId, email } },
     });
@@ -109,11 +124,16 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
   }
 
   async findMemberById(memberId: string): Promise<BoardMember | null> {
-    const raw = await this.prisma.boardMember.findUnique({ where: { id: memberId } });
+    const raw = await this.prisma.boardMember.findUnique({
+      where: { id: memberId },
+    });
     return raw ? this.rawToMember(raw) : null;
   }
 
-  async findMemberByBoardAndUser(boardId: string, userId: string): Promise<BoardMember | null> {
+  async findMemberByBoardAndUser(
+    boardId: string,
+    userId: string,
+  ): Promise<BoardMember | null> {
     const raw = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });
@@ -157,5 +177,4 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
   async deleteMember(id: string): Promise<void> {
     await this.prisma.boardMember.delete({ where: { id } });
   }
-
 }

@@ -29,12 +29,18 @@ import { InviteEmailBuilder } from './templates/invite-email.builder';
           logger.log('Using SMTP mail transport');
           return new SmtpMailTransport({
             url: smtpUrl,
-            from: config.get<string>('MAIL_FROM') ?? 'FlowForce <noreply@flowforce.app>',
+            from:
+              config.get<string>('MAIL_FROM') ??
+              'FlowForce <noreply@flowforce.app>',
           });
         }
-        logger.log('No SMTP_URL configured — falling back to console mail transport');
+        logger.log(
+          'No SMTP_URL configured — falling back to console mail transport',
+        );
         return new ConsoleMailTransport({
-          from: config.get<string>('MAIL_FROM') ?? 'FlowForce <noreply@flowforce.app>',
+          from:
+            config.get<string>('MAIL_FROM') ??
+            'FlowForce <noreply@flowforce.app>',
         });
       },
     },

@@ -1,27 +1,44 @@
-import { BoardShare, PermissionLevel, BoardShareStatus } from 'src/modules/board-sharing/domain/board-share.entity';
+import {
+  BoardShare,
+  PermissionLevel,
+  BoardShareStatus,
+} from 'src/modules/board-sharing/domain/board-share.entity';
 
 const NOW = new Date();
 const FUTURE = new Date(Date.now() + 86400000);
 const PAST = new Date(Date.now() - 1000);
 
-function createShare(overrides: Partial<{
-  boardId: string; email: string; permissionLevel: PermissionLevel;
-  status: BoardShareStatus; invitedById: string; inviteToken: string;
-  tokenExpiresAt: Date; acceptedAt?: Date; declinedAt?: Date;
-  revokedAt?: Date; publicId: string; createdAt: Date;
-}> = {}): BoardShare {
-  return BoardShare.create({
-    boardId: 'board-1',
-    email: 'alice@example.com',
-    permissionLevel: 'VIEW',
-    status: 'PENDING',
-    invitedById: 'user-1',
-    inviteToken: 'token-abc',
-    tokenExpiresAt: FUTURE,
-    publicId: 'pub-1',
-    createdAt: NOW,
-    ...overrides,
-  }, 'share-1').getValue();
+function createShare(
+  overrides: Partial<{
+    boardId: string;
+    email: string;
+    permissionLevel: PermissionLevel;
+    status: BoardShareStatus;
+    invitedById: string;
+    inviteToken: string;
+    tokenExpiresAt: Date;
+    acceptedAt?: Date;
+    declinedAt?: Date;
+    revokedAt?: Date;
+    publicId: string;
+    createdAt: Date;
+  }> = {},
+): BoardShare {
+  return BoardShare.create(
+    {
+      boardId: 'board-1',
+      email: 'alice@example.com',
+      permissionLevel: 'VIEW',
+      status: 'PENDING',
+      invitedById: 'user-1',
+      inviteToken: 'token-abc',
+      tokenExpiresAt: FUTURE,
+      publicId: 'pub-1',
+      createdAt: NOW,
+      ...overrides,
+    },
+    'share-1',
+  ).getValue();
 }
 
 describe('BoardShare entity', () => {
@@ -97,17 +114,23 @@ describe('BoardShare entity', () => {
 
     it('throws when status is not PENDING', () => {
       const share = createShare({ status: 'ACCEPTED' });
-      expect(() => share.updatePermissionLevel('EDIT')).toThrow('Cannot update permission level');
+      expect(() => share.updatePermissionLevel('EDIT')).toThrow(
+        'Cannot update permission level',
+      );
     });
 
     it('throws when status is REVOKED', () => {
       const share = createShare({ status: 'REVOKED' });
-      expect(() => share.updatePermissionLevel('EDIT')).toThrow('Cannot update permission level');
+      expect(() => share.updatePermissionLevel('EDIT')).toThrow(
+        'Cannot update permission level',
+      );
     });
 
     it('throws when status is EXPIRED', () => {
       const share = createShare({ status: 'EXPIRED' });
-      expect(() => share.updatePermissionLevel('EDIT')).toThrow('Cannot update permission level');
+      expect(() => share.updatePermissionLevel('EDIT')).toThrow(
+        'Cannot update permission level',
+      );
     });
   });
 
@@ -118,6 +141,4 @@ describe('BoardShare entity', () => {
       expect(share.createdAt).toEqual(customDate);
     });
   });
-
-
 });

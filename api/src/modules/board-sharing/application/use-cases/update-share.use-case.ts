@@ -11,7 +11,8 @@ export class UpdateShareUseCase {
   constructor(
     private readonly sharingService: BoardSharingService,
     private readonly permissionService: PermissionService,
-    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY)
+    private readonly repo: IBoardSharingRepository,
   ) {}
 
   async execute(
@@ -24,7 +25,8 @@ export class UpdateShareUseCase {
 
     const share = await this.repo.findShareById(shareId);
     if (!share) throw new BadRequestException('Share not found');
-    if (share.boardId !== boardId) throw new BadRequestException('Share does not belong to this board');
+    if (share.boardId !== boardId)
+      throw new BadRequestException('Share does not belong to this board');
     if (share.status !== 'PENDING') {
       throw new BadRequestException('Can only update pending shares');
     }

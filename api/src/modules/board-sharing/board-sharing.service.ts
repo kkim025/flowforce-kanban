@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { IBoardSharingRepository } from './domain/board-sharing.repository.interface';
 import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.interface';
@@ -13,7 +19,8 @@ const TOKEN_EXPIRY_HOURS = 7 * 24; // 7 days
 @Injectable()
 export class BoardSharingService {
   constructor(
-    @Inject(BOARD_SHARING_REPOSITORY) private readonly repo: IBoardSharingRepository,
+    @Inject(BOARD_SHARING_REPOSITORY)
+    private readonly repo: IBoardSharingRepository,
     private readonly emailBuilder: InviteEmailBuilder,
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
@@ -30,11 +37,15 @@ export class BoardSharingService {
   ): Promise<BoardShare> {
     const existing = await this.repo.findPendingShare(boardId, email);
     if (existing) {
-      throw new BadRequestException('A pending invite already exists for this email on this board');
+      throw new BadRequestException(
+        'A pending invite already exists for this email on this board',
+      );
     }
 
     const inviteToken = uuidv4();
-    const tokenExpiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+    const tokenExpiresAt = new Date(
+      Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000,
+    );
 
     const shareResult = BoardShare.create({
       boardId,
@@ -75,16 +86,22 @@ export class BoardSharingService {
   async acceptShare(token: string, userId: string): Promise<BoardMember> {
     const share = await this.repo.findShareByToken(token);
     if (!share) throw new NotFoundException('Invite not found');
-    if (!share.isPending()) throw new BadRequestException(`Invite is no longer pending (status: ${share.status})`);
+    if (!share.isPending())
+      throw new BadRequestException(
+        `Invite is no longer pending (status: ${share.status})`,
+      );
     if (share.isExpired()) throw new BadRequestException('Invite has expired');
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
     if (user.email.toLowerCase() !== share.email.toLowerCase()) {
-      throw new BadRequestException('This invite was sent to a different email address');
+      throw new BadRequestException(
+        'This invite was sent to a different email address',
+      );
     }
 
-    const memberRole: 'VIEWER' | 'EDITOR' = share.permissionLevel === 'EDIT' ? 'EDITOR' : 'VIEWER';
+    const memberRole: 'VIEWER' | 'EDITOR' =
+      share.permissionLevel === 'EDIT' ? 'EDITOR' : 'VIEWER';
 
     const memberResult = BoardMember.create({
       boardId: share.boardId,
@@ -108,7 +125,10 @@ export class BoardSharingService {
   async declineShare(token: string): Promise<void> {
     const share = await this.repo.findShareByToken(token);
     if (!share) throw new NotFoundException('Invite not found');
-    if (!share.isPending()) throw new BadRequestException(`Invite is no longer pending (status: ${share.status})`);
+    if (!share.isPending())
+      throw new BadRequestException(
+        `Invite is no longer pending (status: ${share.status})`,
+      );
     share.decline();
     await this.repo.saveShare(share);
   }
@@ -136,20 +156,30 @@ export class BoardSharingService {
     return this.repo.findMembersByUserId(userId);
   }
 
-  async removeMember(boardId: string, memberId: string, requestingUserId: string): Promise<void> {
+  async removeMember(
+    boardId: string,
+    memberId: string,
+    requestingUserId: string,
+  ): Promise<void> {
     // Permission check: requester must be board admin
-    const board = await this.prisma.board.findUnique({ where: { id: boardId } });
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+    });
     if (!board) throw new NotFoundException('Board not found');
     const isOwner = board.ownerId === requestingUserId;
     if (!isOwner) {
-      const member = await this.repo.findMemberByBoardAndUser(boardId, requestingUserId);
+      const member = await this.repo.findMemberByBoardAndUser(
+        boardId,
+        requestingUserId,
+      );
       if (!member || !member.isAdmin()) {
         throw new ForbiddenException('Admin access required');
       }
     }
     const target = await this.repo.findMemberById(memberId);
     if (!target) throw new NotFoundException('Member not found');
-    if (target.boardId !== boardId) throw new NotFoundException('Member not found');
+    if (target.boardId !== boardId)
+      throw new NotFoundException('Member not found');
     await this.repo.deleteMember(target.id);
   }
 }

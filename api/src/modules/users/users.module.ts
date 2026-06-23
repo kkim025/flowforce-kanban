@@ -11,7 +11,6 @@ import { LoginUserUseCase } from './application/use-cases/login-user.use-case';
 import { ListPrefsUseCase } from './application/use-cases/list-prefs.use-case';
 import { UpsertPrefUseCase } from './application/use-cases/upsert-pref.use-case';
 import { NotificationPrefsModule } from '../notification-prefs/notification-prefs.module';
-import { USER_NOTIFICATION_PREF_REPOSITORY } from '../notification-prefs/domain/user-notification-prefs.repository.interface';
 import { JwtAuthModule } from '../../auth/jwt-auth.module';
 
 @Module({

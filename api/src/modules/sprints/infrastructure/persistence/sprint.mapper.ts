@@ -34,8 +34,8 @@ export class SprintMapper {
   ): Omit<PrismaSprint, 'id' | 'createdAt' | 'updatedAt'> {
     return {
       name: sprint.name,
-      startDate: sprint.startDate,
-      endDate: sprint.endDate,
+      startDate: sprint.props.startDate,
+      endDate: sprint.props.endDate,
       status: sprint.status,
       boardId: sprint.boardId,
       color: sprint.color || null,

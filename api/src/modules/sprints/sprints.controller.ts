@@ -7,6 +7,8 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { RolesGuard } from '../../auth/roles.guard';
@@ -24,6 +26,7 @@ import { CreateSprintDto } from './application/dto/create-sprint.dto';
 import { UpdateSprintDto } from './application/dto/update-sprint.dto';
 
 @Controller('sprints')
+@UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(JwtAuthGuard)
 export class SprintsController {
   constructor(

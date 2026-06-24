@@ -7,25 +7,30 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(MEMBER)
-  status    UserStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  boards    Board[]
-  timeEntries TimeEntry[]
-  tasks     Task[]
-  comments  Comment[]
-  activities Activity[]
-  receivedNotifications  Notification[] @relation("NotificationRecipient")
-  authoredNotifications   Notification[] @relation("NotificationActor")
-  notificationPrefs       UserNotificationPref[]
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  password              String
+  name                  String?
+  role                  Role                   @default(MEMBER)
+  status                UserStatus             @default(ACTIVE)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  boards                Board[]
+  timeEntries           TimeEntry[]
+  tasks                 Task[]
+  comments              Comment[]
+  activities            Activity[]
+  receivedNotifications Notification[]         @relation("NotificationRecipient")
+  authoredNotifications Notification[]         @relation("NotificationActor")
+  notificationPrefs     UserNotificationPref[]
   // Board sharing relations
-  memberships            BoardMember[] @relation("BoardMemberUser")
-  authoredBoardShares    BoardShare[]  @relation("BoardShareInviter")
+  memberships           BoardMember[]          @relation("BoardMemberUser")
+  authoredBoardShares   BoardShare[]           @relation("BoardShareInviter")
+  // Wiki relations (FLO-Wiki)
+  createdWikiPages      WikiPage[]             @relation("WikiPageCreator")
+  updatedWikiPages      WikiPage[]             @relation("WikiPageUpdater")
+  archivedWikiPages     WikiPage[]             @relation("WikiPageArchiver")
+  wikiPageVersions      WikiPageVersion[]      @relation("WikiPageVersionEditor")
 }
 
 model Invitation {
@@ -49,19 +54,21 @@ enum UserStatus {
 }
 
 model Board {
-  id        String      @id @default(uuid())
-  title     String
-  ownerId   String
-  status    BoardStatus @default(ACTIVE)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime     @updatedAt
-  owner     User    @relation(fields: [ownerId], references: [id])
-  columns   Column[]
-  sprints   Sprint[]
+  id            String         @id @default(uuid())
+  title         String
+  ownerId       String
+  status        BoardStatus    @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  owner         User           @relation(fields: [ownerId], references: [id])
+  columns       Column[]
+  sprints       Sprint[]
   notifications Notification[]
   // Board sharing relations
-  members    BoardMember[]
-  shares     BoardShare[]
+  members       BoardMember[]
+  shares        BoardShare[]
+  // Wiki relation (FLO-Wiki)
+  wikiSpace     WikiSpace?
 }
 
 model Column {
@@ -91,28 +98,28 @@ model Sprint {
 }
 
 model Task {
-  id          String      @id @default(uuid())
-  content     String
-  description String?
-  priority    Priority    @default(MEDIUM)
-  tags        String[]
-  order       Int
-  columnId    String
-  archived    Boolean     @default(false)
-  assigneeId  String?
-  sprintId    String?
+  id               String      @id @default(uuid())
+  content          String
+  description      String?
+  priority         Priority    @default(MEDIUM)
+  tags             String[]
+  order            Int
+  columnId         String
+  archived         Boolean     @default(false)
+  assigneeId       String?
+  sprintId         String?
   estimatedMinutes Int?
-  dueDate     DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  checklists  Checklist[]
-  subtasks    Subtask[]   @relation("TaskSubtasks")
-  comments    Comment[]
-  activities  Activity[]
-  timeEntries TimeEntry[]
-  column      Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  assignee    User?       @relation(fields: [assigneeId], references: [id])
-  sprint      Sprint?     @relation(fields: [sprintId], references: [id])
+  dueDate          DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  checklists       Checklist[]
+  subtasks         Subtask[]   @relation("TaskSubtasks")
+  comments         Comment[]
+  activities       Activity[]
+  timeEntries      TimeEntry[]
+  column           Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignee         User?       @relation(fields: [assigneeId], references: [id])
+  sprint           Sprint?     @relation(fields: [sprintId], references: [id])
 
   // Backs the DueDateScanner query: `dueDate IN window AND assigneeId IS NOT NULL AND archived = false`.
   // Without this, the scanner degrades to a sequential scan on the tasks table as it grows.
@@ -120,15 +127,15 @@ model Task {
 }
 
 model Comment {
-  id                String   @id @default(uuid())
-  content           String
-  taskId            String
-  userId            String
-  mentionedUserIds  String[] @default([])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  task              Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user              User     @relation(fields: [userId], references: [id])
+  id               String   @id @default(uuid())
+  content          String
+  taskId           String
+  userId           String
+  mentionedUserIds String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id])
 }
 
 model Activity {
@@ -197,33 +204,33 @@ model TimeEntry {
 }
 
 model Notification {
-  id           String   @id @default(uuid())
-  recipientId  String
-  actorId      String?
-  type         NotificationType
-  title        String
-  body         String?
-  refType      String
-  refId        String
-  boardId      String?
-  milestone    String?
-  readAt       DateTime?
-  createdAt    DateTime @default(now())
-  recipient    User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  actor        User?    @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
-  board        Board?   @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  id          String           @id @default(uuid())
+  recipientId String
+  actorId     String?
+  type        NotificationType
+  title       String
+  body        String?
+  refType     String
+  refId       String
+  boardId     String?
+  milestone   String?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  recipient   User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  board       Board?           @relation(fields: [boardId], references: [id], onDelete: SetNull)
 
+  @@unique([recipientId, type, refId, milestone])
   @@index([recipientId, readAt])
   @@index([recipientId, createdAt])
-  @@unique([recipientId, type, refId, milestone])
 }
 
 model UserNotificationPref {
-  id            String   @id @default(uuid())
-  userId        String
-  type          NotificationType
-  inAppEnabled  Boolean  @default(true)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String           @id @default(uuid())
+  userId       String
+  type         NotificationType
+  inAppEnabled Boolean          @default(true)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
 }
@@ -240,22 +247,22 @@ enum NotificationType {
 // a board. BoardMember is the resolved "this user has access" row, created when
 // a BoardShare is accepted (or for the owner / direct grants).
 model BoardShare {
-  id              String        @id @default(uuid())
-  publicId        String        @unique @default(uuid())
+  id              String           @id @default(uuid())
+  publicId        String           @unique @default(uuid())
   boardId         String
   email           String
-  permissionLevel PermissionLevel @default(VIEW)
+  permissionLevel PermissionLevel  @default(VIEW)
   status          BoardShareStatus @default(PENDING)
   invitedById     String
-  inviteToken     String        @unique
+  inviteToken     String           @unique
   tokenExpiresAt  DateTime
   acceptedAt      DateTime?
   declinedAt      DateTime?
   revokedAt       DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  board           Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  invitedBy       User          @relation("BoardShareInviter", fields: [invitedById], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  board           Board            @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  invitedBy       User             @relation("BoardShareInviter", fields: [invitedById], references: [id])
 
   @@unique([boardId, email])
   // Lookups for the "pending invites for this user" query and the board-level listing.
@@ -264,15 +271,15 @@ model BoardShare {
 }
 
 model BoardMember {
-  id        String        @id @default(uuid())
-  publicId  String        @unique @default(uuid())
+  id        String          @id @default(uuid())
+  publicId  String          @unique @default(uuid())
   boardId   String
   userId    String
   role      BoardMemberRole @default(VIEWER)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  board     Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  user      User          @relation("BoardMemberUser", fields: [userId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  board     Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User            @relation("BoardMemberUser", fields: [userId], references: [id])
 
   @@unique([boardId, userId])
   @@index([userId])
@@ -295,4 +302,70 @@ enum BoardMemberRole {
   VIEWER
   EDITOR
   ADMIN
+}
+
+// =====================================================================
+// Wiki (FLO-Wiki) — see docs/wiki-proposal.md and GitHub issue #23.
+//
+// WikiSpace is 1:1 with Board (one wiki per board, MVP).
+// WikiPage is an adjacency-list tree (parentId) of markdown docs.
+// WikiPageVersion is append-only history; pruned to 50 per page on save.
+// =====================================================================
+
+model WikiSpace {
+  id        String     @id @default(uuid())
+  boardId   String     @unique
+  board     Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  pages     WikiPage[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model WikiPage {
+  id           String    @id @default(uuid())
+  spaceId      String
+  parentId     String?
+  slug         String
+  title        String
+  content      String
+  order        Int       @default(0)
+  archived     Boolean   @default(false)
+  archivedAt   DateTime?
+  archivedById String?
+  createdById  String
+  updatedById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  space      WikiSpace         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  parent     WikiPage?         @relation("WikiPageTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children   WikiPage[]        @relation("WikiPageTree")
+  versions   WikiPageVersion[]
+  createdBy  User              @relation("WikiPageCreator", fields: [createdById], references: [id])
+  updatedBy  User              @relation("WikiPageUpdater", fields: [updatedById], references: [id])
+  archivedBy User?             @relation("WikiPageArchiver", fields: [archivedById], references: [id], onDelete: SetNull)
+
+  @@unique([spaceId, parentId, slug])
+  // Sidebar tree: list children of a parent, ordered.
+  @@index([spaceId, parentId, order])
+  // "Recent updates" feed in MVP.
+  @@index([spaceId, archived, updatedAt])
+  // Trash view.
+  @@index([spaceId, archived, archivedAt])
+}
+
+model WikiPageVersion {
+  id         String   @id @default(uuid())
+  pageId     String
+  revisionNo Int
+  title      String
+  content    String
+  editorId   String
+  createdAt  DateTime @default(now())
+  page       WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  editor     User     @relation("WikiPageVersionEditor", fields: [editorId], references: [id])
+
+  @@unique([pageId, revisionNo])
+  // History dropdown queries.
+  @@index([pageId, createdAt])
 }

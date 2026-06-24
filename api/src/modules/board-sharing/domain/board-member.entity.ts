@@ -8,6 +8,7 @@ export interface BoardMemberProps {
   userId: string;
   role: BoardMemberRole;
   publicId: string;
+  createdAt?: Date;
 }
 
 export class BoardMember extends AggregateRoot<BoardMemberProps> {
@@ -22,6 +23,9 @@ export class BoardMember extends AggregateRoot<BoardMemberProps> {
   }
   get publicId(): string {
     return this.props.publicId;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt ?? new Date(0);
   }
 
   canEdit(): boolean {

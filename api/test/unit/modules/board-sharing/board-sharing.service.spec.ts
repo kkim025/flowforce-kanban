@@ -29,21 +29,57 @@ const mockMailService = {
   send: jest.fn().mockResolvedValue(undefined),
 };
 
-const mockPrisma = {
-  board: {
-    findUnique: jest.fn(),
-  },
-  user: {
-    findUnique: jest.fn(),
-  },
+// Minimal Prisma mock that supports $transaction and the boardMember /
+// boardShare / board / user collections we touch in the transactional
+// accept path. The $transaction body is invoked with a tx object whose
+// methods we forward to mocks we configure per-test.
+type TxClient = {
+  boardShare: { findUnique: jest.Mock; update: jest.Mock };
+  boardMember: {
+    findUnique: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
 };
+
+function makeMockPrisma() {
+  const tx: TxClient = {
+    boardShare: {
+      findUnique: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined),
+    },
+    boardMember: {
+      findUnique: jest.fn(),
+      create: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(undefined),
+    },
+  };
+  return {
+    board: { findUnique: jest.fn() },
+    user: { findUnique: jest.fn() },
+    $transaction: jest.fn(async (fn: (client: TxClient) => Promise<unknown>) =>
+      fn(tx),
+    ),
+    _tx: tx,
+  };
+}
+
+const mockPrisma: ReturnType<typeof makeMockPrisma> = makeMockPrisma();
 
 describe('BoardSharingService', () => {
   let service: BoardSharingService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.FRONTEND_URL;
+    // Reset prisma tx mocks for each test.
+    mockPrisma._tx.boardShare.findUnique.mockReset();
+    mockPrisma._tx.boardShare.update.mockReset();
+    mockPrisma._tx.boardShare.update.mockResolvedValue(undefined);
+    mockPrisma._tx.boardMember.findUnique.mockReset();
+    mockPrisma._tx.boardMember.create.mockReset();
+    mockPrisma._tx.boardMember.create.mockResolvedValue(undefined);
+    mockPrisma._tx.boardMember.update.mockReset();
+    mockPrisma._tx.boardMember.update.mockResolvedValue(undefined);
     process.env.FRONTEND_URL = 'http://localhost:5173';
     service = new BoardSharingService(
       mockRepo,
@@ -55,6 +91,7 @@ describe('BoardSharingService', () => {
 
   const makeShare = (
     overrides: Partial<Parameters<typeof BoardShare.create>[0]> = {},
+    id = 'share-1',
   ) =>
     BoardShare.create(
       {
@@ -69,14 +106,10 @@ describe('BoardSharingService', () => {
         createdAt: new Date(),
         ...overrides,
       },
-      'share-1',
+      id,
     ).getValue();
 
   describe('createShare', () => {
-    beforeEach(() => {
-      process.env.FRONTEND_URL = 'http://localhost:5173';
-    });
-
     it('creates a share and sends an invite email', async () => {
       mockRepo.findPendingShare.mockResolvedValue(null);
 
@@ -87,6 +120,7 @@ describe('BoardSharingService', () => {
         'user-1',
         'Bob',
         'My Board',
+        'http://localhost:5173',
       );
 
       expect(share.boardId).toBe('board-1');
@@ -98,36 +132,124 @@ describe('BoardSharingService', () => {
       );
     });
 
-    it('throws if a pending share already exists', async () => {
-      mockRepo.findPendingShare.mockResolvedValue(makeShare());
+    // I1: returning the same shape for "already pending" and "newly
+    // created" so the caller cannot enumerate which emails already
+    // have pending invites.
+    it('returns the existing share when one is already pending (no error)', async () => {
+      const existing = makeShare();
+      mockRepo.findPendingShare.mockResolvedValue(existing);
 
-      await expect(
-        service.createShare(
-          'board-1',
-          'alice@example.com',
-          'VIEW',
-          'user-1',
-          'Bob',
-          'My Board',
-        ),
-      ).rejects.toThrow('pending invite already exists');
+      const share = await service.createShare(
+        'board-1',
+        'alice@example.com',
+        'VIEW',
+        'user-1',
+        'Bob',
+        'My Board',
+        'http://localhost:5173',
+      );
+
+      expect(share).toBe(existing);
+      // No new share saved and no new email sent.
+      expect(mockRepo.saveShare).not.toHaveBeenCalled();
+      expect(mockMailService.send).not.toHaveBeenCalled();
     });
   });
 
   describe('acceptShare', () => {
-    it('creates BoardMember when user email matches share email', async () => {
+    it('creates a new BoardMember inside a transaction', async () => {
       const share = makeShare();
       mockRepo.findShareByToken.mockResolvedValue(share);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-2',
         email: 'alice@example.com',
       } as any);
+      mockPrisma._tx.boardShare.findUnique.mockResolvedValue({
+        id: share.id,
+        status: 'PENDING',
+      });
+      mockPrisma._tx.boardMember.findUnique.mockResolvedValue(null);
 
       const member = await service.acceptShare('token-abc', 'user-2');
 
       expect(member.boardId).toBe('board-1');
-      expect(mockRepo.saveShare).toHaveBeenCalled();
-      expect(mockRepo.saveMember).toHaveBeenCalled();
+      expect(member.userId).toBe('user-2');
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockPrisma._tx.boardMember.create).toHaveBeenCalled();
+      expect(mockPrisma._tx.boardShare.update).toHaveBeenCalled();
+      // The repo's saveShare/saveMember should NOT be called directly
+      // — we go through the transaction to keep the writes atomic.
+      expect(mockRepo.saveShare).not.toHaveBeenCalled();
+      expect(mockRepo.saveMember).not.toHaveBeenCalled();
+    });
+
+    // I8: when a member already exists with a higher or equal role,
+    // accept should mark the share accepted but NOT downgrade them.
+    it('keeps the existing role when it is already at least as permissive (no downgrade)', async () => {
+      const share = makeShare({ permissionLevel: 'VIEW' });
+      mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
+      mockPrisma._tx.boardShare.findUnique.mockResolvedValue({
+        id: share.id,
+        status: 'PENDING',
+      });
+      mockPrisma._tx.boardMember.findUnique.mockResolvedValue({
+        id: 'member-existing',
+        boardId: 'board-1',
+        userId: 'user-2',
+        role: 'EDITOR',
+        publicId: 'pub-existing',
+        createdAt: new Date(),
+      });
+
+      const member = await service.acceptShare('token-abc', 'user-2');
+
+      expect(member.role).toBe('EDITOR');
+      expect(member.publicId).toBe('pub-existing');
+      // Share is still marked accepted.
+      expect(mockPrisma._tx.boardShare.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'ACCEPTED' }),
+        }),
+      );
+      // Member row was NOT rewritten (we only save the share update).
+      expect(mockPrisma._tx.boardMember.update).not.toHaveBeenCalled();
+      expect(mockPrisma._tx.boardMember.create).not.toHaveBeenCalled();
+    });
+
+    // I8: incoming EDIT should promote an existing VIEWER to EDITOR.
+    it('promotes the existing member when the incoming role is higher', async () => {
+      const share = makeShare({ permissionLevel: 'EDIT' });
+      mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
+      mockPrisma._tx.boardShare.findUnique.mockResolvedValue({
+        id: share.id,
+        status: 'PENDING',
+      });
+      mockPrisma._tx.boardMember.findUnique.mockResolvedValue({
+        id: 'member-existing',
+        boardId: 'board-1',
+        userId: 'user-2',
+        role: 'VIEWER',
+        publicId: 'pub-existing',
+        createdAt: new Date(),
+      });
+
+      const member = await service.acceptShare('token-abc', 'user-2');
+
+      expect(member.role).toBe('EDITOR');
+      expect(mockPrisma._tx.boardMember.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'member-existing' },
+          data: expect.objectContaining({ role: 'EDITOR' }),
+        }),
+      );
     });
 
     it('throws if user email does not match share email', async () => {
@@ -158,15 +280,68 @@ describe('BoardSharingService', () => {
         'expired',
       );
     });
+
+    // C3: if the share was already accepted by the time the
+    // transaction's re-read happens, the accept must fail.
+    it('throws if the share is no longer PENDING inside the transaction', async () => {
+      const share = makeShare();
+      mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
+      mockPrisma._tx.boardShare.findUnique.mockResolvedValue({
+        id: share.id,
+        status: 'ACCEPTED',
+      });
+
+      await expect(service.acceptShare('token-abc', 'user-2')).rejects.toThrow(
+        'no longer pending',
+      );
+      expect(mockPrisma._tx.boardMember.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('declineShare', () => {
-    it('marks share as DECLINED', async () => {
+    it('marks share as DECLINED when requester email matches share email', async () => {
       const share = makeShare();
       mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
 
-      await service.declineShare('token-abc');
+      await service.declineShare('token-abc', 'user-2');
 
+      expect(mockRepo.saveShare).toHaveBeenCalled();
+      expect(mockRepo.saveShare.mock.calls[0][0].status).toBe('DECLINED');
+    });
+
+    // C2: a logged-in user with a different email must NOT be allowed
+    // to decline someone else's invite.
+    it('throws ForbiddenException when the requester email does not match', async () => {
+      const share = makeShare();
+      mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'mallory@example.com',
+      } as any);
+
+      await expect(service.declineShare('token-abc', 'user-2')).rejects.toThrow(
+        'not allowed to decline',
+      );
+      expect(mockRepo.saveShare).not.toHaveBeenCalled();
+    });
+
+    it('compares emails case-insensitively', async () => {
+      const share = makeShare({ email: 'ALICE@example.com' });
+      mockRepo.findShareByToken.mockResolvedValue(share);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-2',
+        email: 'alice@example.com',
+      } as any);
+
+      await service.declineShare('token-abc', 'user-2');
       expect(mockRepo.saveShare).toHaveBeenCalled();
     });
   });
@@ -197,11 +372,12 @@ describe('BoardSharingService', () => {
         userId: 'member-user',
         role: 'VIEWER',
         publicId: 'pub-mem',
+        createdAt: new Date(),
       },
       'member-1',
     ).getValue();
 
-    it('allows board owner to remove any member', async () => {
+    it('allows board owner to remove another member', async () => {
       mockPrisma.board.findUnique.mockResolvedValue({
         id: 'board-1',
         ownerId: 'owner-user',
@@ -220,6 +396,7 @@ describe('BoardSharingService', () => {
           userId: 'admin-user',
           role: 'ADMIN',
           publicId: 'pub-admin',
+          createdAt: new Date(),
         },
         'admin-member-1',
       ).getValue();
@@ -243,6 +420,7 @@ describe('BoardSharingService', () => {
           userId: 'viewer-user',
           role: 'VIEWER',
           publicId: 'pub-view',
+          createdAt: new Date(),
         },
         'viewer-member-1',
       ).getValue();
@@ -277,6 +455,7 @@ describe('BoardSharingService', () => {
           userId: 'member-user',
           role: 'VIEWER',
           publicId: 'pub-mem',
+          createdAt: new Date(),
         },
         'member-other',
       ).getValue();
@@ -290,6 +469,32 @@ describe('BoardSharingService', () => {
       await expect(
         service.removeMember('board-1', 'member-other', 'owner-user'),
       ).rejects.toThrow('Member not found');
+    });
+
+    // I9: a board owner (or admin) should not be able to remove
+    // themselves — that would lock them out of the board.
+    it('throws BadRequestException when the requester tries to remove themselves', async () => {
+      const selfMember = BoardMember.create(
+        {
+          boardId: 'board-1',
+          userId: 'owner-user',
+          role: 'VIEWER',
+          publicId: 'pub-self',
+          createdAt: new Date(),
+        },
+        'self-member-1',
+      ).getValue();
+
+      mockPrisma.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        ownerId: 'owner-user',
+      } as any);
+      mockRepo.findMemberById.mockResolvedValue(selfMember);
+
+      await expect(
+        service.removeMember('board-1', 'self-member-1', 'owner-user'),
+      ).rejects.toThrow('Cannot remove yourself');
+      expect(mockRepo.deleteMember).not.toHaveBeenCalled();
     });
   });
 

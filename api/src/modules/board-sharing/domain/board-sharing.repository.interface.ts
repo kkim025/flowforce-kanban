@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { BoardShare, BoardShareStatus } from './board-share.entity';
 import { BoardMember } from './board-member.entity';
 
@@ -16,7 +17,7 @@ export interface IBoardSharingRepository {
     status?: BoardShareStatus,
   ): Promise<BoardShare[]>;
   findPendingShare(boardId: string, email: string): Promise<BoardShare | null>;
-  saveShare(share: BoardShare): Promise<void>;
+  saveShare(share: BoardShare, tx?: Prisma.TransactionClient): Promise<void>;
   deleteShare(id: string): Promise<void>;
 
   // BoardMember operations
@@ -24,9 +25,10 @@ export interface IBoardSharingRepository {
   findMemberByBoardAndUser(
     boardId: string,
     userId: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<BoardMember | null>;
   findMembersByBoardId(boardId: string): Promise<BoardMember[]>;
   findMembersByUserId(userId: string): Promise<BoardMember[]>;
-  saveMember(member: BoardMember): Promise<void>;
+  saveMember(member: BoardMember, tx?: Prisma.TransactionClient): Promise<void>;
   deleteMember(id: string): Promise<void>;
 }

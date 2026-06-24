@@ -11,7 +11,6 @@ import {
 import { BoardMembersController } from './board-members.controller';
 import { CreateShareUseCase } from './application/use-cases/create-share.use-case';
 import { ListSharesUseCase } from './application/use-cases/list-shares.use-case';
-import { UpdateShareUseCase } from './application/use-cases/update-share.use-case';
 import { RevokeShareUseCase } from './application/use-cases/revoke-share.use-case';
 import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.interface';
 
@@ -31,7 +30,6 @@ import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.inte
     },
     CreateShareUseCase,
     ListSharesUseCase,
-    UpdateShareUseCase,
     RevokeShareUseCase,
   ],
   exports: [BoardSharingService, PermissionService, BOARD_SHARING_REPOSITORY],

@@ -13,6 +13,18 @@ import { Prisma } from '@prisma/client';
 export class PrismaBoardSharingRepository implements IBoardSharingRepository {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Returns either the transaction client (if one was passed in) or the
+   * default prisma client. This lets the service compose multiple repo
+   * writes into a single transaction without leaking the underlying
+   * Prisma client to consumers.
+   */
+  private getClient(
+    tx?: Prisma.TransactionClient,
+  ): PrismaService | Prisma.TransactionClient {
+    return tx ?? this.prisma;
+  }
+
   // ── BoardShare ────────────────────────────────────────────────────────────────
 
   private rawToShare(raw: Prisma.BoardShareGetPayload<object>): BoardShare {
@@ -78,8 +90,12 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return this.rawToShare(raw);
   }
 
-  async saveShare(share: BoardShare): Promise<void> {
-    await this.prisma.boardShare.upsert({
+  async saveShare(
+    share: BoardShare,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = this.getClient(tx);
+    await client.boardShare.upsert({
       where: { id: share.id },
       create: {
         id: share.id,
@@ -119,6 +135,7 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
       userId: raw.userId,
       role: raw.role as BoardMemberRole,
       publicId: raw.publicId,
+      createdAt: raw.createdAt,
     };
     return BoardMember.create(props, raw.id).getValue();
   }
@@ -133,8 +150,10 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
   async findMemberByBoardAndUser(
     boardId: string,
     userId: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<BoardMember | null> {
-    const raw = await this.prisma.boardMember.findUnique({
+    const client = this.getClient(tx);
+    const raw = await client.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });
     return raw ? this.rawToMember(raw) : null;
@@ -156,8 +175,12 @@ export class PrismaBoardSharingRepository implements IBoardSharingRepository {
     return raws.map((r) => this.rawToMember(r));
   }
 
-  async saveMember(member: BoardMember): Promise<void> {
-    await this.prisma.boardMember.upsert({
+  async saveMember(
+    member: BoardMember,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = this.getClient(tx);
+    await client.boardMember.upsert({
       where: { id: member.id },
       create: {
         id: member.id,

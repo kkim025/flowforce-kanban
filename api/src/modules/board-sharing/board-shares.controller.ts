@@ -23,6 +23,13 @@ import { BOARD_SHARING_REPOSITORY } from './domain/board-sharing.repository.inte
 
 // ── Board shares (admin) ─────────────────────────────────────────────────────
 
+// TODO(code-review-I7): install @nestjs/throttler and add @Throttle
+// decorators to BoardSharesController and BoardMembersController invite
+// endpoints (suggested: 10 req/min per IP). @nestjs/throttler is NOT
+// currently a dependency in api/package.json, so the new dep install
+// is out of scope for this review-fix branch and is left for a
+// follow-up.
+
 @Controller('boards/:boardId/shares')
 @UseGuards(JwtAuthGuard)
 export class BoardSharesController {
@@ -93,23 +100,37 @@ export class InviteAcceptController {
     private readonly repo: IBoardSharingRepository,
   ) {}
 
-  // Public — no auth required (user may not be logged in yet)
+  // Protected — requires JWT auth. C4/I5 fix: the public invite lookup
+  // used to be unauthenticated, which leaked the invitee email, board
+  // id, and board name to anyone with the token. We now require auth
+  // and verify the requester is the invitee by matching the user's
+  // email against the share's email. Returning minimal fields keeps
+  // the response safe even if auth checks ever drift.
   @Get(':token')
-  async getInvite(@Param('token') token: string) {
+  @UseGuards(JwtAuthGuard)
+  async getInvite(
+    @Param('token') token: string,
+    @GetUser('sub') userId: string,
+  ) {
     const share = await this.repo.findShareByToken(token);
     if (!share) throw new NotFoundException('Invite not found');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.email.toLowerCase() !== share.email.toLowerCase()) {
+      // Don't disclose the share exists if the requester is not the
+      // invitee — use 404 rather than 403 to avoid confirming the
+      // token's validity.
+      throw new NotFoundException('Invite not found');
+    }
 
     const board = await this.prisma.board.findUnique({
       where: { id: share.boardId },
     });
     return {
-      token,
-      email: share.email,
       permissionLevel: share.permissionLevel,
       status: share.status,
       expiresAt: share.tokenExpiresAt.toISOString(),
       boardName: board?.title ?? 'Unknown board',
-      boardId: share.boardId,
     };
   }
 
@@ -133,7 +154,7 @@ export class InviteAcceptController {
     @GetUser('sub') userId: string,
   ) {
     this.logger.log(`User ${userId} declining invite ${token}`);
-    await this.sharingService.declineShare(token);
+    await this.sharingService.declineShare(token, userId);
     return { success: true };
   }
 }

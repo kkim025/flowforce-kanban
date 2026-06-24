@@ -11,6 +11,9 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 import { BoardSharingService } from './board-sharing.service';
 import { PermissionService } from './permission.service';
 
+// TODO(code-review-I7): see comment in board-shares.controller.ts —
+// add @nestjs/throttler @Throttle decorators here too.
+
 @Controller('boards/:boardId/members')
 @UseGuards(JwtAuthGuard)
 export class BoardMembersController {

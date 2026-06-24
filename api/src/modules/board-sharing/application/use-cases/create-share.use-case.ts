@@ -35,7 +35,6 @@ export class CreateShareUseCase {
     );
 
     return {
-      id: share.id,
       publicId: share.publicId,
       email: share.email,
       permissionLevel: share.permissionLevel,

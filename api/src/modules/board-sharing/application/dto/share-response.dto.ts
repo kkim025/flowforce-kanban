@@ -1,5 +1,4 @@
 export class ShareResponseDto {
-  id: string;
   publicId: string;
   email: string;
   permissionLevel: string;
@@ -10,7 +9,6 @@ export class ShareResponseDto {
 }
 
 export class MemberResponseDto {
-  id: string;
   publicId: string;
   boardId: string;
   userId: string;

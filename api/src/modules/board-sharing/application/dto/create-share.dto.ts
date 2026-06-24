@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export enum CreateSharePermissionLevel {
@@ -6,6 +7,9 @@ export enum CreateSharePermissionLevel {
 }
 
 export class CreateShareDto {
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase().trim() : value,
+  )
   @IsEmail()
   email: string;
 

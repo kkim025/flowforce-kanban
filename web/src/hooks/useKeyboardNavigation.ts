@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -11,6 +11,11 @@ export interface UseKeyboardNavigationOptions {
   onEscape: () => void;
   /** Disable all shortcuts (e.g., when a modal is open) */
   disabled?: boolean;
+  /**
+   * Ref to the container element to attach keyboard listeners to.
+   * When omitted, listeners are attached to the container (default behavior).
+   */
+  containerRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -27,6 +32,7 @@ export function useKeyboardNavigation({
   onEnter,
   onEscape,
   disabled = false,
+  containerRef,
 }: UseKeyboardNavigationOptions) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -65,8 +71,8 @@ export function useKeyboardNavigation({
   );
 
   useEffect(() => {
-    const target = document.body; // swap for board root ref if preferred
+    const target = containerRef?.current ?? document.body;
     target.addEventListener('keydown', handleKeyDown);
     return () => target.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [handleKeyDown, containerRef]);
 }

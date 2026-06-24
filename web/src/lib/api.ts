@@ -2,10 +2,25 @@
 import axios from 'axios';
 import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref } from '../types';
 
-const api_url = import.meta.env.VITE_API_URL;
+const api_url =
+  import.meta.env.VITE_API_URL ||
+  // Fallback for local dev: assume the NestJS API on the standard port.
+  // In production, VITE_API_URL must be set explicitly via the build env.
+  (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
 if (!api_url) {
-  throw new Error('VITE_API_URL is not defined in environment variables. Please create a .env file in the web folder.');
+  throw new Error(
+    'VITE_API_URL is not defined. Set it in web/.env (see web/.env.example) or pass it at build time.',
+  );
+}
+
+if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
+  // Surface this once on dev startup so misconfiguration is obvious
+  // without crashing the app. The fallback above keeps things working.
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[flowforce] VITE_API_URL not set — falling back to http://localhost:5000. Copy web/.env.example to web/.env to silence this warning.',
+  );
 }
 
 const api = axios.create({

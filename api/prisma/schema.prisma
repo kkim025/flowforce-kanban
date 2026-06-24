@@ -23,6 +23,9 @@ model User {
   receivedNotifications  Notification[] @relation("NotificationRecipient")
   authoredNotifications   Notification[] @relation("NotificationActor")
   notificationPrefs       UserNotificationPref[]
+  // Board sharing relations
+  memberships            BoardMember[] @relation("BoardMemberUser")
+  authoredBoardShares    BoardShare[]  @relation("BoardShareInviter")
 }
 
 model Invitation {
@@ -56,6 +59,9 @@ model Board {
   columns   Column[]
   sprints   Sprint[]
   notifications Notification[]
+  // Board sharing relations
+  members    BoardMember[]
+  shares     BoardShare[]
 }
 
 model Column {
@@ -227,4 +233,66 @@ enum NotificationType {
   MENTION
   SPRINT_STATUS
   DUE_DATE
+}
+
+// Board sharing — see FLO-17 / FLO-18.
+// BoardShare is a row representing a pending or resolved invitation to view/edit
+// a board. BoardMember is the resolved "this user has access" row, created when
+// a BoardShare is accepted (or for the owner / direct grants).
+model BoardShare {
+  id              String        @id @default(uuid())
+  publicId        String        @unique @default(uuid())
+  boardId         String
+  email           String
+  permissionLevel PermissionLevel @default(VIEW)
+  status          BoardShareStatus @default(PENDING)
+  invitedById     String
+  inviteToken     String        @unique
+  tokenExpiresAt  DateTime
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  board           Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  invitedBy       User          @relation("BoardShareInviter", fields: [invitedById], references: [id])
+
+  @@unique([boardId, email])
+  // Lookups for the "pending invites for this user" query and the board-level listing.
+  @@index([email, status])
+  @@index([boardId, status])
+}
+
+model BoardMember {
+  id        String        @id @default(uuid())
+  publicId  String        @unique @default(uuid())
+  boardId   String
+  userId    String
+  role      BoardMemberRole @default(VIEWER)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  board     Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User          @relation("BoardMemberUser", fields: [userId], references: [id])
+
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
+enum PermissionLevel {
+  VIEW
+  EDIT
+}
+
+enum BoardShareStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+enum BoardMemberRole {
+  VIEWER
+  EDITOR
+  ADMIN
 }

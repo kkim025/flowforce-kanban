@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../lib/api';
+import { refreshSocketAuth } from '../lib/socket';
 
 interface User {
   id: string;
@@ -45,6 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('flowforce_token', access_token);
+      refreshSocketAuth();
+      refreshSocketAuth();
       localStorage.setItem('flowforce_user', JSON.stringify(userData));
     } catch (error) {
       console.error('Login failed:', error);
@@ -60,6 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('flowforce_token', access_token);
+      refreshSocketAuth();
+      refreshSocketAuth();
       localStorage.setItem('flowforce_user', JSON.stringify(userData));
     } catch (error) {
       console.error('Registration failed:', error);

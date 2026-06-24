@@ -255,37 +255,41 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, [isAuthenticated]);
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
-        for (const cl of checklists) {
-            // 1. Create or Update Checklist
-            // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
-            if (cl.id.includes('-')) {
-                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
-                const checklistId = res.data.id;
-
-                // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
-                for (const item of cl.items) {
-                    await api.post('/subtasks', {
-                        content: item.title,
-                        checklistId: checklistId,
-                        completed: item.isCompleted,
-                        priority: item.priority?.toUpperCase(),
-                    });
+        const results = await Promise.allSettled(
+            checklists.map(async (cl) => {
+                if (cl.id.includes('-')) {
+                    const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
+                    const checklistId = res.data.id;
+                    await Promise.all(
+                        cl.items.map((item) =>
+                            api.post('/subtasks', {
+                                content: item.title,
+                                checklistId,
+                                completed: item.isCompleted,
+                                priority: item.priority?.toUpperCase(),
+                            }),
+                        ),
+                    );
+                } else {
+                    await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+                    await Promise.all(
+                        cl.items
+                            .filter((item) => !item.id.includes('-'))
+                            .map((item) =>
+                                api.patch(`/subtasks/${item.id}`, {
+                                    content: item.title,
+                                    completed: item.isCompleted,
+                                }),
+                            ),
+                    );
                 }
-            } else {
-                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+            }),
+        );
 
-                // 2b. For existing checklists, skip items with hyphens (already handled by ADD_SUBTASK)
-                // They will be refreshed with real DB IDs after board state refresh
-                for (const item of cl.items) {
-                    if (item.id.includes('-')) {
-                        continue;
-                    }
-                    await api.patch(`/subtasks/${item.id}`, {
-                        content: item.title,
-                        completed: item.isCompleted,
-                    });
-                }
-            }
+        const failures = results.filter((r) => r.status === 'rejected');
+        if (failures.length > 0) {
+            const msgs = failures.map((r) => (r as PromiseRejectedResult).reason?.message ?? 'Unknown error');
+            throw new Error(`Failed to sync checklists: ${msgs.join('; ')}`);
         }
     };
 

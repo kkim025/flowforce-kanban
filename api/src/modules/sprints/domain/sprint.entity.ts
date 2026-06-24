@@ -1,5 +1,6 @@
 import { AggregateRoot } from '../../../common/domain/aggregate-root';
 import { Result } from '../../../common/domain/result';
+import { Exclude, Expose, Transform } from 'class-transformer';
 import { SprintStatus } from './sprint-status';
 
 export interface SprintProps {
@@ -11,27 +12,40 @@ export interface SprintProps {
   color?: string;
 }
 
+@Exclude()
 export class Sprint extends AggregateRoot<SprintProps> {
+  get id(): string {
+    return this._id;
+  }
+
+  @Expose()
   get name(): string {
     return this.props.name;
   }
 
-  get startDate(): Date {
-    return this.props.startDate;
+  @Expose()
+  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  get startDate(): string {
+    return this.props.startDate.toISOString();
   }
 
-  get endDate(): Date {
-    return this.props.endDate;
+  @Expose()
+  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  get endDate(): string {
+    return this.props.endDate.toISOString();
   }
 
+  @Expose()
   get status(): SprintStatus {
     return this.props.status;
   }
 
+  @Expose()
   get boardId(): string {
     return this.props.boardId;
   }
 
+  @Expose()
   get color(): string | undefined {
     return this.props.color;
   }

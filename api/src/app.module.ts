@@ -14,6 +14,8 @@ import { SubtasksModule } from './modules/subtasks/subtasks.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { SprintsModule } from './modules/sprints/sprints.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { MailModule } from './mail/mail.module';
+import { BoardSharingModule } from './modules/board-sharing/board-sharing.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ChecklistsModule,
     SprintsModule,
     NotificationsModule,
+    MailModule,
+    BoardSharingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

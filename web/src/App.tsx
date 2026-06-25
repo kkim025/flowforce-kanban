@@ -10,7 +10,7 @@ import UserManagement from './components/admin/UserManagement';
 import SprintReportPage from './components/reports/SprintReportPage';
 import { NotificationCenterPage } from './components/notifications/NotificationCenterPage';
 import { NotificationPreferences } from './components/notifications/NotificationPreferences';
-import { WikiLayout } from './components/wiki/WikiLayout';
+import WikiLayout from './components/wiki/WikiLayout';
 import { AuthProvider } from './store/AuthContext';
 import { NotificationsProvider } from './store/NotificationsContext';
 import { ToastProvider } from './context/ToastContext';

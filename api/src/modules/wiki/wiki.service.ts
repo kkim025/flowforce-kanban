@@ -123,66 +123,100 @@ export class WikiService {
     }
 
     const baseSlug = input.slug ?? this.slugify(input.title);
-    const slug = await this.nextAvailableSlug(
-      space.id,
-      input.parentId,
-      baseSlug,
-    );
-
+    const pageId = uuidv4();
     const now = new Date();
-    // The base Entity class auto-generates a short random id if none
-    // is supplied, but we need a real UUID because:
-    //   1. the schema column is a UUID and DTOs validate parentId as one
-    //   2. the entity id ends up in URL paths (pages/:pageId)
-    // The board-sharing service follows the same convention: caller
-    // generates the UUID and passes it into the factory.
-    const pageResult = WikiPage.create(
-      {
-        spaceId: space.id,
-        parentId: input.parentId,
-        slug,
-        title: input.title,
-        content: input.content,
-        order: 0, // append-only order is decided by the move use-case later
-        archived: false,
-        archivedAt: null,
-        archivedById: null,
-        createdById: input.actorId,
-        updatedById: input.actorId,
-        createdAt: now,
-        updatedAt: now,
-      },
-      uuidv4(),
-    );
-    if (pageResult.isFailure) {
-      throw new BadRequestException(String(pageResult.error));
-    }
-    const page = pageResult.getValue();
 
-    return this.prisma.$transaction(async (tx) => {
-      const saved = await this.repo.savePage(page, tx);
-      // First version = revision 1, recording the create.
-      // Pass uuidv4() explicitly — the base Entity class falls back
-      // to a 9-char random string if no id is supplied, which would
-      // break future tooling that assumes UUID-shaped version ids
-      // (versionId is in URL paths).
-      const versionResult = WikiPageVersion.create(
-        {
-          pageId: saved.id,
-          revisionNo: 1,
-          title: saved.title,
-          content: saved.content,
-          editorId: input.actorId,
-          createdAt: now,
-        },
-        uuidv4(),
+    // Slug allocation: handle two failure modes.
+    //
+    // 1. Sequential collision (a previous successful create already
+    //    took `baseSlug`): `nextAvailableSlug` finds the next free
+    //    `-N` suffix before we attempt the insert.
+    //
+    // 2. Concurrent collision (two requests both pass
+    //    `nextAvailableSlug` then race the unique constraint): the
+    //    loser hits Prisma's P2002 and we retry with a fresh
+    //    `nextAvailableSlug` call that sees the winner's row.
+    //
+    // `MAX_ATTEMPTS` bounds the loop so an unrelated bug can't hang
+    // the request.
+    const MAX_ATTEMPTS = 5;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const slug = await this.nextAvailableSlug(
+        space.id,
+        input.parentId,
+        baseSlug,
       );
-      if (versionResult.isFailure) {
-        throw new BadRequestException(String(versionResult.error));
+      const pageResult = WikiPage.create(
+        {
+          spaceId: space.id,
+          parentId: input.parentId,
+          slug,
+          title: input.title,
+          content: input.content,
+          order: 0, // append-only order is decided by the move use-case later
+          archived: false,
+          archivedAt: null,
+          archivedById: null,
+          createdById: input.actorId,
+          updatedById: input.actorId,
+          createdAt: now,
+          updatedAt: now,
+        },
+        pageId,
+      );
+      if (pageResult.isFailure) {
+        throw new BadRequestException(String(pageResult.error));
       }
-      await this.repo.saveVersion(versionResult.getValue(), tx);
-      return saved;
-    });
+      const page = pageResult.getValue();
+
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const saved = await this.repo.savePage(page, tx);
+          // First version = revision 1, recording the create.
+          // Pass uuidv4() explicitly — the base Entity class falls
+          // back to a 9-char random string if no id is supplied,
+          // which would break future tooling that assumes UUID-
+          // shaped version ids (versionId is in URL paths).
+          const versionResult = WikiPageVersion.create(
+            {
+              pageId: saved.id,
+              revisionNo: 1,
+              title: saved.title,
+              content: saved.content,
+              editorId: input.actorId,
+              createdAt: now,
+            },
+            uuidv4(),
+          );
+          if (versionResult.isFailure) {
+            throw new BadRequestException(String(versionResult.error));
+          }
+          await this.repo.saveVersion(versionResult.getValue(), tx);
+          return saved;
+        });
+      } catch (err) {
+        // Prisma's P2002 = unique constraint violation on
+        // (spaceId, parentId, slug). Retry with a fresh
+        // nextAvailableSlug call that sees the winner's row. Any
+        // other error bubbles up.
+        if (
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2002'
+        ) {
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new BadRequestException(
+      `Could not allocate a unique slug after ${MAX_ATTEMPTS} attempts: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+    );
   }
 
   /**

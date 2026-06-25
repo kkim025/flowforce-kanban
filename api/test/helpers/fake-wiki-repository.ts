@@ -104,6 +104,24 @@ export class FakeWikiRepository implements IWikiRepository {
   }
 
   async savePage(page: WikiPage): Promise<WikiPage> {
+    // Simulate the Prisma @@unique([spaceId, parentId, slug])
+    // constraint. Without this, the test fake wouldn't exercise the
+    // P2002 retry path that the real Prisma client hits on race.
+    for (const existing of this.pages.values()) {
+      if (
+        existing.spaceId === page.spaceId &&
+        existing.parentId === page.parentId &&
+        existing.slug === page.slug &&
+        existing.id !== page.id &&
+        !existing.archived
+      ) {
+        const err = new Error(
+          `Unique constraint failed: WikiPage (spaceId, parentId, slug)=(${page.spaceId}, ${page.parentId}, ${page.slug})`,
+        ) as Error & { code: string };
+        err.code = 'P2002';
+        throw err;
+      }
+    }
     this.pages.set(page.id, page);
     return page;
   }

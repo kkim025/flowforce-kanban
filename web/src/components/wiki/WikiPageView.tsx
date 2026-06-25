@@ -23,6 +23,7 @@ import {
 } from '../../lib/wiki';
 import { useToast } from '../../hooks/useToast';
 import { UI_LABELS } from '../../lib/constants';
+import ConfirmationModal from '../ConfirmationModal';
 
 interface WikiPageViewProps {
     boardId: string;
@@ -40,6 +41,7 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
     const [page, setPage] = useState<WikiPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
     const [versions, setVersions] = useState<WikiVersion[]>([]);
     const [historyLimit, setHistoryLimit] = useState<number>(
         WIKI_VERSION_PAGE_SIZE,
@@ -102,8 +104,12 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
 
     const handleArchive = async () => {
         if (!page) return;
-        if (!window.confirm(`Archive "${page.title}"? You can restore from Trash.`))
-            return;
+        setShowArchiveConfirm(true);
+    };
+
+    const confirmArchive = async () => {
+        if (!page) return;
+        setShowArchiveConfirm(false);
         try {
             await archiveWikiPage(boardId, pageId);
             showToast('Page archived', 'success');
@@ -308,6 +314,15 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
                     </aside>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={showArchiveConfirm}
+                title="Archive page"
+                message={`Archive "${page.title}"? You can restore it from Trash.`}
+                variant="warning"
+                onConfirm={confirmArchive}
+                onCancel={() => setShowArchiveConfirm(false)}
+            />
         </div>
     );
 };

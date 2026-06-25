@@ -302,22 +302,28 @@ export class WikiService {
   }): Promise<WikiPage> {
     const space = await this.getSpace(input.boardId);
 
-    // Validate new parent belongs to same space (or is null).
-    if (input.parentId) {
-      const newParent = await this.repo.findPageById(input.parentId);
-      if (!newParent || newParent.spaceId !== space.id) {
-        throw new BadRequestException(
-          'Parent page does not belong to this wiki',
-        );
-      }
-      // Reject moves that would create a cycle (moving into a descendant).
-      await this.assertNoCycle(input.pageId, input.parentId);
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Re-load the page under the transaction so the move + cycle
+      // check + slug reallocation + save all operate on a consistent
+      // view. Doing these in a single tx closes the TOCTOU window
+      // between the pre-check and the save (review finding).
       const page = await this.repo.findPageById(input.pageId, tx);
       if (!page || page.spaceId !== space.id) {
         throw new NotFoundException('Wiki page not found');
+      }
+
+      // Validate new parent belongs to same space (or is null).
+      if (input.parentId) {
+        const newParent = await this.repo.findPageById(input.parentId, tx);
+        if (!newParent || newParent.spaceId !== space.id) {
+          throw new BadRequestException(
+            'Parent page does not belong to this wiki',
+          );
+        }
+        // Reject moves that would create a cycle (moving into a
+        // descendant). Walk happens inside the tx so a concurrent
+        // move can't install a cycle between the check and the save.
+        await this.assertNoCycle(input.pageId, input.parentId, tx);
       }
 
       // If parent changed, slug may collide with an existing sibling.
@@ -545,6 +551,7 @@ export class WikiService {
   private async assertNoCycle(
     pageId: string,
     newParentId: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
     if (pageId === newParentId) {
       throw new BadRequestException('Cannot make a page its own parent');
@@ -552,7 +559,7 @@ export class WikiService {
     let cursor: string | null = newParentId;
     // Bounded walk; if depth > 64 we just give up and assume cycle.
     for (let i = 0; cursor && i < 64; i++) {
-      const node: WikiPage | null = await this.repo.findPageById(cursor);
+      const node: WikiPage | null = await this.repo.findPageById(cursor, tx);
       if (!node) return;
       if (node.id === pageId) {
         throw new BadRequestException(

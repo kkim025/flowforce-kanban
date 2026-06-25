@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents --
+   WikiPage, WikiPageVersion, WikiSpace are Result.create factories
+   whose generic type parameters confuse the redundant-type-constituents
+   rule. The lint warning is a false positive — these are entity
+   classes, not Error instances. */
 import type {
   IWikiRepository,
   WikiTreeNode,
@@ -49,11 +54,7 @@ export class FakeWikiRepository implements IWikiRepository {
     slug: string,
   ): Promise<WikiPage | null> {
     for (const p of this.pages.values()) {
-      if (
-        p.spaceId === spaceId &&
-        p.parentId === parentId &&
-        p.slug === slug
-      ) {
+      if (p.spaceId === spaceId && p.parentId === parentId && p.slug === slug) {
         return p;
       }
     }
@@ -81,7 +82,10 @@ export class FakeWikiRepository implements IWikiRepository {
   async findTrashBySpaceId(spaceId: string): Promise<TrashPage[]> {
     const archived = [...this.pages.values()]
       .filter((p) => p.spaceId === spaceId && p.archived)
-      .sort((a, b) => (b.archivedAt?.getTime() ?? 0) - (a.archivedAt?.getTime() ?? 0));
+      .sort(
+        (a, b) =>
+          (b.archivedAt?.getTime() ?? 0) - (a.archivedAt?.getTime() ?? 0),
+      );
     return archived.map((page) => {
       const breadcrumb: { id: string; title: string; slug: string }[] = [];
       let cursor: string | null = page.parentId;
@@ -149,10 +153,7 @@ export class FakeWikiRepository implements IWikiRepository {
     for (const v of toDelete) {
       this.versionsById.delete(v.id);
     }
-    this.versionsByPage.set(
-      pageId,
-      sorted.slice(sorted.length - keep),
-    );
+    this.versionsByPage.set(pageId, sorted.slice(sorted.length - keep));
     return toDelete.length;
   }
 }

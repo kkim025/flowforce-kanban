@@ -207,7 +207,9 @@ describe('Wiki (e2e)', () => {
 
     it('returns 404 for a nonexistent page', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/boards/${boardId}/wiki/pages/00000000-0000-0000-0000-000000000000`)
+        .get(
+          `/boards/${boardId}/wiki/pages/00000000-0000-0000-0000-000000000000`,
+        )
         .set('Authorization', `Bearer ${tokens.editor}`);
       expect(res.status).toBe(404);
     });
@@ -242,7 +244,6 @@ describe('Wiki (e2e)', () => {
     it('version pruning keeps at most 50 versions', async () => {
       // We have 2 versions so far. Push 60 more updates to cross 50.
       for (let i = 0; i < 60; i++) {
-        // eslint-disable-next-line no-await-in-loop
         await request(app.getHttpServer())
           .patch(`/boards/${boardId}/wiki/pages/${rootPageId}`)
           .set('Authorization', `Bearer ${tokens.editor}`)
@@ -347,7 +348,9 @@ describe('Wiki (e2e)', () => {
         .get(`/boards/${boardId}/wiki/trash`)
         .set('Authorization', `Bearer ${tokens.editor}`);
       expect(trash.status).toBe(200);
-      const trashIds = trash.body.map((t: { page: { id: string } }) => t.page.id);
+      const trashIds = trash.body.map(
+        (t: { page: { id: string } }) => t.page.id,
+      );
       expect(trashIds).toContain(trashPageId);
     });
 
@@ -469,7 +472,9 @@ describe('Wiki (e2e)', () => {
       expect(v1).toBeDefined();
 
       const res = await request(app.getHttpServer())
-        .post(`/boards/${boardId}/wiki/pages/${fresh.body.id}/versions/${v1.id}/restore`)
+        .post(
+          `/boards/${boardId}/wiki/pages/${fresh.body.id}/versions/${v1.id}/restore`,
+        )
         .set('Authorization', `Bearer ${tokens.editor}`);
       expect(res.status).toBe(201);
       expect(res.body.content).toBe('v1');
@@ -481,7 +486,9 @@ describe('Wiki (e2e)', () => {
         .set('Authorization', `Bearer ${tokens.viewer}`);
       const top = list.body[0];
       const res = await request(app.getHttpServer())
-        .post(`/boards/${boardId}/wiki/pages/${rootPageId}/versions/${top.id}/restore`)
+        .post(
+          `/boards/${boardId}/wiki/pages/${rootPageId}/versions/${top.id}/restore`,
+        )
         .set('Authorization', `Bearer ${tokens.viewer}`);
       expect(res.status).toBe(403);
     });
@@ -489,7 +496,9 @@ describe('Wiki (e2e)', () => {
 });
 
 /** Recursively collect page ids from a wiki tree response. */
-function collectIds(nodes: { page: { id: string }; children?: unknown[] }[]): string[] {
+function collectIds(
+  nodes: { page: { id: string }; children?: unknown[] }[],
+): string[] {
   const out: string[] = [];
   const walk = (ns: typeof nodes) => {
     for (const n of ns) {

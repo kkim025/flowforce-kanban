@@ -204,7 +204,6 @@ describe('WikiService', () => {
 
       // 60 updates → expect 50 versions after the last save.
       for (let i = 0; i < 60; i++) {
-        // eslint-disable-next-line no-await-in-loop
         await service.updatePage({
           boardId: BOARD_ID,
           pageId: page.id,
@@ -485,9 +484,9 @@ describe('WikiService', () => {
         boardId: BOARD_ID,
         pageId: page.id,
       });
-      await expect(
-        service.getPage(BOARD_ID, page.id),
-      ).rejects.toThrow(/Wiki page not found/);
+      await expect(service.getPage(BOARD_ID, page.id)).rejects.toThrow(
+        /Wiki page not found/,
+      );
     });
   });
 

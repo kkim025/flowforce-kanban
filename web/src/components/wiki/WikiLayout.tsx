@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
     Outlet,
+    useLocation,
     useNavigate,
     useParams,
 } from 'react-router-dom';
@@ -33,6 +34,7 @@ const WikiLayout: React.FC = () => {
         pageId: string;
     }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
 
     const [tree, setTree] = useState<WikiTreeNode[]>([]);
@@ -47,6 +49,8 @@ const WikiLayout: React.FC = () => {
 
     const loadTree = useCallback(async () => {
         if (!boardId) return;
+        // /trash view doesn't need the tree — save the round-trip.
+        if (location.pathname.endsWith('/trash')) return;
         setLoadingTree(true);
         try {
             const t = await getWikiTree(boardId);
@@ -59,7 +63,7 @@ const WikiLayout: React.FC = () => {
         } finally {
             setLoadingTree(false);
         }
-    }, [boardId, showToast]);
+    }, [boardId, showToast, location.pathname]);
 
     useEffect(() => {
         loadTree();
@@ -100,8 +104,8 @@ const WikiLayout: React.FC = () => {
         );
     }
 
-    // URL says /trash → render the trash view, no right pane route.
-    if (window.location.pathname.endsWith('/trash')) {
+    // /trash → render the trash view, no right pane route.
+    if (location.pathname.endsWith('/trash')) {
         return (
             <div className="flex h-full">
                 <WikiSidebar

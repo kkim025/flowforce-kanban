@@ -6,7 +6,10 @@ import {
   WikiTreeNodeDto,
   WikiTrashItemDto,
 } from './dto/wiki-page-response.dto';
-import type { WikiTreeNode, TrashPage } from '../domain/wiki.repository.interface';
+import type {
+  WikiTreeNode,
+  TrashPage,
+} from '../domain/wiki.repository.interface';
 
 export function toWikiPageResponseDto(page: WikiPage): WikiPageResponseDto {
   return {

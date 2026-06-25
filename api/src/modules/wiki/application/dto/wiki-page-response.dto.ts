@@ -22,9 +22,7 @@ export class WikiTreeNodeDto {
 
 export class WikiTrashItemDto {
   page: WikiPageResponseDto;
-  breadcrumb:
-    | { id: string; title: string; slug: string }[]
-    | null;
+  breadcrumb: { id: string; title: string; slug: string }[] | null;
 }
 
 export class WikiVersionResponseDto {

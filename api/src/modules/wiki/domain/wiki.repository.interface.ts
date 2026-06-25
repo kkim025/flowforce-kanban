@@ -47,14 +47,8 @@ export interface IWikiRepository {
     spaceId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<TrashPage[]>;
-  savePage(
-    page: WikiPage,
-    tx?: Prisma.TransactionClient,
-  ): Promise<WikiPage>;
-  deletePage(
-    pageId: string,
-    tx?: Prisma.TransactionClient,
-  ): Promise<void>;
+  savePage(page: WikiPage, tx?: Prisma.TransactionClient): Promise<WikiPage>;
+  deletePage(pageId: string, tx?: Prisma.TransactionClient): Promise<void>;
 
   // ── WikiPageVersion ──────────────────────────────────────────────────────
   findVersionsByPageId(

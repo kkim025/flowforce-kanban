@@ -120,10 +120,7 @@ export class WikiPage extends AggregateRoot<WikiPageProps> {
     super(props, id);
   }
 
-  public static create(
-    props: WikiPageProps,
-    id?: string,
-  ): Result<WikiPage> {
+  public static create(props: WikiPageProps, id?: string): Result<WikiPage> {
     if (!props.spaceId) return Result.fail<WikiPage>('spaceId is required');
     if (!props.slug) return Result.fail<WikiPage>('slug is required');
     if (!props.createdById)

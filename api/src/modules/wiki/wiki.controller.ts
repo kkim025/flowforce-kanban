@@ -59,18 +59,12 @@ export class WikiController {
   // ── Tree + Trash ────────────────────────────────────────────────────────
 
   @Get()
-  getTree(
-    @GetUser('sub') userId: string,
-    @Param('boardId') boardId: string,
-  ) {
+  getTree(@GetUser('sub') userId: string, @Param('boardId') boardId: string) {
     return this.getTreeUseCase.execute(userId, boardId);
   }
 
   @Get('trash')
-  getTrash(
-    @GetUser('sub') userId: string,
-    @Param('boardId') boardId: string,
-  ) {
+  getTrash(@GetUser('sub') userId: string, @Param('boardId') boardId: string) {
     return this.getTrashUseCase.execute(userId, boardId);
   }
 

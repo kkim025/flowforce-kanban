@@ -46,7 +46,8 @@ export class WikiPageVersion extends AggregateRoot<WikiPageVersionProps> {
     props: WikiPageVersionProps,
     id?: string,
   ): Result<WikiPageVersion> {
-    if (!props.pageId) return Result.fail<WikiPageVersion>('pageId is required');
+    if (!props.pageId)
+      return Result.fail<WikiPageVersion>('pageId is required');
     if (!props.editorId)
       return Result.fail<WikiPageVersion>('editorId is required');
     if (props.revisionNo < 1)

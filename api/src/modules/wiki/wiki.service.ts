@@ -116,7 +116,9 @@ export class WikiService {
     if (input.parentId) {
       parent = await this.repo.findPageById(input.parentId);
       if (!parent || parent.spaceId !== space.id) {
-        throw new BadRequestException('Parent page does not belong to this wiki');
+        throw new BadRequestException(
+          'Parent page does not belong to this wiki',
+        );
       }
     }
 
@@ -259,7 +261,9 @@ export class WikiService {
     if (input.parentId) {
       const newParent = await this.repo.findPageById(input.parentId);
       if (!newParent || newParent.spaceId !== space.id) {
-        throw new BadRequestException('Parent page does not belong to this wiki');
+        throw new BadRequestException(
+          'Parent page does not belong to this wiki',
+        );
       }
       // Reject moves that would create a cycle (moving into a descendant).
       await this.assertNoCycle(input.pageId, input.parentId);
@@ -285,7 +289,11 @@ export class WikiService {
 
       page.move({ parentId: input.parentId, order: input.order });
       if (slug !== page.slug) page.renameSlug(slug);
-      page.edit({ title: page.title, content: page.content, updatedById: input.actorId });
+      page.edit({
+        title: page.title,
+        content: page.content,
+        updatedById: input.actorId,
+      });
 
       return this.repo.savePage(page, tx);
     });
@@ -455,7 +463,7 @@ export class WikiService {
     // Otherwise probe `-2`, `-3`, …
     for (let i = 2; i < 10_000; i++) {
       const candidate = `${baseSlug}-${i}`;
-      // eslint-disable-next-line no-await-in-loop
+
       const clash = await this.repo.findPageBySlug(
         spaceId,
         parentId,

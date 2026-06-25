@@ -5,7 +5,6 @@ import {
   IWikiRepository,
   WikiTreeNode,
   TrashPage,
-  WIKI_REPOSITORY,
 } from '../../domain/wiki.repository.interface';
 import { WikiPage } from '../../domain/wiki-page.entity';
 import { WikiPageVersion } from '../../domain/wiki-page-version.entity';
@@ -126,9 +125,7 @@ export class PrismaWikiRepository implements IWikiRepository {
     });
     const pages = raws.map((r) => this.rawToPage(r));
     const byId = new Map<string, WikiTreeNode>();
-    pages.forEach((p) =>
-      byId.set(p.id, { page: p, children: [] }),
-    );
+    pages.forEach((p) => byId.set(p.id, { page: p, children: [] }));
     const roots: WikiTreeNode[] = [];
     pages.forEach((p) => {
       const node = byId.get(p.id)!;

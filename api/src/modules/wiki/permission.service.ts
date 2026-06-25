@@ -16,13 +16,10 @@ import { BOARD_SHARING_REPOSITORY } from '../board-sharing/domain/board-sharing.
 export class WikiPermissionService {
   constructor(
     private readonly prisma: PrismaService,
-    // We re-use the board sharing repo for membership lookups so the
-    // ACL rules stay in one place. This avoids drift between the two
-    // permission services.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @Inject(BOARD_SHARING_REPOSITORY as any)
-    // We type this as a minimal structural interface so we don't have
-    // to import the full sharing repo type into this module's domain.
+    // Re-use the board sharing repo for membership lookups so the
+    // ACL rules stay in one place. This avoids drift between the
+    // two permission services.
+    @Inject(BOARD_SHARING_REPOSITORY)
     private readonly sharingRepo: Pick<
       IBoardSharingRepository,
       'findMemberByBoardAndUser'

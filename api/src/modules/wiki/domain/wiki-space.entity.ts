@@ -28,12 +28,8 @@ export class WikiSpace extends AggregateRoot<WikiSpaceProps> {
     super(props, id);
   }
 
-  public static create(
-    props: WikiSpaceProps,
-    id?: string,
-  ): Result<WikiSpace> {
-    if (!props.boardId)
-      return Result.fail<WikiSpace>('boardId is required');
+  public static create(props: WikiSpaceProps, id?: string): Result<WikiSpace> {
+    if (!props.boardId) return Result.fail<WikiSpace>('boardId is required');
     return Result.ok<WikiSpace>(new WikiSpace(props, id));
   }
 }

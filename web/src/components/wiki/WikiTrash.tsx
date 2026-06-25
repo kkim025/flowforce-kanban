@@ -88,7 +88,7 @@ const WikiTrash: React.FC<WikiTrashProps> = ({ boardId }) => {
 
     return (
         <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-3xl mx-auto">
+            <div className="w-full">
                 <div className="flex items-center gap-2 mb-6">
                     <button
                         type="button"

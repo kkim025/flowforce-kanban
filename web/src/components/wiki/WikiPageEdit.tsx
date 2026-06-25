@@ -102,9 +102,15 @@ const WikiPageEdit: React.FC<WikiPageEditProps> = ({
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-3xl mx-auto flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+        // Full-width + full-height editor. WikiLayout already gives
+        // us a fixed-height right pane; we fill it with a flex column
+        // (action row at top, title input below, editor body fills
+        // the rest) and let the outer `overflow-y-auto` on WikiLayout's
+        // main handle scrolling. The page-8 padding gives symmetric
+        // margins (top / left / right / bottom all 2rem).
+        <div className="flex-1 flex flex-col p-8 min-h-0 overflow-hidden">
+            <div className="flex flex-col gap-4 w-full h-full min-h-0">
+                <div className="flex items-center justify-between gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={onCancel}
@@ -141,15 +147,17 @@ const WikiPageEdit: React.FC<WikiPageEditProps> = ({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={UI_LABELS.WIKI_PAGE_TITLE}
-                    className="text-3xl font-black bg-transparent outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-300"
+                    className="text-3xl font-black bg-transparent outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-300 shrink-0"
                     data-testid="wiki-edit-title"
                 />
 
-                <MarkdownEditor
-                    value={content}
-                    onChange={setContent}
-                    placeholder="# Start writing…"
-                />
+                <div className="flex-1 min-h-0">
+                    <MarkdownEditor
+                        value={content}
+                        onChange={setContent}
+                        placeholder="# Start writing…"
+                    />
+                </div>
             </div>
         </div>
     );

@@ -160,9 +160,13 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
     const updatedLabel = `${UI_LABELS.WIKI_LAST_EDITED} ${updatedAt.toLocaleString()}`;
 
     return (
+        // Full-width container. The right pane already constrains
+        // height via WikiLayout's flex-1 overflow-hidden. The inner
+        // <div> takes the full width — no max-w-3xl — so the markdown
+        // content fills the column.
         <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-3xl mx-auto">
-                <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col gap-6 w-full">
+                <div className="flex items-center justify-between gap-4">
                     <button
                         type="button"
                         onClick={() => navigate(`/boards/${boardId}/wiki`)}
@@ -205,19 +209,21 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
                     </div>
                 </div>
 
-                <h1
-                    className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-2"
-                    data-testid="wiki-page-title"
-                >
-                    {page.title}
-                </h1>
-                <p className="flex items-center gap-1 text-xs text-slate-400 mb-8">
-                    <Clock className="w-3 h-3" />
-                    {updatedLabel}
-                </p>
+                <div>
+                    <h1
+                        className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-2"
+                        data-testid="wiki-page-title"
+                    >
+                        {page.title}
+                    </h1>
+                    <p className="flex items-center gap-1 text-xs text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        {updatedLabel}
+                    </p>
+                </div>
 
                 <div
-                    className="prose prose-slate dark:prose-invert max-w-none"
+                    className="prose prose-slate dark:prose-invert max-w-none w-full"
                     data-testid="wiki-page-content"
                 >
                     <ReactMarkdown

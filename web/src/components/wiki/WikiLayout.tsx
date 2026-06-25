@@ -128,8 +128,8 @@ const WikiLayout: React.FC = () => {
                     onNewPage={(parentId) => setCreating({ parentId })}
                 />
                 <main className="flex-1 overflow-y-auto p-8">
-                    <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col gap-6 w-full">
+                        <div className="flex items-center justify-between">
                             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
                                 {UI_LABELS.WIKI}
                             </h1>
@@ -192,7 +192,7 @@ const WikiLayout: React.FC = () => {
             <main className="flex-1 flex flex-col overflow-hidden">
                 {creating ? (
                     <div className="flex-1 overflow-y-auto p-8">
-                        <div className="max-w-3xl mx-auto">
+                        <div className="w-full">
                             <WikiNewPageForm
                                 boardId={boardId}
                                 parentId={creating.parentId}

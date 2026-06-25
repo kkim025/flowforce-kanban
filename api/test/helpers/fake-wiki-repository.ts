@@ -61,6 +61,24 @@ export class FakeWikiRepository implements IWikiRepository {
     return null;
   }
 
+  async findSlugsStartingWith(
+    spaceId: string,
+    parentId: string | null,
+    baseSlug: string,
+  ): Promise<{ slug: string; id: string }[]> {
+    const matches: { slug: string; id: string }[] = [];
+    for (const p of this.pages.values()) {
+      if (
+        p.spaceId === spaceId &&
+        p.parentId === parentId &&
+        p.slug.startsWith(baseSlug)
+      ) {
+        matches.push({ slug: p.slug, id: p.id });
+      }
+    }
+    return matches;
+  }
+
   async findTreeBySpaceId(spaceId: string): Promise<WikiTreeNode[]> {
     const live = [...this.pages.values()].filter(
       (p) => p.spaceId === spaceId && !p.archived,

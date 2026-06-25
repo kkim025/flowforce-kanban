@@ -472,25 +472,18 @@ export class WikiService {
   // ── Helpers ────────────────────────────────────────────────────────────
 
   /**
-   * URL-safe slug derived from a title. Lowercase, dashes, collapse
-   * repeats, trim leading/trailing dashes.
-   */
-  private slugify(input: string): string {
-    const base = input
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '') // strip diacritics
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    return base.length > 0 ? base.slice(0, 200) : 'page';
-  }
-
-  /**
    * Given a desired base slug within (spaceId, parentId), return the
-   * first available slug by appending `-2`, `-3`, … if needed. If
-   * `excludePageId` is provided (for rename), the page with that id
-   * is excluded from the collision check so it doesn't collide with
-   * itself.
+   * first available slug by appending `-2`, `-3`, …
+   *
+   * Implementation: a single `findSlugsStartingWith` query (matches
+   * `baseSlug` AND `baseSlug-...`) followed by an in-memory parse of
+   * the existing suffix numbers. This is O(n) where n is the number
+   * of existing suffixed siblings, instead of the prior
+   * implementation's O(k) DB round-trips for k = the suffix being
+   * tried.
+   *
+   * `excludePageId` (for rename) is excluded from the in-memory set
+   * so a page's own slug doesn't collide with itself.
    */
   private async nextAvailableSlug(
     spaceId: string,
@@ -499,29 +492,50 @@ export class WikiService {
     excludePageId?: string,
     tx?: Prisma.TransactionClient,
   ): Promise<string> {
-    // Fast path: base slug is free.
-    const initial = await this.repo.findPageBySlug(
+    const suffixNumbers = new Set<number>();
+    let baseSlugTaken = false;
+
+    const siblings = await this.repo.findSlugsStartingWith(
       spaceId,
       parentId,
       baseSlug,
       tx,
     );
-    if (!initial || initial.id === excludePageId) return baseSlug;
-
-    // Otherwise probe `-2`, `-3`, …
-    for (let i = 2; i < 10_000; i++) {
-      const candidate = `${baseSlug}-${i}`;
-
-      const clash = await this.repo.findPageBySlug(
-        spaceId,
-        parentId,
-        candidate,
-        tx,
-      );
-      if (!clash || clash.id === excludePageId) return candidate;
+    for (const { slug, id } of siblings) {
+      // Skip the page that's being renamed — its own current slug
+      // is allowed to collide with `baseSlug` in the rename case.
+      if (id === excludePageId) continue;
+      if (slug === baseSlug) {
+        baseSlugTaken = true;
+        continue;
+      }
+      const m = slug.match(/^(.*)-(\d+)$/);
+      if (m && m[1] === baseSlug) {
+        const n = parseInt(m[2], 10);
+        if (Number.isFinite(n) && n >= 2) suffixNumbers.add(n);
+      }
     }
-    // Practically unreachable; very deep trees would hit the loop bound.
-    throw new BadRequestException('Could not allocate a unique slug');
+
+    if (!baseSlugTaken) return baseSlug;
+
+    // Find the smallest free suffix >= 2. Capped at 10,000 to
+    // match the prior implementation's bound — in practice a single
+    // parent will never have that many suffixed siblings.
+    for (let i = 2; i < 10_000; i++) {
+      if (!suffixNumbers.has(i)) return `${baseSlug}-${i}`;
+    }
+    throw new BadRequestException(
+      `Could not allocate a unique slug for "${baseSlug}" — too many existing siblings`,
+    );
+  }
+  private slugify(input: string): string {
+    const base = input
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return base.length > 0 ? base.slice(0, 200) : 'page';
   }
 
   /**

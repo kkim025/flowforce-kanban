@@ -62,7 +62,7 @@ export class PrismaWikiRepository implements IWikiRepository {
     return this.rawToSpace(raw);
   }
 
-  // ── WikiPage ───────────────────────────────────────────────────────────────
+  // ── WikiPage ───────────────────────────────────────────────────────────
 
   private rawToPage(raw: Prisma.WikiPageGetPayload<object>): WikiPage {
     return WikiPage.create(
@@ -110,6 +110,35 @@ export class PrismaWikiRepository implements IWikiRepository {
       where: { spaceId, parentId, slug },
     });
     return raw ? this.rawToPage(raw) : null;
+  }
+
+  /**
+   * Return all (slug, id) pairs within (spaceId, parentId) whose slug
+   * starts with `baseSlug`. Used by slug auto-suffix to avoid the
+   * 10k-round-trip loop that the previous `nextAvailableSlug`
+   * implementation did.
+   *
+   * Note: `archived: false` is intentionally NOT included so that
+   * archived siblings still block new suffixes — the unique index
+   * applies to all rows regardless of archive state, so the in-memory
+   * set must mirror that.
+   */
+  async findSlugsStartingWith(
+    spaceId: string,
+    parentId: string | null,
+    baseSlug: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ slug: string; id: string }[]> {
+    const client = this.getClient(tx);
+    const raws = await client.wikiPage.findMany({
+      where: {
+        spaceId,
+        parentId,
+        slug: { startsWith: baseSlug },
+      },
+      select: { slug: true, id: true },
+    });
+    return raws.map((r) => ({ slug: r.slug, id: r.id }));
   }
 
   async findTreeBySpaceId(

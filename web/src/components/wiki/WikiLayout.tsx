@@ -208,6 +208,7 @@ const WikiLayout: React.FC = () => {
                     <WikiPageEdit
                         boardId={boardId}
                         pageId={pageId}
+                        initialPage={currentPage}
                         onSaved={(p) => {
                             setCurrentPage(p);
                             setEditing(false);

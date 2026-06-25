@@ -61,6 +61,24 @@ export class FakeWikiRepository implements IWikiRepository {
     return null;
   }
 
+  async findSlugsStartingWith(
+    spaceId: string,
+    parentId: string | null,
+    baseSlug: string,
+  ): Promise<{ slug: string; id: string }[]> {
+    const matches: { slug: string; id: string }[] = [];
+    for (const p of this.pages.values()) {
+      if (
+        p.spaceId === spaceId &&
+        p.parentId === parentId &&
+        p.slug.startsWith(baseSlug)
+      ) {
+        matches.push({ slug: p.slug, id: p.id });
+      }
+    }
+    return matches;
+  }
+
   async findTreeBySpaceId(spaceId: string): Promise<WikiTreeNode[]> {
     const live = [...this.pages.values()].filter(
       (p) => p.spaceId === spaceId && !p.archived,
@@ -104,6 +122,24 @@ export class FakeWikiRepository implements IWikiRepository {
   }
 
   async savePage(page: WikiPage): Promise<WikiPage> {
+    // Simulate the Prisma @@unique([spaceId, parentId, slug])
+    // constraint. Without this, the test fake wouldn't exercise the
+    // P2002 retry path that the real Prisma client hits on race.
+    for (const existing of this.pages.values()) {
+      if (
+        existing.spaceId === page.spaceId &&
+        existing.parentId === page.parentId &&
+        existing.slug === page.slug &&
+        existing.id !== page.id &&
+        !existing.archived
+      ) {
+        const err = new Error(
+          `Unique constraint failed: WikiPage (spaceId, parentId, slug)=(${page.spaceId}, ${page.parentId}, ${page.slug})`,
+        ) as Error & { code: string };
+        err.code = 'P2002';
+        throw err;
+      }
+    }
     this.pages.set(page.id, page);
     return page;
   }

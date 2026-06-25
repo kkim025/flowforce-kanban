@@ -73,6 +73,13 @@ describe('WikiService', () => {
       });
       expect(versions).toHaveLength(1);
       expect(versions[0].revisionNo).toBe(1);
+      // Version ids also flow into URL paths
+      // (pages/:pageId/versions/:versionId/restore). They must be
+      // UUIDs so future tooling that assumes UUID format doesn't
+      // break silently.
+      expect(versions[0].id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
 
     it('rejects a parent that belongs to a different wiki', async () => {
@@ -116,6 +123,13 @@ describe('WikiService', () => {
   // ── Slug auto-suffix ──────────────────────────────────────────────────
 
   describe('slug auto-suffix on create', () => {
+    // The fake repo (test/helpers/fake-wiki-repository.ts) simulates
+    // the Prisma @@unique([spaceId, parentId, slug]) constraint by
+    // throwing P2002 from savePage. That means these tests exercise
+    // the same retry path the real DB does on a slug race — the
+    // service catches P2002 inside createPage and retries with the
+    // next free suffix.
+
     it('auto-suffixes -2 on collision within the same parent', async () => {
       await service.getOrCreateSpace(BOARD_ID);
       await service.createPage({

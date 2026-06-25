@@ -29,6 +29,8 @@ export interface IWikiRepository {
   ): Promise<WikiSpace>;
 
   // ── WikiPage ─────────────────────────────────────────────────────────────
+  // ── WikiPage ───────────────────────────────────────────────────────────────
+
   findPageById(
     pageId: string,
     tx?: Prisma.TransactionClient,
@@ -39,6 +41,12 @@ export interface IWikiRepository {
     slug: string,
     tx?: Prisma.TransactionClient,
   ): Promise<WikiPage | null>;
+  findSlugsStartingWith(
+    spaceId: string,
+    parentId: string | null,
+    baseSlug: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ slug: string; id: string }[]>;
   findTreeBySpaceId(
     spaceId: string,
     tx?: Prisma.TransactionClient,

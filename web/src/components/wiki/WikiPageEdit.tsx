@@ -9,6 +9,14 @@ import { UI_LABELS } from '../../lib/constants';
 interface WikiPageEditProps {
     boardId: string;
     pageId: string;
+    /**
+     * Pre-loaded page from the parent. When provided, the component
+     * skips its own `getWikiPage` call (single-fetch behavior — the
+     * page is already loaded by `WikiLayout` for the read view).
+     * Pass `null` if the page failed to load; the form stays disabled
+     * until the parent re-fetches.
+     */
+    initialPage?: WikiPage | null;
     onSaved: (page: WikiPage) => void;
     onCancel: () => void;
 }
@@ -16,16 +24,26 @@ interface WikiPageEditProps {
 const WikiPageEdit: React.FC<WikiPageEditProps> = ({
     boardId,
     pageId,
+    initialPage,
     onSaved,
     onCancel,
 }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(initialPage === undefined);
     const [saving, setSaving] = useState(false);
     const { showToast } = useToast();
 
     useEffect(() => {
+        // Fast path: parent already loaded the page. Skip the fetch.
+        if (initialPage !== undefined) {
+            if (initialPage) {
+                setTitle(initialPage.title);
+                setContent(initialPage.content);
+            }
+            setLoading(false);
+            return;
+        }
         let cancelled = false;
         setLoading(true);
         getWikiPage(boardId, pageId)
@@ -50,7 +68,7 @@ const WikiPageEdit: React.FC<WikiPageEditProps> = ({
         return () => {
             cancelled = true;
         };
-    }, [boardId, pageId, showToast]);
+    }, [boardId, pageId, showToast, initialPage]);
 
     const handleSave = async () => {
         if (!title.trim() || !content.trim()) {

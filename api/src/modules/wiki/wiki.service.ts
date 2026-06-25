@@ -123,59 +123,100 @@ export class WikiService {
     }
 
     const baseSlug = input.slug ?? this.slugify(input.title);
-    const slug = await this.nextAvailableSlug(
-      space.id,
-      input.parentId,
-      baseSlug,
-    );
-
+    const pageId = uuidv4();
     const now = new Date();
-    // The base Entity class auto-generates a short random id if none
-    // is supplied, but we need a real UUID because:
-    //   1. the schema column is a UUID and DTOs validate parentId as one
-    //   2. the entity id ends up in URL paths (pages/:pageId)
-    // The board-sharing service follows the same convention: caller
-    // generates the UUID and passes it into the factory.
-    const pageResult = WikiPage.create(
-      {
-        spaceId: space.id,
-        parentId: input.parentId,
-        slug,
-        title: input.title,
-        content: input.content,
-        order: 0, // append-only order is decided by the move use-case later
-        archived: false,
-        archivedAt: null,
-        archivedById: null,
-        createdById: input.actorId,
-        updatedById: input.actorId,
-        createdAt: now,
-        updatedAt: now,
-      },
-      uuidv4(),
-    );
-    if (pageResult.isFailure) {
-      throw new BadRequestException(String(pageResult.error));
-    }
-    const page = pageResult.getValue();
 
-    return this.prisma.$transaction(async (tx) => {
-      const saved = await this.repo.savePage(page, tx);
-      // First version = revision 1, recording the create.
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: now,
-      });
-      if (versionResult.isFailure) {
-        throw new BadRequestException(String(versionResult.error));
+    // Slug allocation: handle two failure modes.
+    //
+    // 1. Sequential collision (a previous successful create already
+    //    took `baseSlug`): `nextAvailableSlug` finds the next free
+    //    `-N` suffix before we attempt the insert.
+    //
+    // 2. Concurrent collision (two requests both pass
+    //    `nextAvailableSlug` then race the unique constraint): the
+    //    loser hits Prisma's P2002 and we retry with a fresh
+    //    `nextAvailableSlug` call that sees the winner's row.
+    //
+    // `MAX_ATTEMPTS` bounds the loop so an unrelated bug can't hang
+    // the request.
+    const MAX_ATTEMPTS = 5;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const slug = await this.nextAvailableSlug(
+        space.id,
+        input.parentId,
+        baseSlug,
+      );
+      const pageResult = WikiPage.create(
+        {
+          spaceId: space.id,
+          parentId: input.parentId,
+          slug,
+          title: input.title,
+          content: input.content,
+          order: 0, // append-only order is decided by the move use-case later
+          archived: false,
+          archivedAt: null,
+          archivedById: null,
+          createdById: input.actorId,
+          updatedById: input.actorId,
+          createdAt: now,
+          updatedAt: now,
+        },
+        pageId,
+      );
+      if (pageResult.isFailure) {
+        throw new BadRequestException(String(pageResult.error));
       }
-      await this.repo.saveVersion(versionResult.getValue(), tx);
-      return saved;
-    });
+      const page = pageResult.getValue();
+
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const saved = await this.repo.savePage(page, tx);
+          // First version = revision 1, recording the create.
+          // Pass uuidv4() explicitly — the base Entity class falls
+          // back to a 9-char random string if no id is supplied,
+          // which would break future tooling that assumes UUID-
+          // shaped version ids (versionId is in URL paths).
+          const versionResult = WikiPageVersion.create(
+            {
+              pageId: saved.id,
+              revisionNo: 1,
+              title: saved.title,
+              content: saved.content,
+              editorId: input.actorId,
+              createdAt: now,
+            },
+            uuidv4(),
+          );
+          if (versionResult.isFailure) {
+            throw new BadRequestException(String(versionResult.error));
+          }
+          await this.repo.saveVersion(versionResult.getValue(), tx);
+          return saved;
+        });
+      } catch (err) {
+        // Prisma's P2002 = unique constraint violation on
+        // (spaceId, parentId, slug). Retry with a fresh
+        // nextAvailableSlug call that sees the winner's row. Any
+        // other error bubbles up.
+        if (
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2002'
+        ) {
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new BadRequestException(
+      `Could not allocate a unique slug after ${MAX_ATTEMPTS} attempts: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+    );
   }
 
   /**
@@ -225,16 +266,20 @@ export class WikiService {
 
       const saved = await this.repo.savePage(page, tx);
 
-      // Append-only version: max + 1
+      // Append-only version: max + 1. Pass uuidv4() explicitly so
+      // version ids in URL paths match the column type expectation.
       const maxRev = await this.repo.findMaxRevisionNo(saved.id, tx);
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: maxRev + 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: new Date(),
-      });
+      const versionResult = WikiPageVersion.create(
+        {
+          pageId: saved.id,
+          revisionNo: maxRev + 1,
+          title: saved.title,
+          content: saved.content,
+          editorId: input.actorId,
+          createdAt: new Date(),
+        },
+        uuidv4(),
+      );
       if (versionResult.isFailure) {
         throw new BadRequestException(String(versionResult.error));
       }
@@ -257,22 +302,28 @@ export class WikiService {
   }): Promise<WikiPage> {
     const space = await this.getSpace(input.boardId);
 
-    // Validate new parent belongs to same space (or is null).
-    if (input.parentId) {
-      const newParent = await this.repo.findPageById(input.parentId);
-      if (!newParent || newParent.spaceId !== space.id) {
-        throw new BadRequestException(
-          'Parent page does not belong to this wiki',
-        );
-      }
-      // Reject moves that would create a cycle (moving into a descendant).
-      await this.assertNoCycle(input.pageId, input.parentId);
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Re-load the page under the transaction so the move + cycle
+      // check + slug reallocation + save all operate on a consistent
+      // view. Doing these in a single tx closes the TOCTOU window
+      // between the pre-check and the save (review finding).
       const page = await this.repo.findPageById(input.pageId, tx);
       if (!page || page.spaceId !== space.id) {
         throw new NotFoundException('Wiki page not found');
+      }
+
+      // Validate new parent belongs to same space (or is null).
+      if (input.parentId) {
+        const newParent = await this.repo.findPageById(input.parentId, tx);
+        if (!newParent || newParent.spaceId !== space.id) {
+          throw new BadRequestException(
+            'Parent page does not belong to this wiki',
+          );
+        }
+        // Reject moves that would create a cycle (moving into a
+        // descendant). Walk happens inside the tx so a concurrent
+        // move can't install a cycle between the check and the save.
+        await this.assertNoCycle(input.pageId, input.parentId, tx);
       }
 
       // If parent changed, slug may collide with an existing sibling.
@@ -404,14 +455,17 @@ export class WikiService {
       });
       const saved = await this.repo.savePage(page, tx);
       const maxRev = await this.repo.findMaxRevisionNo(saved.id, tx);
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: maxRev + 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: new Date(),
-      });
+      const versionResult = WikiPageVersion.create(
+        {
+          pageId: saved.id,
+          revisionNo: maxRev + 1,
+          title: saved.title,
+          content: saved.content,
+          editorId: input.actorId,
+          createdAt: new Date(),
+        },
+        uuidv4(),
+      );
       if (versionResult.isFailure) {
         throw new BadRequestException(String(versionResult.error));
       }
@@ -424,9 +478,62 @@ export class WikiService {
   // ── Helpers ────────────────────────────────────────────────────────────
 
   /**
-   * URL-safe slug derived from a title. Lowercase, dashes, collapse
-   * repeats, trim leading/trailing dashes.
+   * Given a desired base slug within (spaceId, parentId), return the
+   * first available slug by appending `-2`, `-3`, …
+   *
+   * Implementation: a single `findSlugsStartingWith` query (matches
+   * `baseSlug` AND `baseSlug-...`) followed by an in-memory parse of
+   * the existing suffix numbers. This is O(n) where n is the number
+   * of existing suffixed siblings, instead of the prior
+   * implementation's O(k) DB round-trips for k = the suffix being
+   * tried.
+   *
+   * `excludePageId` (for rename) is excluded from the in-memory set
+   * so a page's own slug doesn't collide with itself.
    */
+  private async nextAvailableSlug(
+    spaceId: string,
+    parentId: string | null,
+    baseSlug: string,
+    excludePageId?: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string> {
+    const suffixNumbers = new Set<number>();
+    let baseSlugTaken = false;
+
+    const siblings = await this.repo.findSlugsStartingWith(
+      spaceId,
+      parentId,
+      baseSlug,
+      tx,
+    );
+    for (const { slug, id } of siblings) {
+      // Skip the page that's being renamed — its own current slug
+      // is allowed to collide with `baseSlug` in the rename case.
+      if (id === excludePageId) continue;
+      if (slug === baseSlug) {
+        baseSlugTaken = true;
+        continue;
+      }
+      const m = slug.match(/^(.*)-(\d+)$/);
+      if (m && m[1] === baseSlug) {
+        const n = parseInt(m[2], 10);
+        if (Number.isFinite(n) && n >= 2) suffixNumbers.add(n);
+      }
+    }
+
+    if (!baseSlugTaken) return baseSlug;
+
+    // Find the smallest free suffix >= 2. Capped at 10,000 to
+    // match the prior implementation's bound — in practice a single
+    // parent will never have that many suffixed siblings.
+    for (let i = 2; i < 10_000; i++) {
+      if (!suffixNumbers.has(i)) return `${baseSlug}-${i}`;
+    }
+    throw new BadRequestException(
+      `Could not allocate a unique slug for "${baseSlug}" — too many existing siblings`,
+    );
+  }
   private slugify(input: string): string {
     const base = input
       .toLowerCase()
@@ -438,51 +545,13 @@ export class WikiService {
   }
 
   /**
-   * Given a desired base slug within (spaceId, parentId), return the
-   * first available slug by appending `-2`, `-3`, … if needed. If
-   * `excludePageId` is provided (for rename), the page with that id
-   * is excluded from the collision check so it doesn't collide with
-   * itself.
-   */
-  private async nextAvailableSlug(
-    spaceId: string,
-    parentId: string | null,
-    baseSlug: string,
-    excludePageId?: string,
-    tx?: Prisma.TransactionClient,
-  ): Promise<string> {
-    // Fast path: base slug is free.
-    const initial = await this.repo.findPageBySlug(
-      spaceId,
-      parentId,
-      baseSlug,
-      tx,
-    );
-    if (!initial || initial.id === excludePageId) return baseSlug;
-
-    // Otherwise probe `-2`, `-3`, …
-    for (let i = 2; i < 10_000; i++) {
-      const candidate = `${baseSlug}-${i}`;
-
-      const clash = await this.repo.findPageBySlug(
-        spaceId,
-        parentId,
-        candidate,
-        tx,
-      );
-      if (!clash || clash.id === excludePageId) return candidate;
-    }
-    // Practically unreachable; very deep trees would hit the loop bound.
-    throw new BadRequestException('Could not allocate a unique slug');
-  }
-
-  /**
    * Walk down from `newParentId` and assert that we never encounter
    * `pageId` — if we do, the move would create a cycle.
    */
   private async assertNoCycle(
     pageId: string,
     newParentId: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
     if (pageId === newParentId) {
       throw new BadRequestException('Cannot make a page its own parent');
@@ -490,7 +559,7 @@ export class WikiService {
     let cursor: string | null = newParentId;
     // Bounded walk; if depth > 64 we just give up and assume cycle.
     for (let i = 0; cursor && i < 64; i++) {
-      const node: WikiPage | null = await this.repo.findPageById(cursor);
+      const node: WikiPage | null = await this.repo.findPageById(cursor, tx);
       if (!node) return;
       if (node.id === pageId) {
         throw new BadRequestException(

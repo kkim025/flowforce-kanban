@@ -162,14 +162,21 @@ export class WikiService {
     return this.prisma.$transaction(async (tx) => {
       const saved = await this.repo.savePage(page, tx);
       // First version = revision 1, recording the create.
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: now,
-      });
+      // Pass uuidv4() explicitly — the base Entity class falls back
+      // to a 9-char random string if no id is supplied, which would
+      // break future tooling that assumes UUID-shaped version ids
+      // (versionId is in URL paths).
+      const versionResult = WikiPageVersion.create(
+        {
+          pageId: saved.id,
+          revisionNo: 1,
+          title: saved.title,
+          content: saved.content,
+          editorId: input.actorId,
+          createdAt: now,
+        },
+        uuidv4(),
+      );
       if (versionResult.isFailure) {
         throw new BadRequestException(String(versionResult.error));
       }
@@ -225,16 +232,20 @@ export class WikiService {
 
       const saved = await this.repo.savePage(page, tx);
 
-      // Append-only version: max + 1
+      // Append-only version: max + 1. Pass uuidv4() explicitly so
+      // version ids in URL paths match the column type expectation.
       const maxRev = await this.repo.findMaxRevisionNo(saved.id, tx);
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: maxRev + 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: new Date(),
-      });
+      const versionResult = WikiPageVersion.create(
+        {
+          pageId: saved.id,
+          revisionNo: maxRev + 1,
+          title: saved.title,
+          content: saved.content,
+          editorId: input.actorId,
+          createdAt: new Date(),
+        },
+        uuidv4(),
+      );
       if (versionResult.isFailure) {
         throw new BadRequestException(String(versionResult.error));
       }
@@ -404,14 +415,17 @@ export class WikiService {
       });
       const saved = await this.repo.savePage(page, tx);
       const maxRev = await this.repo.findMaxRevisionNo(saved.id, tx);
-      const versionResult = WikiPageVersion.create({
-        pageId: saved.id,
-        revisionNo: maxRev + 1,
-        title: saved.title,
-        content: saved.content,
-        editorId: input.actorId,
-        createdAt: new Date(),
-      });
+      const versionResult = WikiPageVersion.create(
+        {
+          pageId: saved.id,
+          revisionNo: maxRev + 1,
+          title: saved.title,
+          content: saved.content,
+          editorId: input.actorId,
+          createdAt: new Date(),
+        },
+        uuidv4(),
+      );
       if (versionResult.isFailure) {
         throw new BadRequestException(String(versionResult.error));
       }

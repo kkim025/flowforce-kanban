@@ -73,6 +73,13 @@ describe('WikiService', () => {
       });
       expect(versions).toHaveLength(1);
       expect(versions[0].revisionNo).toBe(1);
+      // Version ids also flow into URL paths
+      // (pages/:pageId/versions/:versionId/restore). They must be
+      // UUIDs so future tooling that assumes UUID format doesn't
+      // break silently.
+      expect(versions[0].id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
 
     it('rejects a parent that belongs to a different wiki', async () => {

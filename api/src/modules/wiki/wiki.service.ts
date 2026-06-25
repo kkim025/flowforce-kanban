@@ -49,11 +49,14 @@ export class WikiService {
   async getOrCreateSpace(boardId: string): Promise<WikiSpace> {
     const existing = await this.repo.findSpaceByBoardId(boardId);
     if (existing) return existing;
-    const result = WikiSpace.create({
-      boardId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const result = WikiSpace.create(
+      {
+        boardId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      uuidv4(),
+    );
     if (result.isFailure) {
       throw new BadRequestException(String(result.error));
     }
@@ -101,7 +104,12 @@ export class WikiService {
     slug?: string;
     actorId: string;
   }): Promise<WikiPage> {
-    const space = await this.getSpace(input.boardId);
+    // Lazy-create the space so the first POST /pages on a board works
+    // without first calling GET /wiki (which is what materialises it
+    // via getOrCreateSpace). Reads and updates keep the strict
+    // getSpace() — a missing space there means a real "no wiki yet"
+    // state we want to surface, not a 404 on legitimate work.
+    const space = await this.getOrCreateSpace(input.boardId);
 
     // Validate parent belongs to same space (or is null).
     let parent: WikiPage | null = null;
@@ -120,21 +128,30 @@ export class WikiService {
     );
 
     const now = new Date();
-    const pageResult = WikiPage.create({
-      spaceId: space.id,
-      parentId: input.parentId,
-      slug,
-      title: input.title,
-      content: input.content,
-      order: 0, // append-only order is decided by the move use-case later
-      archived: false,
-      archivedAt: null,
-      archivedById: null,
-      createdById: input.actorId,
-      updatedById: input.actorId,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // The base Entity class auto-generates a short random id if none
+    // is supplied, but we need a real UUID because:
+    //   1. the schema column is a UUID and DTOs validate parentId as one
+    //   2. the entity id ends up in URL paths (pages/:pageId)
+    // The board-sharing service follows the same convention: caller
+    // generates the UUID and passes it into the factory.
+    const pageResult = WikiPage.create(
+      {
+        spaceId: space.id,
+        parentId: input.parentId,
+        slug,
+        title: input.title,
+        content: input.content,
+        order: 0, // append-only order is decided by the move use-case later
+        archived: false,
+        archivedAt: null,
+        archivedById: null,
+        createdById: input.actorId,
+        updatedById: input.actorId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      uuidv4(),
+    );
     if (pageResult.isFailure) {
       throw new BadRequestException(String(pageResult.error));
     }

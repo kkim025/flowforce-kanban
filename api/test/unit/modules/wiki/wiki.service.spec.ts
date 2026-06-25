@@ -61,6 +61,11 @@ describe('WikiService', () => {
       expect(page.slug).toBe('hello');
       expect(page.parentId).toBeNull();
       expect(page.createdById).toBe(ACTOR);
+      // Page ids must be UUIDs so they round-trip through URL paths
+      // and satisfy the DTO @IsUUID validators.
+      expect(page.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
 
       const versions = await service.listVersions({
         boardId: BOARD_ID,

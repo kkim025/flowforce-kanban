@@ -106,9 +106,9 @@ const WikiPageEdit: React.FC<WikiPageEditProps> = ({
         // us a fixed-height right pane; we fill it with a flex column
         // (action row at top, title input below, editor body fills
         // the rest) and let the outer `overflow-y-auto` on WikiLayout's
-        // main handle scrolling. The page-8 padding gives symmetric
-        // margins (top / left / right / bottom all 2rem).
-        <div className="flex-1 flex flex-col p-8 min-h-0 overflow-hidden">
+        // main handle scrolling. p-10 (40 px) gives symmetric margins
+        // matching the read view.
+        <div className="flex-1 flex flex-col p-10 min-h-0 overflow-hidden">
             <div className="flex flex-col gap-4 w-full h-full min-h-0">
                 <div className="flex items-center justify-between gap-2 shrink-0">
                     <button

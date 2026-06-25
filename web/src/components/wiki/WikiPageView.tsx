@@ -162,9 +162,10 @@ const WikiPageView: React.FC<WikiPageViewProps> = ({
     return (
         // Full-width container. The right pane already constrains
         // height via WikiLayout's flex-1 overflow-hidden. The inner
-        // <div> takes the full width — no max-w-3xl — so the markdown
-        // content fills the column.
-        <div className="flex-1 overflow-y-auto p-8">
+        // <div> takes the full width with p-10 (40 px) symmetric
+        // margins so the markdown content has more breathing room
+        // from the sidebar edge.
+        <div className="flex-1 overflow-y-auto p-10">
             <div className="flex flex-col gap-6 w-full">
                 <div className="flex items-center justify-between gap-4">
                     <button

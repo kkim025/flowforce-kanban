@@ -188,15 +188,15 @@ export class PrismaWikiRepository implements IWikiRepository {
         const parent: Prisma.WikiPageGetPayload<object> | null =
           await client.wikiPage.findUnique({ where: { id: cursorId } });
         if (!parent) break;
+        // Skip archived parents — they're in trash too. Stop walking.
+        // Check BEFORE unshifting so the breadcrumb doesn't include
+        // an archived ancestor.
+        if (parent.archived) break;
         breadcrumb.unshift({
           id: parent.id,
           title: parent.title,
           slug: parent.slug,
         });
-        if (parent.archived) {
-          // Skip archived parents — they're in trash too. Stop walking.
-          break;
-        }
         cursorId = parent.parentId;
       }
       results.push({

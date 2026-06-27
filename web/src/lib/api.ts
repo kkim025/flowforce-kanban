@@ -46,9 +46,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Flowforce-kanban#29: 401 used to silently nuke storage and hard-redirect
+      // to /login with zero feedback. Now we dispatch a window event so
+      // AuthContext can show a toast ("Session expired — please sign in again")
+      // and centralize the storage wipe + redirect in one place. The
+      // window.location.href fallback is kept as a last resort for cases
+      // where AuthProvider isn't mounted (e.g. raw API consumers).
+      const hadToken = !!localStorage.getItem('flowforce_token');
       localStorage.removeItem('flowforce_token');
       localStorage.removeItem('flowforce_user');
-      window.location.href = '/login';
+      if (hadToken) {
+        window.dispatchEvent(new CustomEvent('flowforce:auth-expired'));
+      } else {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

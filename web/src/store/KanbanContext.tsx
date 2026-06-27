@@ -243,10 +243,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const refreshedState = await refreshBoardState(board.id, null, loadedSprints);
                     setHistory({ type: 'SET_STATE', payload: { ...refreshedState, activeSprintId } });
                 }
-                setIsHydrated(true);
             } catch (err) {
                 console.error('Initial load error:', err);
             } finally {
+                // Always flip the hydration gate, even when an API call throws.
+                // If this stays false the Board renders "Loading Board..." forever,
+                // because `setIsHydrated(true)` previously sat inside the try block
+                // *after* the setHistory call — any throw between them stranded the
+                // spinner. See flowforce-kanban issue #25.
+                setIsHydrated(true);
                 setIsSyncing(false);
             }
         };

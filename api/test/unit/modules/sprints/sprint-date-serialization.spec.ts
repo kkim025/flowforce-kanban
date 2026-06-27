@@ -45,16 +45,20 @@ describe('Sprint Date Serialization', () => {
 
     it('should demonstrate the timezone issue with date-only strings', () => {
       const startDate = new Date('2026-06-23');
-      
+
       console.log('\n=== TIMEZONE ISSUE ===');
       console.log('Input: "2026-06-23" (user intends local date)');
       console.log('Parsed: new Date("2026-06-23") =', startDate.toISOString());
       console.log('');
-      console.log('The problem: JavaScript Date.parse("2026-06-23") interprets');
+      console.log(
+        'The problem: JavaScript Date.parse("2026-06-23") interprets',
+      );
       console.log('this as UTC midnight (00:00:00Z), NOT local midnight.');
       console.log('');
-      console.log('In EDT (UTC-4): 2026-06-23T00:00:00.000Z = 2026-06-22 20:00:00 local');
-      
+      console.log(
+        'In EDT (UTC-4): 2026-06-23T00:00:00.000Z = 2026-06-22 20:00:00 local',
+      );
+
       expect(startDate.toISOString()).toBe('2026-06-23T00:00:00.000Z');
     });
   });

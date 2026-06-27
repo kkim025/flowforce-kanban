@@ -40,7 +40,9 @@ export class UpdateSprintUseCase {
     const updatedSprintResult = Sprint.create(
       {
         name: dto.name !== undefined ? dto.name.trim() : sprint.name,
-        startDate: dto.startDate ? new Date(dto.startDate) : sprint.props.startDate,
+        startDate: dto.startDate
+          ? new Date(dto.startDate)
+          : sprint.props.startDate,
         endDate: dto.endDate ? new Date(dto.endDate) : sprint.props.endDate,
         status: dto.status || sprint.status,
         boardId: sprint.boardId,

@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // `exp` for the pre-expiry warning timer. The server still enforces auth
 // on every request, so a forged/tampered token just produces a wrong
 // warning time — no security implication.
-function readJwtExp(token: string): number | null {
+export function readJwtExp(token: string): number | null {
   try {
     const payload = token.split('.')[1];
     if (!payload) return null;

@@ -13,54 +13,56 @@ import { NotificationPreferences } from './components/notifications/Notification
 import WikiLayout from './components/wiki/WikiLayout';
 import { AuthProvider } from './store/AuthContext';
 import { NotificationsProvider } from './store/NotificationsContext';
-import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 
+// Note: <ToastProvider> from ./context/ToastContext is now mounted in main.tsx
+// so it sits ABOVE <KanbanProvider> (which renders this <App />). Previously it
+// was nested inside <App /> under <KanbanProvider>, which meant useToast()
+// called from inside KanbanProvider had no provider ancestor and threw.
+// See flowforce-kanban#25 and the production-bug note on PR #27.
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <NotificationsProvider>
-            <Router>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={<LoginForm />} />
-                <Route path="/register" element={<RegisterForm />} />
+      <AuthProvider>
+        <NotificationsProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
 
-                {/* Protected Routes */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/" element={<Board />}>
-                    <Route path="tasks/new" element={<TaskEditor />} />
-                    <Route path="tasks/:taskId" element={<TaskViewer />} />
-                    <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Board />}>
+                  <Route path="tasks/new" element={<TaskEditor />} />
+                  <Route path="tasks/:taskId" element={<TaskViewer />} />
+                  <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
 
-                    {/* Admin Routes */}
-                    <Route path="admin/users" element={<UserManagement />} />
-                    <Route path="board/:boardId/reports" element={<SprintReportPage />} />
-                  </Route>
-
-                  {/* Top-level notification routes */}
-                  <Route path="/notifications" element={<NotificationCenterPage />} />
-                  <Route path="/settings/notifications" element={<NotificationPreferences />} />
-
-                  {/* Wiki routes — plural 'boards' to match the API controller.
-                      Standalone top-level routes (not nested under Board.tsx)
-                      so they have their own layout. */}
-                  <Route path="/boards/:boardId/wiki" element={<WikiLayout />}>
-                    <Route index element={null} />
-                    <Route path="trash" element={null} />
-                    <Route path=":pageId" element={null} />
-                  </Route>
+                  {/* Admin Routes */}
+                  <Route path="admin/users" element={<UserManagement />} />
+                  <Route path="board/:boardId/reports" element={<SprintReportPage />} />
                 </Route>
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Router>
-          </NotificationsProvider>
-        </AuthProvider>
-      </ToastProvider>
+                {/* Top-level notification routes */}
+                <Route path="/notifications" element={<NotificationCenterPage />} />
+                <Route path="/settings/notifications" element={<NotificationPreferences />} />
+
+                {/* Wiki routes — plural 'boards' to match the API controller.
+                    Standalone top-level routes (not nested under Board.tsx)
+                    so they have their own layout. */}
+                <Route path="/boards/:boardId/wiki" element={<WikiLayout />}>
+                  <Route index element={null} />
+                  <Route path="trash" element={null} />
+                  <Route path=":pageId" element={null} />
+                </Route>
+              </Route>
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </NotificationsProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };

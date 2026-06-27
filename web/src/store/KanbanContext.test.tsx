@@ -31,9 +31,13 @@ vi.mock('../lib/mappers', () => ({
     })),
 }));
 
-// Mock the toast context so the Board can call showToast without a real provider.
+// Hoist a stable spy so individual tests can assert on it without rebuilding
+// the mock factory for each case. The KanbanProvider reads useToast() once
+// during render and stores showToast in a closure, so we expose the spy
+// reference and reset it before each test.
+const showToastSpy = vi.fn();
 vi.mock('../context/ToastContext', () => ({
-    useToast: () => ({ showToast: vi.fn() }),
+    useToast: () => ({ showToast: showToastSpy }),
 }));
 
 // Capture consumer state so we can assert isHydrated flips on the success path
@@ -57,13 +61,20 @@ describe('KanbanProvider initial hydration (issue #25 regression)', () => {
 
     it('flips isHydrated to true on the happy path', async () => {
         const api = (await import('../lib/api')).default;
-        vi.mocked(api.get).mockResolvedValueOnce({ data: [] } as any);
+        // Make every API call resolve. The first GET returns a non-empty list
+        // so we skip the auto-create branch; subsequent GETs return shapes the
+        // mocked mapper ignores.
+        vi.mocked(api.get).mockResolvedValue({
+            data: [{ id: 'board-1', title: 'Personal Board' }],
+        } as any);
 
         renderWithProvider();
 
         await waitFor(() =>
             expect(screen.getByTestId('probe').textContent).toBe('hydrated'),
         );
+        // Happy path: no error toast.
+        expect(showToastSpy).not.toHaveBeenCalled();
     });
 
     it('flips isHydrated to true even when /boards throws (was stuck on Loading Board... forever)', async () => {
@@ -78,5 +89,18 @@ describe('KanbanProvider initial hydration (issue #25 regression)', () => {
         await waitFor(() =>
             expect(screen.getByTestId('probe').textContent).toBe('hydrated'),
         );
+    });
+
+    it('surfaces the error via showToast so the user sees why loading failed', async () => {
+        const api = (await import('../lib/api')).default;
+        vi.mocked(api.get).mockRejectedValueOnce(new Error('Network Error'));
+
+        renderWithProvider();
+
+        await waitFor(() => expect(showToastSpy).toHaveBeenCalledTimes(1));
+        const [message, type] = showToastSpy.mock.calls[0];
+        expect(type).toBe('error');
+        expect(message).toMatch(/Could not load your boards/);
+        expect(message).toMatch(/Network Error/);
     });
 });

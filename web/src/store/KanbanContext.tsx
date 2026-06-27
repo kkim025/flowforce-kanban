@@ -4,6 +4,7 @@ import { kanbanReducer, initialState } from './kanbanReducer';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
 import { mapApiBoardToState } from '../lib/mappers';
+import { useToast } from '../context/ToastContext';
 
 interface KanbanContextType {
     state: BoardState;
@@ -27,6 +28,7 @@ const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
 
 export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated } = useAuth();
+    const { showToast } = useToast();
     const [isSyncing, setIsSyncing] = useState(false);
     const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
     const [allBoards, setAllBoards] = useState<{ id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[]>([]);
@@ -245,6 +247,14 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
             } catch (err) {
                 console.error('Initial load error:', err);
+                // Surface the real error to the user so the next "infinite
+                // loading" report carries an actionable message instead of a
+                // screenshot. See issue #25.
+                const message =
+                    err instanceof Error && err.message
+                        ? `Could not load your boards: ${err.message}`
+                        : 'Could not load your boards. Please refresh and try again.';
+                showToast(message, 'error');
             } finally {
                 // Always flip the hydration gate, even when an API call throws.
                 // If this stays false the Board renders "Loading Board..." forever,
@@ -257,6 +267,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
 
         loadBoardData();
+        // showToast and refreshBoardState intentionally omitted from deps:
+        // depending on showToast would re-run board hydration whenever the
+        // Toast provider re-creates its function reference, and
+        // refreshBoardState is itself useCallback([]).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {

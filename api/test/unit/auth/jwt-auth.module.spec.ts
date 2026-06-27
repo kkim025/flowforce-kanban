@@ -21,7 +21,7 @@ describe('JwtAuthModule TTL (flowforce-kanban#29)', () => {
 
   it('issues tokens with an 8-hour expiry', () => {
     const token = jwt.sign({ sub: 'user-1', email: 'me@example.com' });
-    const decoded = jwt.verify(token) as { iat: number; exp: number };
+    const decoded = jwt.verify(token);
     const lifetimeSeconds = decoded.exp - decoded.iat;
     // Allow ±5 seconds of jitter for test execution time.
     expect(lifetimeSeconds).toBeGreaterThanOrEqual(8 * 3600 - 5);

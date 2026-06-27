@@ -29,6 +29,36 @@ vi.mock('../context/ToastContext', () => ({
     useToast: () => ({ showToast: showToastSpy }),
 }));
 
+// Mock the socket module. NotificationsProvider's useEffect only calls
+// loadInitial() inside the 'connect' event handler — without a real server
+// (CI runs without the API), socket.connect() hangs forever and loadInitial
+// never runs. Expose a fake socket whose connect() synchronously fires the
+// 'connect' listeners so loadInitial() is invoked exactly like it would be
+// in production after the real socket handshake.
+//
+// The mock also exposes a listener registry so we can assert on the
+// disconnect flow in a future test if needed.
+type SocketListener = (...args: any[]) => void;
+const fakeSocket = {
+    on: (event: string, fn: SocketListener) => {
+        (fakeSocket as any)._listeners ??= {};
+        (fakeSocket as any)._listeners[event] = fn;
+    },
+    off: vi.fn(),
+    removeAllListeners: vi.fn(),
+    disconnect: vi.fn(),
+    connect: () => {
+        // Fire 'connect' synchronously so loadInitial() runs in the same
+        // microtask as the useEffect that registered the listener.
+        const fn = (fakeSocket as any)._listeners?.connect;
+        if (fn) fn();
+    },
+};
+vi.mock('../lib/socket', () => ({
+    getSocket: () => fakeSocket,
+    resetSocket: vi.fn(),
+}));
+
 // Capture consumer state so we can assert isInitComplete flips on the
 // success path AND on the error path (issue #26 regression).
 const StateProbe: React.FC = () => {
@@ -53,6 +83,8 @@ const renderWithProvider = () =>
 describe('NotificationsProvider initial load (issue #26 regression)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Re-arm the connect-listener registry cleared by clearAllMocks.
+        (fakeSocket as any)._listeners = {};
     });
 
     it('flips isInitComplete to true on the happy path with state populated', async () => {

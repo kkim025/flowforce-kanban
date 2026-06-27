@@ -14,7 +14,6 @@ interface TaskViewerHeaderProps {
 const TaskViewerHeader: React.FC<TaskViewerHeaderProps> = ({
     task,
     onArchive,
-    onDelete,
     onShowDeleteConfirm,
 }) => {
     const navigate = useNavigate();

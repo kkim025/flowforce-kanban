@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { CreateBoardUseCase } from './application/use-cases/create-board.use-case';
 import { CreateBoardDto } from './application/dto/create-board.dto';
+import { UpdateBoardDto } from './application/dto/update-board.dto';
 import { ReorderColumnsUseCase } from '../columns/application/use-cases/reorder-columns.use-case';
 
 @Controller('boards')
@@ -81,9 +82,9 @@ export class BoardsController {
   update(
     @GetUser('sub') userId: string,
     @Param('id') id: string,
-    @Body('title') title: string,
+    @Body() dto: UpdateBoardDto,
   ) {
-    return this.boardsService.update(userId, id, title);
+    return this.boardsService.update(userId, id, dto.title, dto.status);
   }
 
   @Delete(':id')
@@ -99,5 +100,14 @@ export class BoardsController {
   ) {
     this.logger.log(`Reordering columns for board ${boardId}`);
     return this.reorderColumnsUseCase.execute(userId, boardId, columnIds);
+  }
+
+  @Get(':id/sprint-reports')
+  async getSprintReport(
+    @GetUser('sub') userId: string,
+    @Param('id') boardId: string,
+    @Query('sprintId') sprintId: string,
+  ) {
+    return this.boardsService.getSprintReport(userId, boardId, sprintId);
   }
 }

@@ -1,11 +1,27 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { User, UserRole, Sprint, SprintStatus, SubTask, Priority } from '../types';
+import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref } from '../types';
+import { AUTH_EXPIRED_EVENT } from './auth-events';
 
-const api_url = import.meta.env.VITE_API_URL;
+const api_url =
+  import.meta.env.VITE_API_URL ||
+  // Fallback for local dev: assume the NestJS API on the standard port.
+  // In production, VITE_API_URL must be set explicitly via the build env.
+  (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
 if (!api_url) {
-  throw new Error('VITE_API_URL is not defined in environment variables. Please create a .env file in the web folder.');
+  throw new Error(
+    'VITE_API_URL is not defined. Set it in web/.env (see web/.env.example) or pass it at build time.',
+  );
+}
+
+if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
+  // Surface this once on dev startup so misconfiguration is obvious
+  // without crashing the app. The fallback above keeps things working.
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[flowforce] VITE_API_URL not set — falling back to http://localhost:5000. Copy web/.env.example to web/.env to silence this warning.',
+  );
 }
 
 const api = axios.create({
@@ -31,9 +47,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Flowforce-kanban#29: 401 used to silently nuke storage and hard-redirect
+      // to /login with zero feedback. Now we dispatch a window event so
+      // AuthContext can show a toast ("Session expired — please sign in again")
+      // and centralize the storage wipe + redirect in one place. The
+      // window.location.href fallback is kept as a last resort for cases
+      // where AuthProvider isn't mounted (e.g. raw API consumers).
+      const hadToken = !!localStorage.getItem('flowforce_token');
       localStorage.removeItem('flowforce_token');
       localStorage.removeItem('flowforce_user');
-      window.location.href = '/login';
+      if (hadToken) {
+        window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+      } else {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -184,6 +211,101 @@ export const reorderSubtasks = async (checklistId: string, orderedIds: string[])
 export const getSubtasksByChecklist = async (checklistId: string): Promise<SubTask[]> => {
   const response = await api.get<SubtaskApiResponse[]>('/subtasks', { params: { checklistId } });
   return response.data.map(mapApiSubtaskToSubTask);
+};
+
+// Time Tracking API
+export interface TimeEntryApiResponse {
+  id: string;
+  taskId: string;
+  userId: string;
+  userName?: string;
+  minutes: number;
+  date: string;
+  createdAt: string;
+}
+
+export interface SprintReportApiResponse {
+  sprintId: string;
+  sprintName: string;
+  startDate: string;
+  endDate: string;
+  totalEstimated: number;
+  totalLogged: number;
+  taskCount: number;
+  tasks: Array<{
+    taskId: string;
+    content: string;
+    estimatedMinutes: number | null;
+    loggedMinutes: number;
+    variance: number;
+  }>;
+}
+
+export const logTime = async (taskId: string, minutes: number, date?: string): Promise<TimeEntryApiResponse> => {
+  const response = await api.post<TimeEntryApiResponse>(`/tasks/${taskId}/time-entries`, { minutes, date });
+  return response.data;
+};
+
+export const getTimeEntries = async (taskId: string): Promise<TimeEntryApiResponse[]> => {
+  const response = await api.get<TimeEntryApiResponse[]>(`/tasks/${taskId}/time-entries`);
+  return response.data;
+};
+
+export const deleteTimeEntry = async (id: string): Promise<{ success: boolean }> => {
+  const response = await api.delete<{ success: boolean }>(`/time-entries/${id}`);
+  return response.data;
+};
+
+export const getSprintReport = async (boardId: string, sprintId: string): Promise<SprintReportApiResponse> => {
+  const response = await api.get<SprintReportApiResponse>(`/boards/${boardId}/sprint-reports`, { params: { sprintId } });
+  return response.data;
+};
+
+// Notifications API
+export interface NotificationsListResponse {
+  items: AppNotification[];
+  nextCursor: string | null;
+}
+
+export interface ListNotificationsParams {
+  limit?: number;
+  cursor?: string;
+  unreadOnly?: boolean;
+}
+
+export const getNotifications = async (params?: ListNotificationsParams): Promise<NotificationsListResponse> => {
+  const response = await api.get<NotificationsListResponse>('/notifications', { params });
+  return response.data;
+};
+
+export const getUnreadCount = async (): Promise<number> => {
+  const response = await api.get<{ count: number }>('/notifications/unread-count');
+  return response.data.count;
+};
+
+export const markNotificationRead = async (id: string): Promise<AppNotification> => {
+  const response = await api.patch<AppNotification>(`/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllNotificationsRead = async (): Promise<number> => {
+  const response = await api.post<{ updated: number }>('/notifications/mark-all-read');
+  return response.data.updated;
+};
+
+export const getNotificationPrefs = async (): Promise<UserNotificationPref[]> => {
+  const response = await api.get<UserNotificationPref[]>('/users/me/notification-prefs');
+  return response.data;
+};
+
+export const upsertNotificationPref = async (
+  type: NotificationType,
+  inAppEnabled: boolean,
+): Promise<UserNotificationPref> => {
+  const response = await api.put<UserNotificationPref>(`/users/me/notification-prefs/${type}`, {
+    inAppEnabled,
+  });
+  return response.data;
 };
 
 export default api;

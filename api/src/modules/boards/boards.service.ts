@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Board } from '@prisma/client';
+import { Board, BoardStatus, Prisma } from '@prisma/client';
 import { BOARD_LIST_CONFIG, BOARD_DETAIL_CONFIG } from './boards-query.config';
 
 @Injectable()
@@ -65,13 +65,22 @@ export class BoardsService {
     return board;
   }
 
-  async update(userId: string, id: string, title: string): Promise<Board> {
+  async update(
+    userId: string,
+    id: string,
+    title?: string,
+    status?: BoardStatus,
+  ): Promise<Board> {
     // Check ownership first
     await this.findOne(userId, id);
 
+    const data: Prisma.BoardUpdateInput = {};
+    if (title !== undefined) data.title = title;
+    if (status !== undefined) data.status = status;
+
     return this.prisma.board.update({
       where: { id },
-      data: { title },
+      data,
     });
   }
 
@@ -82,5 +91,58 @@ export class BoardsService {
     return this.prisma.board.delete({
       where: { id },
     });
+  }
+
+  async getSprintReport(userId: string, boardId: string, sprintId: string) {
+    // Verify board ownership
+    await this.findOne(userId, boardId);
+
+    const sprint = await this.prisma.sprint.findUnique({
+      where: { id: sprintId },
+      include: { tasks: true },
+    });
+
+    if (!sprint || sprint.boardId !== boardId) {
+      throw new NotFoundException('Sprint not found');
+    }
+
+    const taskIds = sprint.tasks.map((t) => t.id);
+    const timeEntries = await this.prisma.timeEntry.groupBy({
+      by: ['taskId'],
+      where: { taskId: { in: taskIds } },
+      _sum: { minutes: true },
+    });
+
+    const timeEntryMap = new Map(
+      timeEntries.map((te) => [te.taskId, te._sum.minutes || 0]),
+    );
+
+    const tasks = sprint.tasks.map((task) => {
+      const logged = timeEntryMap.get(task.id) || 0;
+      return {
+        taskId: task.id,
+        content: task.content,
+        estimatedMinutes: task.estimatedMinutes,
+        loggedMinutes: logged,
+        variance: logged - (task.estimatedMinutes || 0),
+      };
+    });
+
+    const totalEstimated = tasks.reduce(
+      (sum, t) => sum + (t.estimatedMinutes || 0),
+      0,
+    );
+    const totalLogged = tasks.reduce((sum, t) => sum + t.loggedMinutes, 0);
+
+    return {
+      sprintId: sprint.id,
+      sprintName: sprint.name,
+      startDate: sprint.startDate.toISOString(),
+      endDate: sprint.endDate.toISOString(),
+      totalEstimated,
+      totalLogged,
+      taskCount: tasks.length,
+      tasks,
+    };
   }
 }

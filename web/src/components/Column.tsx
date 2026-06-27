@@ -18,6 +18,7 @@ interface ColumnProps {
     onUpdateColumn: (column: ColumnType) => void;
     selectedTaskIds: string[];
     onSelectTask: (taskId: string, multiSelect: boolean) => void;
+    focusedTaskId?: string | null;
 }
 
 const Column: React.FC<ColumnProps> = ({
@@ -30,7 +31,8 @@ const Column: React.FC<ColumnProps> = ({
     onDeleteColumn,
     onUpdateColumn,
     selectedTaskIds,
-    onSelectTask
+    onSelectTask,
+    focusedTaskId
 }) => {
     const [showOptions, setShowOptions] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -240,6 +242,7 @@ const Column: React.FC<ColumnProps> = ({
                                                     onDelete={() => onDeleteTask(task.id)}
                                                     isSelected={selectedTaskIds.includes(task.id)}
                                                     onSelect={(multi) => onSelectTask(task.id, multi)}
+                                                    isFocused={focusedTaskId === task.id}
                                                 />
                                             ))}
                                             {provided.placeholder}

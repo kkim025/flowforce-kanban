@@ -85,6 +85,11 @@ describe('TaskEditor', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
         vi.mocked(useUsers).mockReturnValue({
@@ -244,7 +249,7 @@ describe('TaskEditor', () => {
     });
 
     it('should navigate back when close button is clicked', () => {
-        let navigateFn: (path: string) => void = () => {};
+        const navigateFn: (path: string) => void = () => {};
         vi.mocked(useKanban).mockReturnValue({
             state: {
                 tasks: {},
@@ -269,6 +274,11 @@ describe('TaskEditor', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 

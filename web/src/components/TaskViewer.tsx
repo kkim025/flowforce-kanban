@@ -187,6 +187,15 @@ const TaskViewer: React.FC = () => {
         });
     };
 
+    const handleUpdateEstimatedMinutes = (taskId: string, estimatedMinutes: number | null) => {
+        dispatch({
+            type: 'UPDATE_TASK',
+            payload: {
+                task: { ...task, estimatedMinutes }
+            }
+        });
+    };
+
     const handleStatusChange = (newColumnId: string) => {
         const sourceColumn = Object.values(state.columns).find(col => col.taskIds.includes(task.id));
         if (!sourceColumn || sourceColumn.id === newColumnId) return;
@@ -266,6 +275,8 @@ const TaskViewer: React.FC = () => {
                         onAddTag={addTag}
                         onRemoveTag={removeTag}
                         updateTaskDueDate={updateTaskDueDate}
+                        onUpdateEstimatedMinutes={handleUpdateEstimatedMinutes}
+                        userId={user?.id || ''}
                     />
                 </div>
             </div>

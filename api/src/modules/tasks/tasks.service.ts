@@ -3,12 +3,17 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Task, Priority, Comment, Activity } from '@prisma/client';
+import { MentionParser } from '../notifications/infrastructure/mention.parser';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   private async checkColumnOwnership(userId: string, columnId: string) {
     const column = await this.prisma.column.findUnique({
@@ -87,6 +92,7 @@ export class TasksService {
       tags?: string[];
       sprintId?: string;
       dueDate?: string;
+      estimatedMinutes?: number;
     },
   ): Promise<Task> {
     const task = await this.prisma.task.findUnique({
@@ -116,6 +122,7 @@ export class TasksService {
         tags: data.tags,
         sprintId: data.sprintId,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        estimatedMinutes: data.estimatedMinutes,
       },
     });
 
@@ -130,6 +137,24 @@ export class TasksService {
       await this.logActivity(userId, id, 'assignee_change', {
         from: task.assigneeId,
         to: data.assigneeId,
+      });
+    }
+
+    // Append-only: emit a domain event when the task is actually reassigned to
+    // a new user. Self-reassignment and unassignment (null) are skipped by
+    // the listener.
+    if (
+      data.assigneeId !== undefined &&
+      data.assigneeId !== null &&
+      data.assigneeId !== task.assigneeId
+    ) {
+      this.eventEmitter.emit('task.assigned', {
+        taskId: id,
+        prevAssigneeId: task.assigneeId,
+        newAssigneeId: data.assigneeId,
+        actorId: userId,
+        boardId: task.column.boardId,
+        taskContent: task.content,
       });
     }
 
@@ -165,15 +190,41 @@ export class TasksService {
     if (task.column.board.ownerId !== userId)
       throw new ForbiddenException('Access denied');
 
+    // Resolve @mentions to user ids before writing the comment row.
+    // Pre-fetch only users whose names match the @-tokens in the content —
+    // avoids loading the entire user table on every comment.
+    const mentionTokens = MentionParser.extractTokens(content);
+    const users =
+      mentionTokens.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: {
+              name: { in: mentionTokens, mode: 'insensitive' },
+            },
+            select: { id: true, name: true },
+          });
+    const mentionedUserIds = MentionParser.parse(content, users);
+
     const comment = await this.prisma.comment.create({
       data: {
         content,
         taskId,
         userId,
+        mentionedUserIds,
       },
     });
 
     await this.logActivity(userId, taskId, 'comment', { text: content });
+
+    // Append-only: emit a domain event for the notifications listener.
+    this.eventEmitter.emit('comment.created', {
+      commentId: comment.id,
+      taskId,
+      actorId: userId,
+      mentionedUserIds,
+      boardId: task.column.boardId,
+      taskContent: task.content,
+    });
 
     return comment;
   }

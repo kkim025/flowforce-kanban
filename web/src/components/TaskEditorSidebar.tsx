@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Settings, UserPlus, Check, AlertCircle, X } from 'lucide-react';
 import { User, Sprint, Priority, Task } from '../types';
 import { UI_LABELS } from '../lib/constants';

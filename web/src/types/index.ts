@@ -8,6 +8,32 @@ export type AssigneeFilter = string | null;
 export type PriorityFilter = Priority | null;
 export type TagFilter = string[];
 
+export type NotificationType = 'ASSIGNMENT' | 'MENTION' | 'SPRINT_STATUS' | 'DUE_DATE';
+export type NotificationRefType = 'task' | 'sprint';
+export type DueDateMilestone = '24h' | '1h' | 'due';
+
+export interface AppNotification {
+    id: string;
+    type: NotificationType;
+    title: string;
+    body?: string | null;
+    refType: NotificationRefType;
+    refId: string;
+    boardId?: string | null;
+    actorId?: string | null;
+    actorName?: string | null;
+    milestone?: DueDateMilestone | null;
+    readAt?: string | null;
+    createdAt: string;
+}
+
+export interface UserNotificationPref {
+    id: string;
+    userId: string;
+    type: NotificationType;
+    inAppEnabled: boolean;
+}
+
 export interface Sprint {
     id: string;
     boardId: string;
@@ -82,6 +108,45 @@ export interface Task {
     createdAt: string;
     isArchived?: boolean;
     sprintId?: string;
+    estimatedMinutes?: number | null;
+}
+
+export type TimeUnit = 'weeks' | 'days' | 'hours' | 'minutes';
+
+export const TIME_UNIT_CONVERSIONS: Record<TimeUnit, number> = {
+    weeks: 2400,
+    days: 480,
+    hours: 60,
+    minutes: 1,
+};
+
+export interface TimeEntry {
+    id: string;
+    taskId: string;
+    userId: string;
+    userName?: string;
+    minutes: number;
+    date: string;
+    createdAt: string;
+}
+
+export interface SprintReportTask {
+    taskId: string;
+    content: string;
+    estimatedMinutes: number | null;
+    loggedMinutes: number;
+    variance: number;
+}
+
+export interface SprintReport {
+    sprintId: string;
+    sprintName: string;
+    startDate: string;
+    endDate: string;
+    totalEstimated: number;
+    totalLogged: number;
+    taskCount: number;
+    tasks: SprintReportTask[];
 }
 
 export interface Column {
@@ -120,6 +185,8 @@ export type KanbanAction =
     | { type: 'TOGGLE_SELECT_TASK'; payload: { taskId: string; multiSelect: boolean } }
     | { type: 'CLEAR_SELECTION' }
     | { type: 'SET_VIEW_MODE'; payload: ViewMode }
+    | { type: 'SET_ALL_BOARDS'; payload: { boards: any[] } }
+    | { type: 'SET_ACTIVE_BOARD'; payload: { boardId: string } }
     | { type: 'SET_SEARCH_QUERY'; payload: string }
     | { type: 'ADD_CHECKLIST'; payload: { taskId: string; checklist: Checklist } }
     | { type: 'DELETE_CHECKLIST'; payload: { taskId: string; checklistId: string } }

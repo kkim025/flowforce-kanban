@@ -4,6 +4,7 @@ import { kanbanReducer, initialState } from './kanbanReducer';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
 import { mapApiBoardToState } from '../lib/mappers';
+import { useToast } from '../context/ToastContext';
 
 interface KanbanContextType {
     state: BoardState;
@@ -15,6 +16,11 @@ interface KanbanContextType {
     isSyncing: boolean;
     isHydrated: boolean;
     activeBoardId: string | null;
+    allBoards: { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[];
+    setActiveBoard: (boardId: string) => Promise<void>;
+    deleteBoard: (boardId: string) => Promise<void>;
+    addBoard: (board: { id: string; title: string; status?: string }) => void;
+    renameBoard: (boardId: string, title: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
 }
 
@@ -22,8 +28,10 @@ const KanbanContext = createContext<KanbanContextType | undefined>(undefined);
 
 export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated } = useAuth();
+    const { showToast } = useToast();
     const [isSyncing, setIsSyncing] = useState(false);
     const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
+    const [allBoards, setAllBoards] = useState<{ id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }[]>([]);
     const [isHydrated, setIsHydrated] = useState(false);
     
     const [history, setHistory] = useReducer(
@@ -79,6 +87,85 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return mapApiBoardToState(refreshedBoard.data, sprints || stateRef.current.sprints);
     }, []);
 
+    // Switch to a different board
+    const setActiveBoard = useCallback(async (boardId: string) => {
+        try {
+            // Save to localStorage
+            localStorage.setItem('flowforce_active_board_id', boardId);
+            setActiveBoardId(boardId);
+
+            // Fetch full board data
+            const refreshed = await api.get(getBoardUrl(boardId));
+            const newState = mapApiBoardToState(refreshed.data);
+
+            // Load sprints for the new board
+            let sprints: any[] = [];
+            let activeSprintId: string | null = null;
+            try {
+                const sprintsResponse = await api.get(`/sprints/boards/${boardId}`);
+                sprints = sprintsResponse.data || [];
+
+                // Default to active sprint if one exists
+                const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
+                activeSprintId = activeSprint?.id || null;
+            } catch (err) {
+                console.warn('Could not load sprints:', err);
+            }
+
+            newState.sprints = sprints;
+            newState.activeSprintId = activeSprintId;
+
+            // If there's an active sprint, re-fetch board with sprint filter
+            if (activeSprintId) {
+                const sprintFilteredState = {
+                    ...mapApiBoardToState((await api.get(getBoardUrl(boardId, activeSprintId))).data),
+                    sprints: sprints,
+                    activeSprintId: activeSprintId,
+                };
+                setHistory({ type: 'SET_STATE', payload: sprintFilteredState });
+            } else {
+                setHistory({ type: 'SET_STATE', payload: newState });
+            }
+        } catch (err) {
+            console.error('Failed to switch board:', err);
+        }
+    }, []);
+
+    // Delete a board and switch to another if needed
+    const deleteBoard = useCallback(async (boardId: string) => {
+        const remaining = allBoards.filter(b => b.id !== boardId);
+
+        // Optimistic remove
+        setAllBoards(remaining);
+
+        // If we deleted the active board, switch to another
+        if (boardId === activeBoardId && remaining.length > 0) {
+            await setActiveBoard(remaining[0].id);
+        }
+    }, [activeBoardId, allBoards, setActiveBoard]);
+
+    // Add a new board to the list
+    const addBoard = useCallback((board: { id: string; title: string; status?: string }) => {
+        setAllBoards(prev => [...prev, board as { id: string; title: string; status?: 'ACTIVE' | 'ARCHIVED' }]);
+    }, []);
+
+    // Rename a board with optimistic update and rollback on failure
+    const renameBoard = useCallback(async (boardId: string, newTitle: string) => {
+        // Capture previous title before state update
+        const previousTitle = allBoards.find(b => b.id === boardId)?.title || '';
+
+        // Optimistic update
+        setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: newTitle } : b));
+
+        try {
+            await api.patch(`/boards/${boardId}`, { title: newTitle });
+        } catch (err) {
+            // Rollback on failure
+            setAllBoards(prev => prev.map(b => b.id === boardId ? { ...b, title: previousTitle } : b));
+            console.error('Failed to rename board:', err);
+        }
+    }, [allBoards]);
+
     // Initial Hydration
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -87,9 +174,15 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setIsSyncing(true);
             try {
                 const response = await api.get('/boards');
+                const boards = response.data;
+                setAllBoards(boards);
                 let board;
 
-                if (response.data.length === 0) {
+                // Restore active board from localStorage if available
+                const savedBoardId = localStorage.getItem('flowforce_active_board_id');
+                const savedBoardExists = boards.some((b: any) => b.id === savedBoardId);
+
+                if (boards.length === 0) {
                     const newBoardRes = await api.post('/boards', { title: 'Personal Board' });
                     board = newBoardRes.data;
 
@@ -98,11 +191,16 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // For now, let's just use what's returned
                     const refreshed = await api.get(`/boards/${board.id}`);
                     board = refreshed.data;
+                } else if (savedBoardExists) {
+                    // Load saved board
+                    const refreshed = await api.get(`/boards/${savedBoardId}`);
+                    board = refreshed.data;
                 } else {
-                    board = response.data[0];
+                    board = boards[0];
                 }
 
                 setActiveBoardId(board.id);
+                localStorage.setItem('flowforce_active_board_id', board.id);
                 const mappedState = mapApiBoardToState(board);
 
                 // Set default WIP limits if they exist in state
@@ -147,49 +245,71 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const refreshedState = await refreshBoardState(board.id, null, loadedSprints);
                     setHistory({ type: 'SET_STATE', payload: { ...refreshedState, activeSprintId } });
                 }
-                setIsHydrated(true);
             } catch (err) {
                 console.error('Initial load error:', err);
+                // Surface the real error to the user so the next "infinite
+                // loading" report carries an actionable message instead of a
+                // screenshot. See issue #25.
+                const message =
+                    err instanceof Error && err.message
+                        ? `Could not load your boards: ${err.message}`
+                        : 'Could not load your boards. Please refresh and try again.';
+                showToast(message, 'error');
             } finally {
+                // Always flip the hydration gate, even when an API call throws.
+                // If this stays false the Board renders "Loading Board..." forever,
+                // because `setIsHydrated(true)` previously sat inside the try block
+                // *after* the setHistory call — any throw between them stranded the
+                // spinner. See flowforce-kanban issue #25.
+                setIsHydrated(true);
                 setIsSyncing(false);
             }
         };
 
         loadBoardData();
+        // showToast and refreshBoardState intentionally omitted from deps:
+        // depending on showToast would re-run board hydration whenever the
+        // Toast provider re-creates its function reference, and
+        // refreshBoardState is itself useCallback([]).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
 
     const syncChecklistsForTask = async (taskId: string, checklists: Checklist[]) => {
-        for (const cl of checklists) {
-            // 1. Create or Update Checklist
-            // UUIDs contain hyphens and are frontend-generated; DB IDs (nanoid) have no hyphens
-            if (cl.id.includes('-')) {
-                const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
-                const checklistId = res.data.id;
-
-                // 2a. For NEW checklists, create all items (they weren't dispatched via ADD_SUBTASK)
-                for (const item of cl.items) {
-                    await api.post('/subtasks', {
-                        content: item.title,
-                        checklistId: checklistId,
-                        completed: item.isCompleted,
-                        priority: item.priority?.toUpperCase(),
-                    });
+        const results = await Promise.allSettled(
+            checklists.map(async (cl) => {
+                if (cl.id.includes('-')) {
+                    const res = await api.post(`/tasks/${taskId}/checklists`, { title: cl.title, taskId });
+                    const checklistId = res.data.id;
+                    await Promise.all(
+                        cl.items.map((item) =>
+                            api.post('/subtasks', {
+                                content: item.title,
+                                checklistId,
+                                completed: item.isCompleted,
+                                priority: item.priority?.toUpperCase(),
+                            }),
+                        ),
+                    );
+                } else {
+                    await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+                    await Promise.all(
+                        cl.items
+                            .filter((item) => !item.id.includes('-'))
+                            .map((item) =>
+                                api.patch(`/subtasks/${item.id}`, {
+                                    content: item.title,
+                                    completed: item.isCompleted,
+                                }),
+                            ),
+                    );
                 }
-            } else {
-                await api.patch(`/checklists/${cl.id}`, { title: cl.title });
+            }),
+        );
 
-                // 2b. For existing checklists, skip items with hyphens (already handled by ADD_SUBTASK)
-                // They will be refreshed with real DB IDs after board state refresh
-                for (const item of cl.items) {
-                    if (item.id.includes('-')) {
-                        continue;
-                    }
-                    await api.patch(`/subtasks/${item.id}`, {
-                        content: item.title,
-                        completed: item.isCompleted,
-                    });
-                }
-            }
+        const failures = results.filter((r) => r.status === 'rejected');
+        if (failures.length > 0) {
+            const msgs = failures.map((r) => (r as PromiseRejectedResult).reason?.message ?? 'Unknown error');
+            throw new Error(`Failed to sync checklists: ${msgs.join('; ')}`);
         }
     };
 
@@ -458,6 +578,11 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 isSyncing,
                 isHydrated,
                 activeBoardId,
+                allBoards,
+                setActiveBoard,
+                deleteBoard,
+                addBoard,
+                renameBoard,
                 updateTaskDueDate,
             }}
         >

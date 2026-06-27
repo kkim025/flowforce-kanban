@@ -29,8 +29,10 @@ export class UpdateSprintUseCase {
     // Validate dates if provided
     const newStartDate = dto.startDate
       ? new Date(dto.startDate)
-      : sprint.startDate;
-    const newEndDate = dto.endDate ? new Date(dto.endDate) : sprint.endDate;
+      : sprint.props.startDate;
+    const newEndDate = dto.endDate
+      ? new Date(dto.endDate)
+      : sprint.props.endDate;
     if (newEndDate <= newStartDate) {
       throw new BadRequestException('End date must be after start date');
     }
@@ -38,8 +40,10 @@ export class UpdateSprintUseCase {
     const updatedSprintResult = Sprint.create(
       {
         name: dto.name !== undefined ? dto.name.trim() : sprint.name,
-        startDate: dto.startDate ? new Date(dto.startDate) : sprint.startDate,
-        endDate: dto.endDate ? new Date(dto.endDate) : sprint.endDate,
+        startDate: dto.startDate
+          ? new Date(dto.startDate)
+          : sprint.props.startDate,
+        endDate: dto.endDate ? new Date(dto.endDate) : sprint.props.endDate,
         status: dto.status || sprint.status,
         boardId: sprint.boardId,
         color: dto.color !== undefined ? dto.color : sprint.color,

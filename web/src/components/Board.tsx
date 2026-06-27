@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../store/AuthContext';
 import Column from './Column';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task, Column as ColumnType, DueDateFilter } from '../types';
-import { DUE_DATE_FILTER_OPTIONS } from '../lib/constants';
+import { DUE_DATE_FILTER_OPTIONS, UI_LABELS } from '../lib/constants';
 import { taskMatchesFilters } from '../lib/filter-utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
+import { LogOut, Plus, X, Check, Trash2, Users, BookOpen } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
@@ -18,9 +19,13 @@ import SprintFilterBar from './sprints/SprintFilterBar';
 import FilterBar from './FilterBar';
 import SprintPanel from './sprints/SprintPanel';
 import CreateSprintModal from './sprints/CreateSprintModal';
+import BoardPanel from './boards/BoardPanel';
+import { NotificationBell } from './notifications/NotificationBell';
+import { useKeyboardNavigation, NavigationDirection } from '../hooks/useKeyboardNavigation';
 
 const Board: React.FC = () => {
-    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId } = useKanban();
+    const { state, dispatch, undo, redo, canUndo, canRedo, isHydrated, activeBoardId, allBoards, setActiveBoard, deleteBoard, addBoard, renameBoard } = useKanban();
+    const { showToast } = useToast();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
@@ -36,11 +41,18 @@ const Board: React.FC = () => {
     const [isSprintPanelOpen, setIsSprintPanelOpen] = useState(false);
     const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
 
+    // Board panel state
+    const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
+
     // Column Management
     const [isAddingColumn, setIsAddingColumn] = useState(false);
     const [isSavingColumn, setIsSavingColumn] = useState(false);
     const [newColumnTitle, setNewColumnTitle] = useState('');
     const addColumnInputRef = useRef<HTMLInputElement>(null);
+
+    // Keyboard navigation cursor (REV-3)
+    // Cursor is identified by {columnId, taskIndexInColumn}
+    const [focusedCard, setFocusedCard] = useState<{ columnId: string; taskId: string } | null>(null);
 
     // Grab to scroll logic
     const [isDragging, setIsDragging] = useState(false);
@@ -80,6 +92,134 @@ const Board: React.FC = () => {
         const finalColumnId = columnId || state.columnOrder[0] || 'todo';
         navigate(`/tasks/new?columnId=${finalColumnId}`);
     }, [state.columnOrder, navigate]);
+
+    // Compute visible tasks per column (shared by render and keyboard nav)
+    const visibleTasksByColumn = useMemo(() => {
+        const result: Record<string, Task[]> = {};
+        state.columnOrder.forEach((columnId) => {
+            const column = state.columns[columnId];
+            const tasks = column.taskIds
+                .map((taskId) => state.tasks[taskId])
+                .filter(task => task && !task.isArchived)
+                .filter(task => {
+                    if (state.activeSprintId !== null) {
+                        if (task.sprintId && task.sprintId !== state.activeSprintId) return false;
+                    }
+                    if (state.dueDateFilter !== 'all') {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const todayTime = today.getTime();
+                        const weekEnd = new Date(today);
+                        weekEnd.setDate(weekEnd.getDate() + 7);
+                        const taskDate = task.dueDate ? new Date(task.dueDate) : null;
+                        const taskDateTime = taskDate ? new Date(taskDate.getTime()).setHours(0, 0, 0, 0) : null;
+                        switch (state.dueDateFilter) {
+                            case 'overdue': return taskDateTime !== null && taskDateTime < todayTime;
+                            case 'dueToday': return taskDateTime === todayTime;
+                            case 'dueThisWeek': return taskDateTime !== null && taskDateTime >= todayTime && taskDateTime <= weekEnd.getTime();
+                            case 'noDate': return taskDateTime === null;
+                            default: return true;
+                        }
+                    }
+                    if (!state.searchQuery) return true;
+                    const query = state.searchQuery.toLowerCase();
+                    return (
+                        task.title.toLowerCase().includes(query) ||
+                        task.description.toLowerCase().includes(query) ||
+                        task.tags.some(t => t.toLowerCase().includes(query)) ||
+                        task.priority.toLowerCase().includes(query)
+                    );
+                })
+                .filter(task => taskMatchesFilters(task, {
+                    assigneeFilter: state.assigneeFilter,
+                    priorityFilter: state.priorityFilter,
+                    tagFilter: state.tagFilter,
+                }));
+            result[columnId] = tasks;
+        });
+        return result;
+    }, [state.columnOrder, state.columns, state.tasks, state.activeSprintId, state.dueDateFilter, state.searchQuery, state.assigneeFilter, state.priorityFilter, state.tagFilter]);
+
+    // Flat list of all visible tasks in board order — used for j/k wrap navigation
+    const flatVisibleTasks = useMemo(() => {
+        const list: { columnId: string; task: Task }[] = [];
+        state.columnOrder.forEach((columnId) => {
+            (visibleTasksByColumn[columnId] || []).forEach((task) => {
+                list.push({ columnId, task });
+            });
+        });
+        return list;
+    }, [visibleTasksByColumn, state.columnOrder]);
+
+    // REV-3: Full Keyboard Navigation
+    const handleCardNavigation = useCallback((direction: NavigationDirection) => {
+        if (flatVisibleTasks.length === 0) return;
+
+
+        if (direction === 'left' || direction === 'right') {
+            // Column navigation: move to first card in adjacent column, preserving row if possible
+            const currentColumnId = focusedCard?.columnId
+                ?? (flatVisibleTasks[0]?.columnId);
+            const currentColIdx = state.columnOrder.indexOf(currentColumnId || '');
+            if (currentColIdx < 0) return;
+
+            const targetColIdx = direction === 'left' ? currentColIdx - 1 : currentColIdx + 1;
+            if (targetColIdx < 0 || targetColIdx >= state.columnOrder.length) return; // no wrap on columns
+
+            const targetColumnId = state.columnOrder[targetColIdx];
+            const targetColTasks = visibleTasksByColumn[targetColumnId] || [];
+            if (targetColTasks.length === 0) return;
+
+            // Preserve row position from the current column if possible
+            const currentColTasks = visibleTasksByColumn[currentColumnId] || [];
+            const currentRow = focusedCard
+                ? currentColTasks.findIndex(t => t.id === focusedCard.taskId)
+                : 0;
+            const targetRow = Math.min(currentRow >= 0 ? currentRow : 0, targetColTasks.length - 1);
+            setFocusedCard({ columnId: targetColumnId, taskId: targetColTasks[targetRow].id });
+            return;
+        }
+
+        // j/k: vim-style card navigation (with wrap within board)
+        if (flatVisibleTasks.length === 0) return;
+
+        const currentIdx = focusedCard
+            ? flatVisibleTasks.findIndex(item => item.task.id === focusedCard.taskId)
+            : -1;
+
+        let nextIdx: number;
+        if (direction === 'down') {
+            nextIdx = currentIdx < 0 ? 0 : (currentIdx + 1) % flatVisibleTasks.length;
+        } else {
+            nextIdx = currentIdx <= 0
+                ? flatVisibleTasks.length - 1
+                : currentIdx - 1;
+        }
+        const next = flatVisibleTasks[nextIdx];
+        setFocusedCard({ columnId: next.columnId, taskId: next.task.id });
+    }, [flatVisibleTasks, focusedCard, state.columnOrder, visibleTasksByColumn]);
+
+    const handleEnter = useCallback(() => {
+        if (!focusedCard) return;
+        const task = state.tasks[focusedCard.taskId];
+        if (task) navigate(`/tasks/${task.id}`);
+    }, [focusedCard, state.tasks, navigate]);
+
+    const handleEscape = useCallback(() => {
+        // Close the task drawer (escape) — also clear cursor
+        if (isDrawerOpen) {
+            navigate('/');
+        }
+        setFocusedCard(null);
+    }, [isDrawerOpen, navigate]);
+
+    useKeyboardNavigation({
+        onNavigate: handleCardNavigation,
+        onEnter: handleEnter,
+        onEscape: handleEscape,
+        disabled: isDrawerOpen, // disable nav while drawer open (Escape still works via dispatch path)
+        containerRef: scrollContainerRef,
+    });
 
     // Global Keyboard Shortcuts
     useEffect(() => {
@@ -259,14 +399,38 @@ const Board: React.FC = () => {
                 {/* Top Row: Logo and User Profile */}
                 <div className="flex justify-between items-start w-full">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
-                            FlowForce<span className="text-accent-blue">.</span>
-                        </h1>
+                        <button
+                            onClick={() => setIsBoardPanelOpen(true)}
+                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                        >
+                            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">
+                                FlowForce<span className="text-accent-blue">.</span>
+                            </h1>
+                            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
                         <p className="text-slate-500 dark:text-slate-400 font-medium">Streamline your workflow with precision.</p>
                     </div>
 
                     {user && (
                         <div className="flex items-center gap-6">
+                            <NotificationBell />
+                            <Link
+                                to={
+                                    activeBoardId
+                                        ? `/boards/${activeBoardId}/wiki`
+                                        : '/'
+                                }
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                                    location.pathname.includes('/wiki')
+                                        ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20'
+                                        : 'bg-white/50 dark:bg-slate-900/50 border border-white/20 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+                                }`}
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                {UI_LABELS.WIKI}
+                            </Link>
                             {user.role === 'ADMIN' && (
                                 <Link 
                                     to="/admin/users" 
@@ -457,58 +621,7 @@ const Board: React.FC = () => {
                                     >
                                         {state.columnOrder.map((columnId, index) => {
                                             const column = state.columns[columnId];
-                                            const tasks = column.taskIds
-                                                .map((taskId) => state.tasks[taskId])
-                                                .filter(task => task && !task.isArchived)
-                                                .filter(task => {
-                                                    // Sprint filtering
-                                                    if (state.activeSprintId !== null) {
-                                                        // Show tasks in active sprint or tasks with no sprint (backlog)
-                                                        if (task.sprintId && task.sprintId !== state.activeSprintId) {
-                                                            return false;
-                                                        }
-                                                    }
-                                                    // Due date filtering
-                                                    if (state.dueDateFilter !== 'all') {
-                                                        const today = new Date();
-                                                        today.setHours(0, 0, 0, 0);
-                                                        const todayTime = today.getTime();
-                                                        const weekEnd = new Date(today);
-                                                        weekEnd.setDate(weekEnd.getDate() + 7);
-
-                                                        const taskDate = task.dueDate ? new Date(task.dueDate) : null;
-                                                        const taskDateTime = taskDate ? new Date(taskDate.getTime()).setHours(0, 0, 0, 0) : null;
-
-                                                        switch (state.dueDateFilter) {
-                                                            case 'overdue':
-                                                                return taskDateTime !== null && taskDateTime < todayTime;
-                                                            case 'dueToday':
-                                                                return taskDateTime === todayTime;
-                                                            case 'dueThisWeek':
-                                                                return taskDateTime !== null && taskDateTime >= todayTime && taskDateTime <= weekEnd.getTime();
-                                                            case 'noDate':
-                                                                return taskDateTime === null;
-                                                            default:
-                                                                return true;
-                                                        }
-                                                    }
-                                                    // Search filtering
-                                                    if (!state.searchQuery) return true;
-                                                    const query = state.searchQuery.toLowerCase();
-                                                    return (
-                                                        task.title.toLowerCase().includes(query) ||
-                                                        task.description.toLowerCase().includes(query) ||
-                                                        task.tags.some(t => t.toLowerCase().includes(query)) ||
-                                                        task.priority.toLowerCase().includes(query)
-                                                    );
-                                                })
-                                                .filter(task =>
-                                                    taskMatchesFilters(task, {
-                                                        assigneeFilter: state.assigneeFilter,
-                                                        priorityFilter: state.priorityFilter,
-                                                        tagFilter: state.tagFilter,
-                                                    })
-                                                );
+                                            const tasks = visibleTasksByColumn[columnId] || [];
 
                                             return (
                                                 <Column
@@ -516,6 +629,7 @@ const Board: React.FC = () => {
                                                     index={index}
                                                     column={column}
                                                     tasks={tasks}
+                                                    focusedTaskId={focusedCard?.columnId === column.id ? focusedCard.taskId : null}
                                                     onAddTask={() => openCreateView(column.id)}
                                                     onEditTask={openTaskView}
                                                     onDeleteTask={(taskId) => handleDeleteTask(taskId, column.id)}
@@ -653,6 +767,19 @@ const Board: React.FC = () => {
                 isOpen={isSprintPanelOpen}
                 onClose={() => setIsSprintPanelOpen(false)}
                 boardId={activeBoardId || ''}
+            />
+
+            {/* Board Panel for multi-board support */}
+            <BoardPanel
+                isOpen={isBoardPanelOpen}
+                onClose={() => setIsBoardPanelOpen(false)}
+                activeBoardId={activeBoardId}
+                allBoards={allBoards}
+                onSwitchBoard={setActiveBoard}
+                onBoardCreated={addBoard}
+                onBoardDeleted={deleteBoard}
+                onBoardRenamed={renameBoard}
+                onError={showToast}
             />
 
             {/* Create Sprint Modal (triggered from SprintFilterBar) */}

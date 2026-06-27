@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -15,15 +17,49 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 import { UserDto } from './application/dto/user.dto';
 import { InviteUserDto } from './application/dto/invite-user.dto';
 import { UpdateUserRoleDto } from './application/dto/update-user-role.dto';
+import { UpsertPrefDto } from './application/dto/upsert-notification-pref.dto';
+import { ListPrefsUseCase } from './application/use-cases/list-prefs.use-case';
+import { UpsertPrefUseCase } from './application/use-cases/upsert-pref.use-case';
+import { NotificationType } from '../notifications/domain/notification-type.value-object';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly listPrefsUseCase: ListPrefsUseCase,
+    private readonly upsertPrefUseCase: UpsertPrefUseCase,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@GetUser() user: { id: string }): Promise<UserDto | null> {
     return this.usersService.findOneById(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/notification-prefs')
+  async getNotificationPrefs(@GetUser('sub') userId: string) {
+    return this.listPrefsUseCase.execute(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('me/notification-prefs/:type')
+  async upsertNotificationPref(
+    @GetUser('sub') userId: string,
+    @Param('type') type: string,
+    @Body() dto: UpsertPrefDto,
+  ) {
+    // Validate the path param against the enum at the boundary. Previously
+    // any string (e.g. "FOOBAR") matched the route and only failed inside the
+    // use case — accept a closed set of types here too.
+    if (!Object.values(NotificationType).includes(type as NotificationType)) {
+      throw new BadRequestException(`Unknown notification type: ${type}`);
+    }
+    return this.upsertPrefUseCase.execute(
+      userId,
+      type as NotificationType,
+      dto.inAppEnabled,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

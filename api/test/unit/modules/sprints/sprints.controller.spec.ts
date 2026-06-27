@@ -6,26 +6,20 @@ import { DeleteSprintUseCase } from 'src/modules/sprints/application/use-cases/d
 import { ActivateSprintUseCase } from 'src/modules/sprints/application/use-cases/activate-sprint.use-case';
 import { AssignTaskToSprintUseCase } from 'src/modules/sprints/application/use-cases/assign-task-to-sprint.use-case';
 import { ArchiveSprintUseCase } from 'src/modules/sprints/application/use-cases/archive-sprint.use-case';
-import { PrismaService } from 'src/common/prisma/prisma.service';
+import { ListSprintsByBoardUseCase } from 'src/modules/sprints/application/use-cases/list-sprints-by-board.use-case';
+import { GetActiveSprintUseCase } from 'src/modules/sprints/application/use-cases/get-active-sprint.use-case';
+import { GetSprintUseCase } from 'src/modules/sprints/application/use-cases/get-sprint.use-case';
 
 describe('SprintsController', () => {
   let controller: SprintsController;
-  let mockPrisma: any;
+  let listSprintsByBoard: { execute: jest.Mock };
+  let getActiveSprint: { execute: jest.Mock };
+  let getSprint: { execute: jest.Mock };
 
   beforeEach(async () => {
-    mockPrisma = {
-      sprint: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      },
-      task: {
-        update: jest.fn(),
-      },
-    };
+    listSprintsByBoard = { execute: jest.fn() };
+    getActiveSprint = { execute: jest.fn() };
+    getSprint = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SprintsController],
@@ -39,7 +33,12 @@ describe('SprintsController', () => {
           useValue: { execute: jest.fn() },
         },
         { provide: ArchiveSprintUseCase, useValue: { execute: jest.fn() } },
-        { provide: PrismaService, useValue: mockPrisma },
+        {
+          provide: ListSprintsByBoardUseCase,
+          useValue: listSprintsByBoard,
+        },
+        { provide: GetActiveSprintUseCase, useValue: getActiveSprint },
+        { provide: GetSprintUseCase, useValue: getSprint },
       ],
     }).compile();
 
@@ -50,52 +49,45 @@ describe('SprintsController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should list sprints by board', async () => {
+  it('should list sprints by board via ListSprintsByBoardUseCase', async () => {
     const mockSprints = [
       { id: 's1', name: 'Sprint 1', boardId: 'board-1', status: 'ACTIVE' },
     ];
-    mockPrisma.sprint.findMany.mockResolvedValue(mockSprints);
+    listSprintsByBoard.execute.mockResolvedValue(mockSprints);
 
     const result = await controller.findByBoard('board-1');
 
     expect(result).toEqual(mockSprints);
-    expect(mockPrisma.sprint.findMany).toHaveBeenCalledWith({
-      where: { boardId: 'board-1', status: { not: 'ARCHIVED' } },
-      orderBy: { startDate: 'asc' },
-    });
+    expect(listSprintsByBoard.execute).toHaveBeenCalledWith('board-1');
   });
 
-  it('should get active sprint for a board', async () => {
+  it('should get active sprint for a board via GetActiveSprintUseCase', async () => {
     const mockSprint = {
       id: 's1',
       name: 'Sprint 1',
       boardId: 'board-1',
       status: 'ACTIVE',
     };
-    mockPrisma.sprint.findFirst.mockResolvedValue(mockSprint);
+    getActiveSprint.execute.mockResolvedValue(mockSprint);
 
     const result = await controller.findActiveByBoard('board-1');
 
     expect(result).toEqual(mockSprint);
-    expect(mockPrisma.sprint.findFirst).toHaveBeenCalledWith({
-      where: { boardId: 'board-1', status: 'ACTIVE' },
-    });
+    expect(getActiveSprint.execute).toHaveBeenCalledWith('board-1');
   });
 
-  it('should get sprint by id', async () => {
+  it('should get sprint by id via GetSprintUseCase', async () => {
     const mockSprint = {
       id: 's1',
       name: 'Sprint 1',
       boardId: 'board-1',
       status: 'PLANNING',
     };
-    mockPrisma.sprint.findUnique.mockResolvedValue(mockSprint);
+    getSprint.execute.mockResolvedValue(mockSprint);
 
     const result = await controller.findOne('s1');
 
     expect(result).toEqual(mockSprint);
-    expect(mockPrisma.sprint.findUnique).toHaveBeenCalledWith({
-      where: { id: 's1' },
-    });
+    expect(getSprint.execute).toHaveBeenCalledWith('s1');
   });
 });

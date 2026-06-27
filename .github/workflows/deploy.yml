@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: flowforce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/flowforce?schema=public
+      JWT_SECRET: deploy-jwt-secret-key
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install all dependencies
+        run: npm run install-all
+
+      - name: Apply Prisma migrations
+        working-directory: api
+        run: npx prisma migrate deploy
+
+      - name: Build artifacts
+        run: npm run build
+
+      # Placeholder deploy step. To be wired to real infrastructure
+      # (e.g., SSH to a server, AWS/GCP, Fly.io, etc.) in a follow-up task.
+      - name: Deploy step
+        run: echo "Deploy step"

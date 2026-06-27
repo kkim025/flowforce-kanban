@@ -7,6 +7,9 @@ import { DeleteSprintUseCase } from './application/use-cases/delete-sprint.use-c
 import { ArchiveSprintUseCase } from './application/use-cases/archive-sprint.use-case';
 import { ActivateSprintUseCase } from './application/use-cases/activate-sprint.use-case';
 import { AssignTaskToSprintUseCase } from './application/use-cases/assign-task-to-sprint.use-case';
+import { ListSprintsByBoardUseCase } from './application/use-cases/list-sprints-by-board.use-case';
+import { GetActiveSprintUseCase } from './application/use-cases/get-active-sprint.use-case';
+import { GetSprintUseCase } from './application/use-cases/get-sprint.use-case';
 import { SprintsController } from './sprints.controller';
 
 @Module({
@@ -19,6 +22,9 @@ import { SprintsController } from './sprints.controller';
     ActivateSprintUseCase,
     AssignTaskToSprintUseCase,
     ArchiveSprintUseCase,
+    ListSprintsByBoardUseCase,
+    GetActiveSprintUseCase,
+    GetSprintUseCase,
     {
       provide: 'ISprintRepository',
       useClass: PrismaSprintRepository,

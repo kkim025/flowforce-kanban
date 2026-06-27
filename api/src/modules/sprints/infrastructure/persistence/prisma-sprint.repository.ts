@@ -15,9 +15,16 @@ export class PrismaSprintRepository implements ISprintRepository {
     return SprintMapper.toDomain(raw);
   }
 
-  async findByBoardId(boardId: string): Promise<Sprint[]> {
+  async findByBoardId(
+    boardId: string,
+    options?: { includeArchived?: boolean },
+  ): Promise<Sprint[]> {
+    const includeArchived = options?.includeArchived ?? true;
     const rawSprints = await this.prisma.sprint.findMany({
-      where: { boardId },
+      where: {
+        boardId,
+        ...(includeArchived ? {} : { status: { not: 'ARCHIVED' } }),
+      },
       orderBy: { startDate: 'asc' },
     });
     return rawSprints.map((raw) => SprintMapper.toDomain(raw));
@@ -46,8 +53,8 @@ export class PrismaSprintRepository implements ISprintRepository {
         data: {
           id: sprint.id,
           name: sprint.name,
-          startDate: sprint.startDate,
-          endDate: sprint.endDate,
+          startDate: sprint.props.startDate,
+          endDate: sprint.props.endDate,
           status: sprint.status,
           boardId: sprint.boardId,
           color: sprint.color || null,

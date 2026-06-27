@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import TaskViewer from './TaskViewer';
 import React from 'react';
+
+// Mock api.ts BEFORE importing components that depend on it
+vi.mock('../lib/api', () => ({
+    default: {
+        get: vi.fn(),
+        post: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn(),
+        interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+    },
+}));
+
+import TaskViewer from './TaskViewer';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
 import { useAuth } from '../store/AuthContext';
@@ -107,6 +119,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
         vi.mocked(useUsers).mockReturnValue({
@@ -136,6 +153,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -329,6 +351,11 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 
@@ -397,6 +424,11 @@ describe('TaskViewer', () => {
             isSyncing: false,
             isHydrated: true,
             activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
             updateTaskDueDate: vi.fn()
         });
 
@@ -515,6 +547,11 @@ describe('TaskViewer', () => {
                 isSyncing: false,
                 isHydrated: true,
                 activeBoardId: null,
+            allBoards: [],
+            renameBoard: vi.fn(),
+            deleteBoard: vi.fn(),
+            addBoard: vi.fn(),
+            setActiveBoard: vi.fn(),
                 updateTaskDueDate: vi.fn()
             });
 

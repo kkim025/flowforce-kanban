@@ -127,57 +127,64 @@ const WikiLayout: React.FC = () => {
                     tree={tree}
                     onNewPage={(parentId) => setCreating({ parentId })}
                 />
-                <main className="flex-1 overflow-y-auto p-10">
-                    <div className="flex flex-col gap-6 w-full">
-                        <div className="flex items-center justify-between">
-                            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-                                {UI_LABELS.WIKI}
-                            </h1>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/')}
-                                className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-accent-blue"
-                            >
-                                <ArrowLeft className="w-3 h-3" />
-                                {UI_LABELS.BACK_TO_BOARD}
-                            </button>
-                        </div>
-                        {loadingTree ? (
-                            <p className="text-slate-400 text-sm">
-                                Loading…
-                            </p>
-                        ) : creating ? (
-                            <WikiNewPageForm
-                                boardId={boardId}
-                                parentId={creating.parentId}
-                                onCancel={() => setCreating(null)}
-                                onCreated={() => {
-                                    setCreating(null);
-                                    loadTree();
-                                }}
-                            />
-                        ) : tree.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                                <p className="text-slate-400 text-sm">
-                                    {UI_LABELS.WIKI_EMPTY}
-                                </p>
+                {creating ? (
+                    // Full-pane form when creating a new page — matches
+                    // the edit-view layout (flex column, form fills the
+                    // right pane).
+                    <main className="flex-1 flex flex-col overflow-hidden">
+                        <WikiNewPageForm
+                            boardId={boardId}
+                            parentId={creating.parentId}
+                            onCancel={() => setCreating(null)}
+                            onCreated={() => {
+                                setCreating(null);
+                                loadTree();
+                            }}
+                        />
+                    </main>
+                ) : (
+                    <main className="flex-1 overflow-y-auto p-10">
+                        <div className="flex flex-col gap-6 w-full">
+                            <div className="flex items-center justify-between">
+                                <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                                    {UI_LABELS.WIKI}
+                                </h1>
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setCreating({ parentId: null })
-                                    }
-                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-blue text-white shadow hover:shadow-md"
+                                    onClick={() => navigate('/')}
+                                    className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-accent-blue"
                                 >
-                                    {UI_LABELS.WIKI_NEW_PAGE}
+                                    <ArrowLeft className="w-3 h-3" />
+                                    {UI_LABELS.BACK_TO_BOARD}
                                 </button>
                             </div>
-                        ) : (
-                            <p className="text-slate-400 text-sm">
-                                Select a page from the sidebar.
-                            </p>
-                        )}
-                    </div>
-                </main>
+                            {loadingTree ? (
+                                <p className="text-slate-400 text-sm">
+                                    Loading…
+                                </p>
+                            ) : tree.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                                    <p className="text-slate-400 text-sm">
+                                        {UI_LABELS.WIKI_EMPTY}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setCreating({ parentId: null })
+                                        }
+                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-blue text-white shadow hover:shadow-md"
+                                    >
+                                        {UI_LABELS.WIKI_NEW_PAGE}
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-slate-400 text-sm">
+                                    Select a page from the sidebar.
+                                </p>
+                            )}
+                        </div>
+                    </main>
+                )}
             </div>
         );
     }

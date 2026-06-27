@@ -50,6 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Tracks the deferred redirect timer so the cleanup effect can cancel it
+  // if the component unmounts (or the effect re-runs) before the timeout fires.
+  const redirectTimerRef = useRef<number | null>(null);
   // useToast throws if there is no ToastProvider above us. AppProviders.test
   // wraps the real provider chain (ToastProvider > AuthProvider), so this
   // is safe at runtime. We read ToastContext directly so a hypothetical
@@ -72,16 +75,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 401 handler from api.ts interceptor (Flowforce-kanban#29):
   // api.ts can't import AuthContext (circular), so it dispatches a window
   // event. We listen here, show a toast, and redirect. The redirect is
-  // deferred one frame so React can paint the toast before navigation
-  // tears down the tree (otherwise the user never sees the toast).
+  // deferred two animation frames so React can paint the toast before
+  // navigation tears down the tree (otherwise the user never sees the
+  // toast). Two frames self-adjust to monitor refresh rate and does not
+  // assume a specific render time like the previous 250ms heuristic did.
   useEffect(() => {
     const handler = () => {
       logout();
       showToast?.('Your session expired. Please sign in again.', 'info', 5000);
-      setTimeout(() => { window.location.href = '/login'; }, 250);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          redirectTimerRef.current = window.setTimeout(() => {
+            window.location.href = '/login';
+          }, 0);
+        });
+      });
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, handler);
-    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
+      if (redirectTimerRef.current !== null) {
+        window.clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, [logout, showToast]);
 
   // Pre-expiry warning timer (Flowforce-kanban#29).

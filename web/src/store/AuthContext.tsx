@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../lib/api';
 import { refreshSocketAuth } from '../lib/socket';
 import { ToastContext } from '../context/ToastContext';
+import { AUTH_EXPIRED_EVENT } from '../lib/auth-events';
 
 // Warn the user this many ms before the token expires so they can re-auth
 // proactively instead of getting kicked out mid-action.
@@ -76,8 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast?.('Your session expired. Please sign in again.', 'info', 5000);
       setTimeout(() => { window.location.href = '/login'; }, 250);
     };
-    window.addEventListener('flowforce:auth-expired', handler);
-    return () => window.removeEventListener('flowforce:auth-expired', handler);
+    window.addEventListener(AUTH_EXPIRED_EVENT, handler);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
   }, [logout, showToast]);
 
   // Pre-expiry warning timer (Flowforce-kanban#29).

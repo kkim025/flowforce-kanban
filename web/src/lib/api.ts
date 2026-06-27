@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
 import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref } from '../types';
+import { AUTH_EXPIRED_EVENT } from './auth-events';
 
 const api_url =
   import.meta.env.VITE_API_URL ||
@@ -56,7 +57,7 @@ api.interceptors.response.use(
       localStorage.removeItem('flowforce_token');
       localStorage.removeItem('flowforce_user');
       if (hadToken) {
-        window.dispatchEvent(new CustomEvent('flowforce:auth-expired'));
+        window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
       } else {
         window.location.href = '/login';
       }

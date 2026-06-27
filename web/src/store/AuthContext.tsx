@@ -3,6 +3,7 @@ import api from '../lib/api';
 import { refreshSocketAuth } from '../lib/socket';
 import { ToastContext } from '../context/ToastContext';
 import { AUTH_EXPIRED_EVENT } from '../lib/auth-events';
+import { useTokenExpiryWarning } from '../lib/useTokenExpiryWarning';
 
 // Warn the user this many ms before the token expires so they can re-auth
 // proactively instead of getting kicked out mid-action.
@@ -102,29 +103,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout, showToast]);
 
   // Pre-expiry warning timer (Flowforce-kanban#29).
-  // If a token's `exp` is within EXPIRY_WARNING_MS, warn the user so they
-  // can re-auth before the next API call triggers a hard 401 redirect.
-  // Until refresh-token infra exists, "re-auth" means logging out and back
-  // in (see issue #29 follow-up).
-  useEffect(() => {
-    if (!token) return;
-    const exp = readJwtExp(token);
-    if (!exp) return;
-    const now = Date.now();
-    const msUntilExpiry = exp - now;
-    const msUntilWarning = msUntilExpiry - EXPIRY_WARNING_MS;
-    // If the token is already inside the warning window (e.g. user just
-    // refreshed the tab with a near-expiry token), warn immediately.
-    const delay = Math.max(0, msUntilWarning);
-    const t = setTimeout(() => {
-      showToast?.(
-        'Your session is about to expire. Save your work and sign in again to continue.',
-        'info',
-        10000,
-      );
-    }, delay);
-    return () => clearTimeout(t);
-  }, [token, showToast]);
+  // Implementation + clock-skew caveat live in the hook's JSDoc.
+  useTokenExpiryWarning(token, showToast, EXPIRY_WARNING_MS);
 
   // Initial load from localStorage. JWT TTL fallback: if we can't decode `exp`,
   // assume the token is still valid for the configured TTL from now.

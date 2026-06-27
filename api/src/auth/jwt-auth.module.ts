@@ -15,7 +15,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '15m' },
+        // 8h covers a normal workday without forcing re-login mid-task.
+        // Flowforce-kanban#29: 15m was far too aggressive and matched no
+        // realistic usage pattern. Long-term, add refresh-token rotation.
+        signOptions: { expiresIn: '8h' },
       }),
     }),
   ],

@@ -28,6 +28,7 @@ interface NotificationsState {
   isConnected: boolean;
   hasMore: boolean;
   isLoadingMore: boolean;
+  isInitComplete: boolean;
 }
 
 interface NotificationsActions {
@@ -50,6 +51,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitComplete, setIsInitComplete] = useState(false);
   const cursorRef = useRef<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -70,15 +72,32 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         getUnreadCount(),
         getNotificationPrefs().catch(() => [] as UserNotificationPref[]),
       ]);
+      // Commit the 5 state updates only on success — if any of the three
+      // Promise.all calls had thrown, we'd have hit the catch and skipped
+      // these, so callers never see a half-initialised notifications slice.
       setNotifications(items);
       setUnreadCount(count);
       setPrefs(serverPrefs);
       setHasMore(nextCursor !== null);
       cursorRef.current = nextCursor;
     } catch (err) {
-      console.error('notifications init failed', err);
+      // Failure path mirrors issue #25 / KanbanProvider: surface the error
+      // to the user instead of silently swallowing. Without this, the bell
+      // shows empty + no "load more" affordance with no signal anything is
+      // wrong — see kkim025/flowforce-kanban#26.
+      const detail = err instanceof Error ? err.message : String(err);
+      showToast(
+        `Could not load notifications (${detail}). They will retry on next connection.`,
+        'error',
+      );
+    } finally {
+      // Flip the gate in finally so consumers can distinguish "still
+      // loading" from "init finished (success OR failure)". A failed init
+      // is still "complete" — the polling fallback / socket reconnect
+      // will retry via onConnect.
+      setIsInitComplete(true);
     }
-  }, []);
+  }, [showToast]);
 
   const startPolling = useCallback(() => {
     if (pollRef.current) return;
@@ -233,8 +252,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const stateValue = useMemo<NotificationsState>(
-    () => ({ notifications, unreadCount, prefs, isConnected, hasMore, isLoadingMore }),
-    [notifications, unreadCount, prefs, isConnected, hasMore, isLoadingMore],
+    () => ({ notifications, unreadCount, prefs, isConnected, hasMore, isLoadingMore, isInitComplete }),
+    [notifications, unreadCount, prefs, isConnected, hasMore, isLoadingMore, isInitComplete],
   );
 
   // Actions context value is stable — every callback is useCallbackd with

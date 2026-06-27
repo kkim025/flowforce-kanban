@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../lib/api';
 import { refreshSocketAuth } from '../lib/socket';
 import { ToastContext } from '../context/ToastContext';
@@ -57,7 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // the toast and still do the redirect. This is the canonical pattern
   // for "optional toast" without a Rules-of-Hooks violation.
   const toastCtx = useContext(ToastContext);
-  const showToast = toastCtx?.showToast ?? null;
+  // Stable reference so downstream effects with [showToast] deps don't churn
+  // when ToastContext re-renders. ToastContext.showToast is wrapped in
+  // useCallback, so this is a defensive belt-and-braces.
+  const showToast = useMemo(() => toastCtx?.showToast ?? null, [toastCtx]);
 
   const logout = useCallback(() => {
     setToken(null);

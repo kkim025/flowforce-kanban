@@ -16,6 +16,7 @@ import { SprintsModule } from './modules/sprints/sprints.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MailModule } from './mail/mail.module';
 import { BoardSharingModule } from './modules/board-sharing/board-sharing.module';
+import { WikiModule } from './modules/wiki/wiki.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { BoardSharingModule } from './modules/board-sharing/board-sharing.module
     NotificationsModule,
     MailModule,
     BoardSharingModule,
+    WikiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

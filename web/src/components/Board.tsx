@@ -7,10 +7,10 @@ import Column from './Column';
 import ListView from './ListView';
 import ViewToggle from './ViewToggle';
 import { Task, Column as ColumnType, DueDateFilter } from '../types';
-import { DUE_DATE_FILTER_OPTIONS } from '../lib/constants';
+import { DUE_DATE_FILTER_OPTIONS, UI_LABELS } from '../lib/constants';
 import { taskMatchesFilters } from '../lib/filter-utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Plus, X, Check, Trash2, Users } from 'lucide-react';
+import { LogOut, Plus, X, Check, Trash2, Users, BookOpen } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, Outlet, useLocation, Link } from 'react-router-dom';
@@ -416,6 +416,21 @@ const Board: React.FC = () => {
                     {user && (
                         <div className="flex items-center gap-6">
                             <NotificationBell />
+                            <Link
+                                to={
+                                    activeBoardId
+                                        ? `/boards/${activeBoardId}/wiki`
+                                        : '/'
+                                }
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all ${
+                                    location.pathname.includes('/wiki')
+                                        ? 'bg-accent-blue text-white shadow-lg shadow-accent-blue/20'
+                                        : 'bg-white/50 dark:bg-slate-900/50 border border-white/20 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+                                }`}
+                            >
+                                <BookOpen className="w-4 h-4" />
+                                {UI_LABELS.WIKI}
+                            </Link>
                             {user.role === 'ADMIN' && (
                                 <Link 
                                     to="/admin/users" 

@@ -45,6 +45,18 @@ export const UI_LABELS = {
     DAYS_LEFT: 'days left',
     SPRINT_OVERDUE: 'Sprint overdue',
     DUE_DATE: 'Due Date',
+    WIKI: 'Wiki',
+    WIKI_EMPTY: 'No pages yet. Create one to get started.',
+    WIKI_NEW_PAGE: 'New Page',
+    WIKI_PAGE_TITLE: 'Page Title',
+    WIKI_TRASH: 'Trash',
+    WIKI_RESTORE: 'Restore',
+    WIKI_DELETE_FOREVER: 'Delete forever',
+    WIKI_CONFIRM_DELETE_TITLE: 'Type the page title to confirm permanent deletion',
+    WIKI_HISTORY: 'History',
+    WIKI_SHOW_LIMIT: 'Show',
+    WIKI_LAST_EDITED: 'Last edited',
+    WIKI_BREADCRUMB: 'Back to parent',
 };
 
 export const DUE_DATE_FILTER_OPTIONS = [

@@ -27,7 +27,10 @@ export function taskMatchesFilters(task: Task, filters: TaskFilters): boolean {
 
     // Tag filter (OR logic - task matches if it has ANY of the selected tags)
     if (filters.tagFilter.length > 0) {
-        const hasMatchingTag = filters.tagFilter.some(tag => task.tags.includes(tag));
+        const taskTagNames = (task.tags || []).map((t) => t.name);
+        const hasMatchingTag = filters.tagFilter.some((tag) =>
+            taskTagNames.includes(tag),
+        );
         if (!hasMatchingTag) {
             return false;
         }
@@ -41,5 +44,5 @@ export function taskMatchesFilters(task: Task, filters: TaskFilters): boolean {
  * Returns the filtered array.
  */
 export function filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
-    return tasks.filter(task => taskMatchesFilters(task, filters));
+    return tasks.filter((task) => taskMatchesFilters(task, filters));
 }

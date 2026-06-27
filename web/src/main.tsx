@@ -5,6 +5,7 @@ import './index.css';
 import { KanbanProvider } from './store/KanbanContext';
 import { AuthProvider } from './store/AuthContext';
 import { UserProvider } from './store/UserContext';
+import { TagsProvider } from './store/TagsContext';
 // Note: import path changed from './components/Toast' (legacy, separate
 // toast system) to './context/ToastContext' (canonical, used by every
 // useToast() consumer — KanbanProvider, Board, NotificationsContext,
@@ -24,9 +25,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <ToastProvider>
                 <AuthProvider>
                     <UserProvider>
-                        <KanbanProvider>
-                            <App />
-                        </KanbanProvider>
+                        <TagsProvider>
+                            <KanbanProvider>
+                                <App />
+                            </KanbanProvider>
+                        </TagsProvider>
                     </UserProvider>
                 </AuthProvider>
             </ToastProvider>

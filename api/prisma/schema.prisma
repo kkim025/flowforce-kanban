@@ -69,6 +69,8 @@ model Board {
   shares        BoardShare[]
   // Wiki relation (FLO-Wiki)
   wikiSpace     WikiSpace?
+  // Tag library (issue #32) — every tag belongs to exactly one board.
+  tags          Tag[]
 }
 
 model Column {
@@ -102,7 +104,6 @@ model Task {
   content          String
   description      String?
   priority         Priority    @default(MEDIUM)
-  tags             String[]
   order            Int
   columnId         String
   archived         Boolean     @default(false)
@@ -117,6 +118,7 @@ model Task {
   comments         Comment[]
   activities       Activity[]
   timeEntries      TimeEntry[]
+  taskTags         TaskTag[]
   column           Column      @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assignee         User?       @relation(fields: [assigneeId], references: [id])
   sprint           Sprint?     @relation(fields: [sprintId], references: [id])
@@ -302,6 +304,44 @@ enum BoardMemberRole {
   VIEWER
   EDITOR
   ADMIN
+}
+
+// =====================================================================
+// Tags (issue #32) — see GitHub issue #32.
+//
+// Tag is a per-board library entry (name + color). TaskTag is the
+// many-to-many join between Task and Tag, replacing the legacy
+// `Task.tags String[]` field. Tags belong to a board so that two
+// boards can independently define "bug" or "frontend" without
+// collisions. Unique `(boardId, name)` keeps the library tidy.
+// =====================================================================
+
+model Tag {
+  id        String   @id @default(uuid())
+  boardId   String
+  name      String
+  color     String   @default("#94a3b8")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board    Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  taskTags TaskTag[]
+
+  @@unique([boardId, name])
+  // Library listing per board is sorted alphabetically.
+  @@index([boardId, name])
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  // "All tasks with tag X" lookups.
+  @@index([tagId])
 }
 
 // =====================================================================

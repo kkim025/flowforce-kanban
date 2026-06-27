@@ -2,17 +2,24 @@ import {
   Task as PrismaTask,
   Subtask as PrismaSubtask,
   Checklist as PrismaChecklist,
+  Tag as PrismaTag,
   Priority as PrismaPriority,
 } from '@prisma/client';
-import { Task, Priority } from '../../domain/task.entity';
+import { Task, Priority, TaskTagRef } from '../../domain/task.entity';
 import { Subtask } from '../../domain/subtask.entity';
 import { Checklist } from '../../domain/checklist.entity';
+
+type TaskTagJoin = {
+  tagId: string;
+  tag: PrismaTag;
+};
 
 export class TaskMapper {
   public static toDomain(
     raw: PrismaTask & {
       subtasks?: PrismaSubtask[];
       checklists?: (PrismaChecklist & { items?: PrismaSubtask[] })[];
+      taskTags?: TaskTagJoin[];
     },
   ): Task {
     const subtasks = raw.subtasks
@@ -21,13 +28,20 @@ export class TaskMapper {
     const checklists = raw.checklists
       ? raw.checklists.map((cl) => this.checklistToDomain(cl))
       : [];
+    const tags: TaskTagRef[] = raw.taskTags
+      ? raw.taskTags.map((tt) => ({
+          id: tt.tag.id,
+          name: tt.tag.name,
+          color: tt.tag.color,
+        }))
+      : [];
 
     const taskResult = Task.create(
       {
         content: raw.content,
         description: raw.description || undefined,
         priority: raw.priority as unknown as Priority,
-        tags: raw.tags,
+        tags,
         order: raw.order,
         columnId: raw.columnId,
         archived: raw.archived,
@@ -83,13 +97,16 @@ export class TaskMapper {
     return checklistResult.getValue();
   }
 
+  /**
+   * Returns the fields that go into the `Task` row (no tags — those live in
+   * the TaskTag join table and are reconciled separately by TasksService).
+   */
   public static toPersistence(task: Task): Partial<PrismaTask> {
     return {
       id: task.id,
       content: task.content,
       description: task.description || null,
       priority: task.priority as unknown as PrismaPriority,
-      tags: task.tags,
       order: task.order,
       columnId: task.columnId,
       archived: task.archived,

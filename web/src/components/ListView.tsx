@@ -61,7 +61,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                     const matchesSearch = !query ||
                         (task.title || '').toLowerCase().includes(query) ||
                         (task.description || '').toLowerCase().includes(query) ||
-                        (task.tags || []).some(t => (t || '').toLowerCase().includes(query)) ||
+                        (task.tags || []).some(t => t.name.toLowerCase().includes(query)) ||
                         (column.title || '').toLowerCase().includes(query);
 
                     if (!matchesSearch || !taskMatchesFilters(task, {
@@ -190,8 +190,17 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                                     {(task.tags || []).length > 0 && (
                                                         <div className="flex gap-1.5 mt-1.5 overflow-hidden">
                                                             {(task.tags || []).map(tag => (
-                                                                <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium flex-shrink-0">#{tag}</span>
-                                                            ))}
+                                                                                                                            <span
+                                                                                                                                key={tag.id}
+                                                                                                                                className="text-[9px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                                                                                                                                style={{
+                                                                                                                                    backgroundColor: `${tag.color}26`,
+                                                                                                                                    color: tag.color,
+                                                                                                                                }}
+                                                                                                                            >
+                                                                                                                                #{tag.name}
+                                                                                                                            </span>
+                                                                                                                        ))}
                                                         </div>
                                                     )}
                                                 </div>

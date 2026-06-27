@@ -5,8 +5,8 @@ import FilterBar from './FilterBar';
 
 const mockState = {
     tasks: {
-        'task-1': { id: 'task-1', title: 'Task 1', description: '', priority: 'high' as const, tags: ['frontend', 'bug'], assigneeId: 'user-1', subTasks: [], checklists: [], comments: [], activities: [], createdAt: '' },
-        'task-2': { id: 'task-2', title: 'Task 2', description: '', priority: 'low' as const, tags: ['backend'], assigneeId: 'user-2', subTasks: [], checklists: [], comments: [], activities: [], createdAt: '' },
+        'task-1': { id: 'task-1', title: 'Task 1', description: '', priority: 'high' as const, tags: [{ id: 'tag-frontend', boardId: 'b1', name: 'frontend', color: '#3b82f6' }, { id: 'tag-bug', boardId: 'b1', name: 'bug', color: '#ef4444' }], assigneeId: 'user-1', subTasks: [], checklists: [], comments: [], activities: [], createdAt: '' },
+                'task-2': { id: 'task-2', title: 'Task 2', description: '', priority: 'low' as const, tags: [{ id: 'tag-backend', boardId: 'b1', name: 'backend', color: '#10b981' }], assigneeId: 'user-2', subTasks: [], checklists: [], comments: [], activities: [], createdAt: '' },
     },
     columns: { 'col-1': { id: 'col-1', title: 'Todo', taskIds: ['task-1', 'task-2'] } },
     columnOrder: ['col-1'],
@@ -32,12 +32,32 @@ const mockUsers = [
     { id: 'user-2', name: 'Bob', email: 'bob@test.com', role: 'MEMBER' as const, status: 'ACTIVE' as const },
 ];
 
+const mockTags = [
+    { id: 'tag-frontend', boardId: 'b1', name: 'frontend', color: '#3b82f6' },
+    { id: 'tag-backend', boardId: 'b1', name: 'backend', color: '#10b981' },
+    { id: 'tag-bug', boardId: 'b1', name: 'bug', color: '#ef4444' },
+];
+
 vi.mock('../store/KanbanContext', () => ({
     useKanban: () => ({ state: mockState, dispatch: mockDispatch }),
 }));
 
 vi.mock('../store/UserContext', () => ({
     useUsers: () => ({ users: mockUsers }),
+}));
+
+vi.mock('../store/TagsContext', () => ({
+    useTags: () => ({
+        tags: mockTags,
+        tagMap: new Map(mockTags.map((t) => [t.id, t])),
+        byName: new Map(mockTags.map((t) => [t.name, t])),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        remove: vi.fn(),
+    }),
 }));
 
 describe('FilterBar', () => {

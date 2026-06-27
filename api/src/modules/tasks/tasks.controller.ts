@@ -10,7 +10,7 @@ import {
   Query,
   Put,
 } from '@nestjs/common';
-import { TasksService } from './tasks.service';
+import { TasksService, TaskTagInput } from './tasks.service';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { Priority } from '@prisma/client';
@@ -110,7 +110,7 @@ export class TasksController {
       description?: string;
       archived?: boolean;
       assigneeId?: string;
-      tags?: string[];
+      tags?: TaskTagInput[];
       sprintId?: string;
       estimatedMinutes?: number;
     },

@@ -32,6 +32,13 @@ interface ApiActivity {
   createdAt: string;
 }
 
+interface ApiTag {
+  id: string;
+  boardId?: string;
+  name: string;
+  color: string;
+}
+
 interface ApiTask {
   id: string;
   content: string;
@@ -40,7 +47,7 @@ interface ApiTask {
   order: number;
   columnId: string;
   createdAt: string;
-  tags?: string[];
+  tags?: ApiTag[];
   archived?: boolean;
   assigneeId?: string | null;
   subtasks?: ApiSubtask[];
@@ -138,7 +145,12 @@ export const mapApiBoardToState = (apiBoard: ApiBoard, existingSprints?: any[], 
         title: apiTask.content, // DB 'content' maps to FE 'title'
         description: apiTask.description || '',
         priority: (apiTask.priority?.toLowerCase() as Priority) || 'medium',
-        tags: apiTask.tags || [],
+        tags: (apiTask.tags || []).map((t) => ({
+          id: t.id,
+          boardId: t.boardId || '',
+          name: t.name,
+          color: t.color,
+        })),
         subTasks: subTasks,
         checklists: checklists,
         comments: comments,

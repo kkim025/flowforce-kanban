@@ -4,7 +4,7 @@ import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
 import { useAuth } from '../store/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
-import { Priority, Comment } from '../types';
+import { Priority, Comment, Tag } from '../types';
 import { getSortedTimeline } from '../lib/utils';
 import { UI_LABELS } from '../lib/constants';
 import ConfirmationModal from './ConfirmationModal';
@@ -61,7 +61,7 @@ const TaskViewer: React.FC = () => {
     const handleArchive = () => {
         dispatch({
             type: 'UPDATE_TASK',
-            payload: { task: { ...task, isArchived: true } }
+            payload: { task: { ...task, isArchived: true } },
         });
         navigate('/');
     };
@@ -76,9 +76,9 @@ const TaskViewer: React.FC = () => {
             payload: {
                 task: {
                     ...task,
-                    assigneeId: userId
-                }
-            }
+                    assigneeId: userId,
+                },
+            },
         });
     };
 
@@ -89,37 +89,37 @@ const TaskViewer: React.FC = () => {
             payload: {
                 task: {
                     ...task,
-                    priority: newPriority
-                }
-            }
+                    priority: newPriority,
+                },
+            },
         });
     };
 
-    const addTag = (tag: string) => {
-        if (!task.tags.includes(tag)) {
+    const addTag = (tag: Tag) => {
+        if (!task.tags.some((t) => t.id === tag.id)) {
             const newTags = [...task.tags, tag];
             dispatch({
                 type: 'UPDATE_TASK',
                 payload: {
                     task: {
                         ...task,
-                        tags: newTags
-                    }
-                }
+                        tags: newTags,
+                    },
+                },
             });
         }
     };
 
-    const removeTag = (tag: string) => {
-        const newTags = task.tags.filter(t => t !== tag);
+    const removeTag = (tagId: string) => {
+        const newTags = task.tags.filter((t) => t.id !== tagId);
         dispatch({
             type: 'UPDATE_TASK',
             payload: {
                 task: {
                     ...task,
-                    tags: newTags
-                }
-            }
+                    tags: newTags,
+                },
+            },
         });
     };
 
@@ -130,15 +130,15 @@ const TaskViewer: React.FC = () => {
             taskId: task.id,
             userId: user?.id || 'anonymous',
             content: content,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
         };
 
         dispatch({
             type: 'ADD_COMMENT',
             payload: {
                 taskId: task.id,
-                comment: newComment
-            }
+                comment: newComment,
+            },
         });
     };
 
@@ -149,9 +149,9 @@ const TaskViewer: React.FC = () => {
                 taskId: task.id,
                 comment: {
                     ...comment,
-                    content: newContent
-                }
-            }
+                    content: newContent,
+                },
+            },
         });
     };
 
@@ -162,8 +162,8 @@ const TaskViewer: React.FC = () => {
                 payload: {
                     taskId: task.id,
                     commentId: deletingCommentId,
-                    userId: user.id
-                }
+                    userId: user.id,
+                },
             });
             setDeletingCommentId(null);
         }
@@ -173,8 +173,8 @@ const TaskViewer: React.FC = () => {
         dispatch({
             type: 'UPDATE_TASK',
             payload: {
-                task: { ...task, title }
-            }
+                task: { ...task, title },
+            },
         });
     };
 
@@ -182,8 +182,8 @@ const TaskViewer: React.FC = () => {
         dispatch({
             type: 'UPDATE_TASK',
             payload: {
-                task: { ...task, description }
-            }
+                task: { ...task, description },
+            },
         });
     };
 
@@ -191,8 +191,8 @@ const TaskViewer: React.FC = () => {
         dispatch({
             type: 'UPDATE_TASK',
             payload: {
-                task: { ...task, estimatedMinutes }
-            }
+                task: { ...task, estimatedMinutes },
+            },
         });
     };
 

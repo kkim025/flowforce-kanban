@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
+import { useTags } from '../store/TagsContext';
 import { Priority } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X, ChevronDown, User as UserIcon, Tag, Flag } from 'lucide-react';
@@ -15,6 +16,7 @@ const PRIORITY_OPTIONS: { value: Priority | null; label: string; color: string }
 const FilterBar: React.FC = () => {
     const { state, dispatch } = useKanban();
     const { users } = useUsers();
+    const { tags: libraryTags } = useTags();
     const [isOpen, setIsOpen] = useState(false);
     const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
     const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -23,14 +25,11 @@ const FilterBar: React.FC = () => {
 
     const { assigneeFilter, priorityFilter, tagFilter } = state;
 
-    // Get all unique tags from all tasks
+    // Tag chips are sourced from the per-board library (issue #32) so that
+    // tags can be filtered even before any task uses them.
     const allTags = useMemo(() => {
-        const tagSet = new Set<string>();
-        Object.values(state.tasks).forEach(task => {
-            (task.tags || []).forEach(tag => tagSet.add(tag));
-        });
-        return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
-    }, [state.tasks]);
+        return [...libraryTags].sort((a, b) => a.name.localeCompare(b.name));
+    }, [libraryTags]);
 
     const hasActiveFilters = assigneeFilter !== null || priorityFilter !== null || tagFilter.length > 0;
 
@@ -48,14 +47,14 @@ const FilterBar: React.FC = () => {
         setShowPriorityDropdown(false);
     };
 
-    const handleTagToggle = (tag: string) => {
-        const newTags = tagFilter.includes(tag)
-            ? tagFilter.filter(t => t !== tag)
-            : [...tagFilter, tag];
+    const handleTagToggle = (tagName: string) => {
+        const newTags = tagFilter.includes(tagName)
+            ? tagFilter.filter((t) => t !== tagName)
+            : [...tagFilter, tagName];
         dispatch({ type: 'SET_TAG_FILTER', payload: newTags });
     };
 
-    const selectedAssignee = users.find(u => u.id === assigneeFilter);
+    const selectedAssignee = users.find((u) => u.id === assigneeFilter);
 
     // Close panel when clicking outside
     useEffect(() => {
@@ -148,7 +147,7 @@ const FilterBar: React.FC = () => {
                                             >
                                                 All Assignees
                                             </button>
-                                            {users.map(user => (
+                                            {users.map((user) => (
                                                 <button
                                                     key={user.id}
                                                     onClick={() => handleAssigneeSelect(user.id)}
@@ -180,7 +179,7 @@ const FilterBar: React.FC = () => {
                                     className="w-full flex items-center justify-between px-3 py-2 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm hover:bg-white/80 dark:hover:bg-slate-800 transition-colors"
                                 >
                                     <span className={priorityFilter ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
-                                        {priorityFilter ? PRIORITY_OPTIONS.find(p => p.value === priorityFilter)?.label : 'All Priorities'}
+                                        {priorityFilter ? PRIORITY_OPTIONS.find((p) => p.value === priorityFilter)?.label : 'All Priorities'}
                                     </span>
                                     <ChevronDown className="w-4 h-4 text-slate-400" />
                                 </button>
@@ -192,7 +191,7 @@ const FilterBar: React.FC = () => {
                                             exit={{ opacity: 0, y: -5 }}
                                             className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-10"
                                         >
-                                            {PRIORITY_OPTIONS.map(option => (
+                                            {PRIORITY_OPTIONS.map((option) => (
                                                 <button
                                                     key={String(option.value)}
                                                     onClick={() => handlePrioritySelect(option.value)}
@@ -218,17 +217,18 @@ const FilterBar: React.FC = () => {
                                     {allTags.length === 0 ? (
                                         <span className="text-xs text-slate-400 italic">No tags available</span>
                                     ) : (
-                                        allTags.map(tag => (
+                                        allTags.map((tag) => (
                                             <button
-                                                key={tag}
-                                                onClick={() => handleTagToggle(tag)}
+                                                key={tag.id}
+                                                onClick={() => handleTagToggle(tag.name)}
+                                                style={{ borderLeft: `3px solid ${tag.color}` }}
                                                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                                                    tagFilter.includes(tag)
+                                                    tagFilter.includes(tag.name)
                                                         ? 'bg-accent-blue text-white'
                                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                                 }`}
                                             >
-                                                #{tag}
+                                                #{tag.name}
                                             </button>
                                         ))
                                     )}

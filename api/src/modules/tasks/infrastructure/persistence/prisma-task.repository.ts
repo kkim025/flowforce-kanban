@@ -15,6 +15,11 @@ type PrismaTaskWithRelations = Prisma.TaskGetPayload<{
         items: true;
       };
     };
+    taskTags: {
+      include: {
+        tag: true;
+      };
+    };
   };
 }>;
 
@@ -38,6 +43,11 @@ export class PrismaTaskRepository implements ITaskRepository {
             items: true,
           },
         },
+        taskTags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 
@@ -54,6 +64,11 @@ export class PrismaTaskRepository implements ITaskRepository {
         checklists: {
           include: {
             items: true,
+          },
+        },
+        taskTags: {
+          include: {
+            tag: true,
           },
         },
       },
@@ -158,6 +173,9 @@ export class PrismaTaskRepository implements ITaskRepository {
             checklists: {
               include: { items: true },
             },
+            taskTags: {
+              include: { tag: true },
+            },
           },
         },
         checklist: {
@@ -167,6 +185,9 @@ export class PrismaTaskRepository implements ITaskRepository {
                 subtasks: true,
                 checklists: {
                   include: { items: true },
+                },
+                taskTags: {
+                  include: { tag: true },
                 },
               },
             },

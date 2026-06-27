@@ -24,13 +24,17 @@ export class Sprint extends AggregateRoot<SprintProps> {
   }
 
   @Expose()
-  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  @Transform(({ value }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   get startDate(): string {
     return this.props.startDate.toISOString();
   }
 
   @Expose()
-  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  @Transform(({ value }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   get endDate(): string {
     return this.props.endDate.toISOString();
   }

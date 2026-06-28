@@ -9,11 +9,22 @@ export enum Priority {
   HIGH = 'HIGH',
 }
 
+/**
+ * Tag shape carried on a Task entity. This is a plain projection of the
+ * `Tag` row in the library — not the AggregateRoot itself, because tasks
+ * only need the read-only metadata (id, name, color) for display.
+ */
+export interface TaskTagRef {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface TaskProps extends Record<string, unknown> {
   content: string;
   description?: string;
   priority: Priority;
-  tags?: string[];
+  tags?: TaskTagRef[];
   order: number;
   columnId: string;
   archived?: boolean;
@@ -35,7 +46,7 @@ export class Task extends AggregateRoot<TaskProps> {
     return this.props.priority;
   }
 
-  get tags(): string[] {
+  get tags(): TaskTagRef[] {
     return this.props.tags || [];
   }
 
@@ -114,7 +125,7 @@ export class Task extends AggregateRoot<TaskProps> {
     this.props.assigneeId = assigneeId;
   }
 
-  public setTags(tags: string[]): void {
+  public setTags(tags: TaskTagRef[]): void {
     this.props.tags = tags;
   }
 }

@@ -6,6 +6,7 @@ import App from '../App';
 import { AuthProvider } from './AuthContext';
 import { UserProvider } from './UserContext';
 import { KanbanProvider } from './KanbanContext';
+import { TagsProvider } from './TagsContext';
 import { ToastProvider } from '../context/ToastContext';
 import { useKanban } from './KanbanContext';
 
@@ -127,10 +128,12 @@ const renderAppUnderProviders = () => {
             <ToastProvider>
                 <AuthProvider>
                     <UserProvider>
-                        <KanbanProvider>
-                            <HydrationProbe />
-                            <App />
-                        </KanbanProvider>
+                        <TagsProvider>
+                            <KanbanProvider>
+                                <HydrationProbe />
+                                <App />
+                            </KanbanProvider>
+                        </TagsProvider>
                     </UserProvider>
                 </AuthProvider>
             </ToastProvider>

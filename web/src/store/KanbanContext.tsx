@@ -364,7 +364,7 @@ export const KanbanProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         priority: task.priority.toUpperCase(),
                         archived: task.isArchived,
                         assigneeId: task.assigneeId,
-                        tags: task.tags,
+                        tags: task.tags.map((t) => ({ id: t.id, name: t.name, color: t.color })),
                         sprintId: task.sprintId,
                     });
 

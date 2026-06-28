@@ -19,6 +19,20 @@ vi.mock('../store/AuthContext', () => ({
     useAuth: vi.fn()
 }));
 
+vi.mock('../store/TagsContext', () => ({
+    useTags: () => ({
+        tags: [{ id: 'tag-bug', boardId: 'board-1', name: 'bug', color: '#94a3b8' }],
+        tagMap: new Map([['tag-bug', { id: 'tag-bug', boardId: 'board-1', name: 'bug', color: '#94a3b8' }]]),
+        byName: new Map([['bug', { id: 'tag-bug', boardId: 'board-1', name: 'bug', color: '#94a3b8' }]]),
+        isLoading: false,
+        error: null,
+        refresh: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        remove: vi.fn(),
+    }),
+}));
+
 vi.mock('framer-motion', () => ({
     motion: {
         div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
@@ -43,7 +57,7 @@ const mockTask = {
     description: 'Task description',
     priority: 'medium' as const,
     assigneeId: 'user-1',
-    tags: ['bug'],
+    tags: [{ id: 'tag-bug', boardId: 'board-1', name: 'bug', color: '#94a3b8' }],
     subTasks: [],
     checklists: [],
     comments: [],

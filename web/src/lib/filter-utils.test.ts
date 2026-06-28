@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { taskMatchesFilters, filterTasks } from './filter-utils';
 import { Task } from '../types';
 
+const tag = (name: string) => ({ id: `tag-${name}`, boardId: 'board-1', name, color: '#94a3b8' });
+const tagList = (...names: string[]) => names.map(tag);
+
 const createTask = (overrides: Partial<Task> = {}): Task => ({
     id: 'task-1',
     title: 'Test Task',
@@ -51,13 +54,13 @@ describe('filter-utils', () => {
         });
 
         it('filters by tags (OR logic - task matches if it has ANY of the selected tags)', () => {
-            const task = createTask({ tags: ['frontend', 'bug'] });
+            const task = createTask({ tags: tagList('frontend', 'bug') });
             const filters = { assigneeFilter: null, priorityFilter: null, tagFilter: ['frontend'] };
             expect(taskMatchesFilters(task, filters)).toBe(true);
         });
 
         it('returns false when no tags match', () => {
-            const task = createTask({ tags: ['backend'] });
+            const task = createTask({ tags: tagList('backend') });
             const filters = { assigneeFilter: null, priorityFilter: null, tagFilter: ['frontend', 'bug'] };
             expect(taskMatchesFilters(task, filters)).toBe(false);
         });
@@ -66,7 +69,7 @@ describe('filter-utils', () => {
             const task = createTask({
                 assigneeId: 'user-1',
                 priority: 'high' as const,
-                tags: ['frontend']
+                tags: tagList('frontend')
             });
             const filters = {
                 assigneeFilter: 'user-1',
@@ -80,7 +83,7 @@ describe('filter-utils', () => {
             const task = createTask({
                 assigneeId: 'user-1',
                 priority: 'high' as const,
-                tags: ['backend']
+                tags: tagList('backend')
             });
             const filters = {
                 assigneeFilter: 'user-1',
@@ -135,8 +138,8 @@ describe('filter-utils', () => {
 
         it('filters tasks by tags', () => {
             const tasks = [
-                createTask({ id: 'task-1', tags: ['frontend'] }),
-                createTask({ id: 'task-2', tags: ['backend'] }),
+                createTask({ id: 'task-1', tags: tagList('frontend') }),
+                createTask({ id: 'task-2', tags: tagList('backend') }),
             ];
             const filters = { assigneeFilter: null, priorityFilter: null, tagFilter: ['frontend'] };
             expect(filterTasks(tasks, filters)).toHaveLength(1);

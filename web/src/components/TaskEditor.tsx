@@ -6,7 +6,7 @@ import { useKanban } from '../store/KanbanContext';
 import { useUsers } from '../store/UserContext';
 import { useAuth } from '../store/AuthContext';
 import MarkdownEditor from './MarkdownEditor';
-import { Priority, Task, Checklist, SubTask, Activity } from '../types';
+import { Priority, Task, Checklist, SubTask, Activity, Tag } from '../types';
 import { UI_LABELS } from '../lib/constants';
 import TaskEditorHeader from './TaskEditorHeader';
 import TaskEditorChecklists from './TaskEditorChecklists';
@@ -26,7 +26,7 @@ const TaskEditor: React.FC = () => {
     const [title, setTitle] = useState(existingTask?.title || '');
     const [description, setDescription] = useState(existingTask?.description || '');
     const [priority, setPriority] = useState<Priority>(existingTask?.priority || 'medium');
-    const [tags, setTags] = useState<string[]>(existingTask?.tags || []);
+    const [tags, setTags] = useState<Tag[]>(existingTask?.tags || []);
     const [assigneeId, setAssigneeId] = useState<string | undefined>(existingTask?.assigneeId);
     const [sprintId, setSprintId] = useState<string | undefined>(existingTask?.sprintId);
     const [checklists, setChecklists] = useState<Checklist[]>(existingTask?.checklists || []);
@@ -260,7 +260,7 @@ const TaskEditor: React.FC = () => {
                         onPriorityChange={setPriority}
                         onSprintChange={setSprintId}
                         onTagAdd={(tag) => setTags([...tags, tag])}
-                        onTagRemove={(tag) => setTags(tags.filter(t => t !== tag))}
+                                                onTagRemove={(tagId) => setTags(tags.filter(t => t.id !== tagId))}
                         updateTaskDueDate={updateTaskDueDate}
                         taskId={taskId}
                     />

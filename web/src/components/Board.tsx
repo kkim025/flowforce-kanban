@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DragDropContext, DropResult, Droppable } from '@hello-pangea/dnd';
 import { useKanban } from '../store/KanbanContext';
+import { useTags } from '../store/TagsContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../store/AuthContext';
 import Column from './Column';
@@ -28,6 +29,7 @@ const Board: React.FC = () => {
     const { showToast } = useToast();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const { refresh: refreshTags } = useTags();
     const navigate = useNavigate();
     const location = useLocation();
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,18 @@ const Board: React.FC = () => {
     // Sprint panel state
     const [isSprintPanelOpen, setIsSprintPanelOpen] = useState(false);
     const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
+
+    // Refresh the tag library whenever the active board changes (issue #32).
+    // Depend on `refreshTags` (a stable useCallback in TagsContext), not the
+    // whole context value object — depending on `tags` would re-fire on every
+    // render and trigger an unbounded GET /tags loop.
+    useEffect(() => {
+        if (activeBoardId) {
+            refreshTags(activeBoardId);
+        } else {
+            refreshTags('');
+        }
+    }, [activeBoardId, refreshTags]);
 
     // Board panel state
     const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);
@@ -126,7 +140,7 @@ const Board: React.FC = () => {
                     return (
                         task.title.toLowerCase().includes(query) ||
                         task.description.toLowerCase().includes(query) ||
-                        task.tags.some(t => t.toLowerCase().includes(query)) ||
+                        task.tags.some(t => t.name.toLowerCase().includes(query)) ||
                         task.priority.toLowerCase().includes(query)
                     );
                 })

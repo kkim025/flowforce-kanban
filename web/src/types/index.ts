@@ -44,6 +44,18 @@ export interface Sprint {
     color?: string;
 }
 
+/**
+ * Tag library row (issue #32). Each tag belongs to exactly one board.
+ * The Task aggregate carries a list of these as `task.tags`; the legacy
+ * free-form string array is gone.
+ */
+export interface Tag {
+    id: string;
+    boardId: string;
+    name: string;
+    color: string;
+}
+
 export interface User {
     id: string;
     name?: string;
@@ -98,7 +110,7 @@ export interface Task {
     title: string;
     description: string;
     priority: Priority;
-    tags: string[];
+    tags: Tag[];
     assigneeId?: string;
     dueDate?: string;
     subTasks: SubTask[];

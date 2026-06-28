@@ -162,12 +162,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                             </h3>
 
                             <div className="flex flex-wrap gap-1 mt-auto">
-                                {task.tags.map(tag => (
-                                    <span key={tag} className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
+                                                            {task.tags.map((tag) => (
+                                                                <span
+                                                                    key={tag.id}
+                                                                    className="text-[10px] px-2 py-0.5 rounded"
+                                                                    style={{
+                                                                        backgroundColor: `${tag.color}26`, // 15% alpha
+                                                                        color: tag.color,
+                                                                    }}
+                                                                >
+                                                                    {tag.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
 
                             {/* Subtasks — only show if there are any items */}
                             {checklistProgress && (

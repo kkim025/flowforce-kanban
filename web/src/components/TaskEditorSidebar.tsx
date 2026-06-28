@@ -1,15 +1,17 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { Settings, UserPlus, Check, AlertCircle, X } from 'lucide-react';
-import { User, Sprint, Priority, Task } from '../types';
+import { User, Sprint, Priority, Task, Tag } from '../types';
 import { UI_LABELS } from '../lib/constants';
 import { getSprintColor } from '../lib/sprint-utils';
+import { useKanban } from '../store/KanbanContext';
+import { useTags } from '../store/TagsContext';
 import Dropdown from './Dropdown';
 
 interface TaskEditorSidebarProps {
     assigneeId: string | undefined;
     priority: Priority;
     sprintId: string | undefined;
-    tags: string[];
+    tags: Tag[];
     existingTask: Task | null;
     isEditing: boolean;
     columnTitle: string;
@@ -18,8 +20,8 @@ interface TaskEditorSidebarProps {
     onAssigneeChange: (userId: string | undefined) => void;
     onPriorityChange: (priority: Priority) => void;
     onSprintChange: (sprintId: string | undefined) => void;
-    onTagAdd: (tag: string) => void;
-    onTagRemove: (tag: string) => void;
+    onTagAdd: (tag: Tag) => void;
+    onTagRemove: (tagId: string) => void;
     updateTaskDueDate: (taskId: string, dueDate: string | null) => void;
     taskId?: string;
 }
@@ -42,11 +44,13 @@ const TaskEditorSidebar: React.FC<TaskEditorSidebarProps> = ({
     updateTaskDueDate,
     taskId,
 }) => {
-    const [showAssigneeMenu, setShowAssigneeMenu] = React.useState(false);
-    const [showPriorityMenu, setShowPriorityMenu] = React.useState(false);
-    const [showLabelMenu, setShowLabelMenu] = React.useState(false);
-    const [showSprintMenu, setShowSprintMenu] = React.useState(false);
-    const [tagInput, setTagInput] = React.useState('');
+    const { activeBoardId } = useKanban();
+    const { byName, tags: libraryTags, create } = useTags();
+    const [showAssigneeMenu, setShowAssigneeMenu] = useState(false);
+    const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+    const [showLabelMenu, setShowLabelMenu] = useState(false);
+    const [showSprintMenu, setShowSprintMenu] = useState(false);
+    const [tagInput, setTagInput] = useState('');
 
     const assigneeRef = useRef<HTMLDivElement>(null);
     const priorityRef = useRef<HTMLDivElement>(null);
@@ -75,15 +79,36 @@ const TaskEditorSidebar: React.FC<TaskEditorSidebarProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [dropdownHandlers]);
 
-    const addTag = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && tagInput.trim()) {
-            e.preventDefault();
-            if (!tags.includes(tagInput.trim())) {
-                onTagAdd(tagInput.trim());
+    const attachedIds = new Set(tags.map((t) => t.id));
+        const suggestions = libraryTags
+            .filter((t) => !attachedIds.has(t.id))
+            .filter((t) => !tagInput.trim() || t.name.includes(tagInput.trim().toLowerCase()))
+            .slice(0, 6);
+
+        const handlePickSuggestion = (tag: Tag) => {
+            onTagAdd(tag);
+            setTagInput('');
+        };
+
+        const handleCreateFromInput = async () => {
+            const name = tagInput.trim().toLowerCase();
+            if (!name || !activeBoardId) return;
+            const existing = byName.get(name);
+            if (existing) {
+                onTagAdd(existing);
+            } else {
+                const created = await create({ boardId: activeBoardId, name });
+                onTagAdd(created);
             }
             setTagInput('');
-        }
-    };
+        };
+
+        const addTag = (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' && tagInput.trim()) {
+                e.preventDefault();
+                handleCreateFromInput();
+            }
+        };
 
     return (
         <aside className="md:col-span-4 space-y-8">
@@ -368,37 +393,73 @@ const TaskEditorSidebar: React.FC<TaskEditorSidebarProps> = ({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {tags.length > 0 ? (
-                        tags.map(tag => (
-                            <span key={tag} className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[9px] font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-white/5">
-                                {tag}
-                                <button onClick={() => onTagRemove(tag)} className="hover:text-red-500 transition-colors">
-                                    <X className="w-2.5 h-2.5" />
-                                </button>
-                            </span>
-                        ))
-                    ) : (
-                        <p className="text-[10px] font-medium italic text-slate-400">No labels</p>
-                    )}
-                </div>
+                                    {tags.length > 0 ? (
+                                        tags.map((tag) => (
+                                            <span
+                                                key={tag.id}
+                                                className="flex items-center gap-1.5 text-[9px] font-bold px-2 py-1 rounded-lg border"
+                                                style={{
+                                                    backgroundColor: `${tag.color}26`,
+                                                    borderColor: `${tag.color}40`,
+                                                    color: tag.color,
+                                                }}
+                                            >
+                                                {tag.name}
+                                                <button onClick={() => onTagRemove(tag.id)} className="hover:text-red-500 transition-colors">
+                                                    <X className="w-2.5 h-2.5" />
+                                                </button>
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <p className="text-[10px] font-medium italic text-slate-400">No labels</p>
+                                    )}
+                                </div>
 
-                <Dropdown
-                    isOpen={showLabelMenu}
-                    onClose={() => setShowLabelMenu(false)}
-                    className="p-3"
-                >
-                    <div onClick={(e) => e.stopPropagation()}>
-                        <input
-                            autoFocus
-                            type="text"
-                            value={tagInput}
-                            onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={addTag}
-                            placeholder={UI_LABELS.ADD_TAG}
-                            className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-[10px] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-accent-blue"
-                        />
-                    </div>
-                </Dropdown>
+                                <Dropdown
+                                    isOpen={showLabelMenu}
+                                    onClose={() => setShowLabelMenu(false)}
+                                    className="p-3 w-72"
+                                >
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={tagInput}
+                                            onChange={(e) => setTagInput(e.target.value)}
+                                            onKeyDown={addTag}
+                                            placeholder={UI_LABELS.ADD_TAG}
+                                            className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-[10px] text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-accent-blue"
+                                        />
+                                        {suggestions.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1">
+                                                {suggestions.map((t) => (
+                                                    <button
+                                                        key={t.id}
+                                                        type="button"
+                                                        onClick={() => handlePickSuggestion(t)}
+                                                        className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg border"
+                                                        style={{
+                                                            backgroundColor: `${t.color}26`,
+                                                            borderColor: `${t.color}40`,
+                                                            color: t.color,
+                                                        }}
+                                                    >
+                                                        {t.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {tagInput.trim() && !byName.has(tagInput.trim().toLowerCase()) && (
+                                            <button
+                                                type="button"
+                                                onClick={handleCreateFromInput}
+                                                className="mt-2 w-full text-left text-[10px] text-accent-blue hover:text-accent-blue/80 font-bold"
+                                            >
+                                                + Create new tag "{tagInput.trim()}"
+                                            </button>
+                                        )}
+                                    </div>
+                                </Dropdown>
             </div>
 
             <div className="pt-8 border-t border-slate-200 dark:border-white/5">

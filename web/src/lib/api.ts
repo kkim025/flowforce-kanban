@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref } from '../types';
+import { User, UserRole, Sprint, SprintStatus, SubTask, Priority, AppNotification, NotificationType, UserNotificationPref, Tag } from '../types';
 import { AUTH_EXPIRED_EVENT } from './auth-events';
 
 const api_url =
@@ -309,3 +309,34 @@ export const upsertNotificationPref = async (
 };
 
 export default api;
+
+// Tags API (issue #32)
+export interface CreateTagInput {
+  boardId: string;
+  name: string;
+  color?: string;
+}
+
+export interface UpdateTagInput {
+  name?: string;
+  color?: string;
+}
+
+export const getTags = async (boardId: string): Promise<Tag[]> => {
+  const response = await api.get<Tag[]>('/tags', { params: { boardId } });
+  return response.data;
+};
+
+export const createTag = async (data: CreateTagInput): Promise<Tag> => {
+  const response = await api.post<Tag>('/tags', data);
+  return response.data;
+};
+
+export const updateTag = async (id: string, data: UpdateTagInput): Promise<Tag> => {
+  const response = await api.patch<Tag>(`/tags/${id}`, data);
+  return response.data;
+};
+
+export const deleteTag = async (id: string): Promise<void> => {
+  await api.delete(`/tags/${id}`);
+};

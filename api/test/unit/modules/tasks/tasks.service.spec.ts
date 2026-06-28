@@ -16,11 +16,27 @@ describe('TasksService', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        findMany: jest.fn(),
+      },
+      column: {
+        findUnique: jest.fn(),
       },
       comment: { create: jest.fn() },
       activity: { create: jest.fn() },
       user: { findMany: jest.fn() },
+      tag: { findUnique: jest.fn() },
+      taskTag: {
+        findMany: jest.fn().mockResolvedValue([]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
     };
+    // Default: $transaction invokes the callback with mockPrisma as the
+    // transaction client. Tests that exercise the tag reconciliation path
+    // override this with a real callback.
+    mockPrisma.$transaction = jest.fn(async (cb: (tx: any) => any) =>
+      cb(mockPrisma),
+    );
     eventEmitter = { emit: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({

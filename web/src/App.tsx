@@ -11,6 +11,7 @@ import SprintReportPage from './components/reports/SprintReportPage';
 import { NotificationCenterPage } from './components/notifications/NotificationCenterPage';
 import { NotificationPreferences } from './components/notifications/NotificationPreferences';
 import WikiLayout from './components/wiki/WikiLayout';
+import TagManagement from './components/tags/TagManagement';
 import { NotificationsProvider } from './store/NotificationsContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -44,8 +45,9 @@ const App: React.FC = () => {
                 <Route path="tasks/:taskId/edit" element={<TaskEditor />} />
 
                 {/* Admin Routes */}
-                <Route path="admin/users" element={<UserManagement />} />
-                <Route path="board/:boardId/reports" element={<SprintReportPage />} />
+                                <Route path="admin/users" element={<UserManagement />} />
+                                <Route path="board/:boardId/reports" element={<SprintReportPage />} />
+                                <Route path="board/:boardId/tags" element={<TagManagement />} />
               </Route>
 
               {/* Top-level notification routes */}

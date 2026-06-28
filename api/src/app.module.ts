@@ -17,6 +17,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { MailModule } from './mail/mail.module';
 import { BoardSharingModule } from './modules/board-sharing/board-sharing.module';
 import { WikiModule } from './modules/wiki/wiki.module';
+import { TagsModule } from './modules/tags/tags.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { WikiModule } from './modules/wiki/wiki.module';
     MailModule,
     BoardSharingModule,
     WikiModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

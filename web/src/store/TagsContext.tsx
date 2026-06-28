@@ -87,10 +87,17 @@ export const TagsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Auto-clear on unmount so switching boards forces a refresh.
     useEffect(() => () => setTags([]), []);
 
+    // Memoize the Provider value so consumers don't get a new reference on
+    // every render. Without this, useEffect deps like [boardId, tags] in
+    // `Board.tsx` re-fire on every render and trigger an unbounded
+    // GET /tags loop (issue #32 regression).
+    const value = useMemo<TagsContextValue>(
+        () => ({ tags, tagMap, byName, isLoading, error, refresh, create, update, remove }),
+        [tags, tagMap, byName, isLoading, error, refresh, create, update, remove],
+    );
+
     return (
-        <TagsContext.Provider
-            value={{ tags, tagMap, byName, isLoading, error, refresh, create, update, remove }}
-        >
+        <TagsContext.Provider value={value}>
             {children}
         </TagsContext.Provider>
     );

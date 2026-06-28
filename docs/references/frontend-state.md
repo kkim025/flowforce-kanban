@@ -50,11 +50,13 @@ All providers are mounted **once** in `web/src/main.tsx` in this order (outermos
 ```
 <QueryClientProvider>
   <ToastProvider>            ← useToast() consumers: KanbanProvider, Board,
-  <AuthProvider>               NotificationsProvider, UserManagement, Wiki
+  <AuthProvider>               NotificationsProvider, UserManagement, Wiki, TagsContext
   <UserProvider>
+  <TagsProvider>             ← per-board tag library (issue #32)
   <KanbanProvider>           ← outermost consumer of useAuth()
   <App />                     ← renders NotificationsProvider + Router
   </KanbanProvider>
+  </TagsProvider>
   </UserProvider>
   </AuthProvider>
   </ToastProvider>
@@ -64,6 +66,8 @@ All providers are mounted **once** in `web/src/main.tsx` in this order (outermos
 `web/src/App.tsx` deliberately does **not** mount `<AuthProvider>` — doing so would shadow the outer instance, so `KanbanProvider`'s `useAuth()` would see `isAuthenticated: false` even after a successful login. Login state would only re-sync on the next full page reload, leaving the Board on the "Loading Board..." spinner indefinitely. See flowforce-kanban#25 for the original post-mortem.
 
 `NotificationsProvider` stays in `App.tsx` because it only needs to wrap the routed UI; it does not need to be visible to `KanbanProvider` (which never imports `useNotifications`).
+
+`TagsProvider` sits between `UserProvider` and `KanbanProvider` so the tag library cache is shared with `Board` (which calls `refresh(activeBoardId)` on every board switch and surfaces the library to `FilterBar`, `TaskEditorSidebar`, `TaskSidebar`, and `TagManagement`). It must be **above** `KanbanProvider` because `Board` is mounted inside it.
 
 ---
 
@@ -165,6 +169,37 @@ API Board → BoardState
 ## Frontend Type vs Backend Type
 
 Frontend uses lowercase priorities (`'low' | 'medium' | 'high'`), backend uses uppercase (`'LOW' | 'MEDIUM' | 'HIGH'`). Conversion happens in API calls via `.toUpperCase()` and in mappers.
+
+---
+
+## TagsProvider (per-board tag library)
+
+Defined in `web/src/store/TagsContext.tsx` (issue #32). Caches the per-board tag library so consumers (`FilterBar`, `TaskEditorSidebar`, `TaskSidebar`, `TagManagement`, `Board`) share one fetch result and can map by id or by name.
+
+```typescript
+interface TagsContextValue {
+  tags: Tag[];                             // Sorted by name (case-insensitive)
+  tagMap: Map<string, Tag>;                // by id
+  byName: Map<string, Tag>;                // by lowercased name (autocomplete source)
+  isLoading: boolean;
+  error: string | null;
+  refresh: (boardId: string) => Promise<void>;
+  create: (input: CreateTagInput) => Promise<Tag>;
+  update: (id: string, input: UpdateTagInput) => Promise<Tag>;
+  remove: (id: string) => Promise<void>;
+}
+```
+
+### Memoize the Provider value — non-negotiable
+
+The Provider's `value` prop is wrapped in `useMemo` and MUST stay that way. Without it, every render of `TagsProvider` produces a fresh value object (a new `{ tags, tagMap, … }` literal), which causes any consumer `useEffect` whose deps include the whole context value to re-fire on every render.
+
+The actual incident: `Board.tsx` had `useEffect(() => refreshTags(activeBoardId), [activeBoardId, tags])`. The `tags` dep was the entire context bag, so on every internal state update (e.g. `setIsLoading(true)` inside `refresh`) the value reference changed and the effect fired again — `GET /tags?boardId=…` hammered the API in a sub-millisecond loop, blowing up the JWT-strategy log. The fix has two layers:
+
+1. **`useMemo` around the Provider value** (in `TagsContext.tsx`) — keeps the value reference stable when no fields actually change.
+2. **Destructure the specific fields you need** in the consumer — `const { refresh } = useTags()` — and depend on them instead of the whole bag. `refresh` is a `useCallback([], [])`, so its reference is stable across renders and the effect fires exactly once per `boardId` change.
+
+Regression coverage: `web/src/store/TagsContext.test.tsx` mounts a `BoardLike` consumer and asserts `getTags` is called exactly once on mount and exactly once again on `boardId` change. Without the memoization the effect fires on every render — the call count grows unbounded within a few hundred ms in a test, and in production it saturates the API/JWT layer (which is what produced the original incident logs).
 
 ---
 

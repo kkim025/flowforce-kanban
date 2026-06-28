@@ -29,7 +29,7 @@ const Board: React.FC = () => {
     const { showToast } = useToast();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
-    const tags = useTags();
+    const { refresh: refreshTags } = useTags();
     const navigate = useNavigate();
     const location = useLocation();
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -44,13 +44,16 @@ const Board: React.FC = () => {
     const [isCreateSprintOpen, setIsCreateSprintOpen] = useState(false);
 
     // Refresh the tag library whenever the active board changes (issue #32).
+    // Depend on `refreshTags` (a stable useCallback in TagsContext), not the
+    // whole context value object — depending on `tags` would re-fire on every
+    // render and trigger an unbounded GET /tags loop.
     useEffect(() => {
         if (activeBoardId) {
-            tags.refresh(activeBoardId);
+            refreshTags(activeBoardId);
         } else {
-            tags.refresh('');
+            refreshTags('');
         }
-    }, [activeBoardId, tags]);
+    }, [activeBoardId, refreshTags]);
 
     // Board panel state
     const [isBoardPanelOpen, setIsBoardPanelOpen] = useState(false);

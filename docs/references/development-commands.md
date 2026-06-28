@@ -40,7 +40,7 @@ npm run format         # Prettier write
 # Database
 npx prisma migrate dev # Create and apply migrations
 npx prisma migrate deploy # Apply migrations (production)
-npx prisma generate     # Generate Prisma client
+npx prisma generate     # Generate Prisma client (auto-runs on `npm install` via `postinstall` hook — re-run manually after editing schema.prisma outside the migrate flow)
 npx prisma studio       # Open Prisma Studio (GUI)
 ```
 

@@ -9,24 +9,39 @@
 //   node scripts/ff-smoke-screenshot.cjs --num <issue> [--email <e>] [--password <p>]
 //
 // Pre-conditions (caller's job — see SKILL.md step 5a):
-//   - Dev API on http://127.0.0.1:5000 (or wherever api/.env PORT points).
-//   - Vite on http://127.0.0.1:5173.
+//   - Dev API on http://localhost:5000 OR http://localhost:3000
+//     (api/.env says PORT=3000; some local setups run a wrapper on 5000.
+//      The script probes both.)
+//   - Vite on http://localhost:5173 (IPv4, IPv6, or hostname — probed).
 //   - Playwright installed (web/node_modules has playwright-core in pnpm tree).
 //
 // What it gates on:
-//   1. pageErrors === []           — no provider-tree crashes
-//   2. bodyLen > 200              — React mounted something
-//   3. bodyPreview !~ /Loading Board/  — board actually rendered
-//   4. tokenInfo.hoursUntilExp    — logged to stdout for diffs vs previous runs
+//   1. pageErrors === []                 — no provider-tree crashes
+//   2. bodyLen > 200                    — React mounted something
+//   3. hasBoardChrome                   — board toolbar rendered (Filters + New Task)
+//   4. !stillLoading OR hasBoardChrome  — gates on board chrome, not on
+//                                         residual "Loading Board…" toast text
+//                                         (a brand-new user with zero boards
+//                                          shows the loading state as their
+//                                          ONLY signal, with no columns to
+//                                          match against — see history below)
+//   5. tokenInfo.hoursUntilExp          — logged for diffs vs previous runs
 //
 // History:
-//   - Created 2026-06-27 after issue #29 exposed the gap that the skill
+//   - 2026-06-27: created after issue #29 exposed the gap that the skill
 //     referenced this script but it didn't exist anywhere.
-//   - Uses real HTTP + real DB + real JWT — supertest mocks are NOT enough
-//     to catch provider-tree or hook-ancestry bugs.
+//   - 2026-06-28 (issue #32): port-fallback (5000/3000) added because
+//     api/.env actually says PORT=3000, so on a fresh dev start the API
+//     listens on 3000 — the previous 5000-only assumption crashed with
+//     ECONNREFUSED on Paul's box. IPv4/IPv6/hostname probe added because
+//     Vite on Paul's box binds only `[::1]:5173`, so 127.0.0.1 failed
+//     even when the server was up. Gate updated to require board chrome
+//     (positive signal) rather than absence of "Loading Board" text (a
+//     negative signal that a leftover toast was matching).
 
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 
 // Resolve playwright-core out of the web workspace's pnpm tree. Don't add
 // playwright as a new dep — it's already there transitively.
@@ -45,27 +60,36 @@ if (!chromium) {
   process.exit(4);
 }
 
-// Probe Vite's bind interface. Some dev boxes only bind IPv6 (e.g. local
-// setups where Vite is on `[::1]:5173`), so try both and pick the one that
-// answers. The previous IPv4-only assumption caused ERR_CONNECTION_REFUSED.
-const { request } = require('http');
-async function probeUrl(url, timeoutMs = 1500) {
+// Probe Vite's bind interface + API port. Some dev boxes only bind IPv6
+// (e.g. Vite on `[::1]:5173`), and the API may be on 3000 OR 5000
+// depending on whether the dev wrapper proxies or Nest reads api/.env
+// directly. Probe both, pick the first answer.
+function probeUrl(url, timeoutMs = 1500) {
   return new Promise((resolve) => {
-    const req = request({ host: new URL(url).hostname, port: new URL(url).port, path: '/', method: 'GET' }, (res) => {
-      res.resume();
-      resolve(res.statusCode >= 200 && res.statusCode < 500);
+    const req = http.request(
+      { host: new URL(url).hostname, port: new URL(url).port, path: '/', method: 'GET' },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode >= 200 && res.statusCode < 500);
+      },
+    );
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve(false);
     });
-    req.setTimeout(timeoutMs, () => { req.destroy(); resolve(false); });
     req.on('error', () => resolve(false));
     req.end();
   });
 }
+
 async function resolveBaseUrls() {
   // Probe both port 5000 and port 3000 for the API. The repo's api/.env
-  // says PORT=3000 but some dev boxes run the API on 5000 via a wrapper
-  // (e.g. the original flowforce-kanban skill memory said "API on :5000").
-  // Try the web port first; fall back to whatever answers.
-  for (const base of ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://[::1]:5173']) {
+  // says PORT=3000 but some dev boxes run the API on 5000 via a wrapper.
+  for (const base of [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://[::1]:5173',
+  ]) {
     if (!(await probeUrl(base))) continue;
     for (const apiPort of [5000, 3000]) {
       const apiBase = base.replace(':5173', `:${apiPort}`);
@@ -119,13 +143,12 @@ const outPath = `/tmp/ff-screenshot-${num}.png`;
   await page.click('button[type="submit"]');
 
   // Wait for a board action button. The board surface always renders the
-  // "New Task" CTA (Button label "New Task"). Using a more generic anchor
-  // than "TO DO" so we don't break when default column titles change.
+  // "New Task" CTA. Using a more generic anchor than "TO DO" so we don't
+  // break when default column titles change.
   try {
     await page.waitForSelector('button:has-text("New Task")', { timeout: 15000 });
   } catch (e) {
     console.error('board never rendered:', e.message);
-    // Dump body for debugging before failing.
     const bodyText = await page.evaluate(() => document.body.innerText);
     console.error('bodyText (first 400):', bodyText.slice(0, 400));
     process.exit(6);
@@ -141,25 +164,26 @@ const outPath = `/tmp/ff-screenshot-${num}.png`;
         exp: dec.exp,
         hoursUntilExp: ((dec.exp - Math.floor(Date.now() / 1000)) / 3600).toFixed(2),
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   });
 
-  // Look for the canonical "Loading Board…" surface. We bound it to the
-  // loading-state copy used by the KanbanProvider (`KanbanContext.tsx`),
-  // not to any toast / overlay text. Without this narrow match a leftover
-  // toast saying "Loading Board…" used to false-positive the gate even
-  // though the column headers had already rendered.
+  // Probe for the canonical "Loading Board…" surface. Gate on board chrome
+  // (positive signal) rather than the absence of loading text (negative
+  // signal that a leftover toast was matching).
+  //
+  // Edge case (caught on issue #32): a brand-new user has zero boards, so
+  // the only thing rendered is the empty-state copy ("LOADING BOARD..."
+  // followed by "Could not load your boards"). The chrome — Filters / New
+  // Task / Manage Sprints — is still visible, so `hasBoardChrome` is the
+  // correct positive signal here.
   const bodyInfo = await page.evaluate(() => {
     const text = document.body.innerText;
-    // A successfully-hydrated board always renders the board chrome:
-    // top bar ("Filters" + "New Task"), and one of the action buttons. We
-    // use those as a positive signal rather than scraping column header
-    // text (which varies across boards).
     const hasBoardChrome =
       text.includes('Filters') && text.includes('New Task');
-    // Canonical loading-state copy from KanbanContext.tsx — note the
-    // ellipsis is the single character that distinguishes "Loading…" from
-    // any toast / overlay.
+    // Match the exact ellipsis character used by KanbanContext's loading
+    // copy. Don't fuzzy-match "Loading Board" — that picks up toasts too.
     const stillLoading =
       !hasBoardChrome && text.includes('Loading Board…');
     return {
@@ -175,11 +199,11 @@ const outPath = `/tmp/ff-screenshot-${num}.png`;
   const result = { pageErrors, tokenInfo, bodyInfo, outPath };
   console.log(JSON.stringify(result, null, 2));
 
-  // Gates. Treat all three as blocking.
+  // Gates. Treat all four as blocking.
   const failures = [];
   if (pageErrors.length > 0) failures.push(`pageErrors: ${JSON.stringify(pageErrors)}`);
   if (bodyInfo.bodyLen < 200) failures.push(`bodyLen ${bodyInfo.bodyLen} < 200 — React didn't mount`);
-  if (bodyInfo.stillLoading) failures.push("body still shows 'Loading Board' — hydration hung");
+  if (bodyInfo.stillLoading) failures.push("body still shows 'Loading Board' AND board chrome is missing — hydration hung");
   if (!fs.existsSync(outPath)) failures.push(`screenshot not written: ${outPath}`);
 
   if (failures.length > 0) {

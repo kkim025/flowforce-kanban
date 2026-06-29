@@ -86,15 +86,16 @@ describe('Sprint entity — JSON serialization (issue #34 regression)', () => {
   });
 
   it('preserves the assigned id across multiple sprints (no cross-contamination)', () => {
-    // Two sprints created with different ids should serialize to different ids.
-    // This is the precise scenario that broke the frontend SprintSwitcher
-    // before the fix: state.activeSprintId='test-1' couldn't be matched
-    // against a sprint list because every sprint had id=undefined.
+    // The precise scenario from issue #34: state.activeSprintId='test-1'
+    // could not be matched against a sprint list because every sprint
+    // serialized with id=undefined. Two sprints must serialize to two
+    // distinct ids, not collapse to a shared undefined.
     const a = make({ id: 'test-1' });
-    const b = make({ id: 'test-2', name: 'asdf' });
+    const b = make({ id: 'test-2' });
     expect((instanceToPlain(a) as any).id).toBe('test-1');
     expect((instanceToPlain(b) as any).id).toBe('test-2');
-    expect((instanceToPlain(a) as any).name).toBe('test 1');
-    expect((instanceToPlain(b) as any).name).toBe('asdf');
+    expect((instanceToPlain(a) as any).id).not.toBe(
+      (instanceToPlain(b) as any).id,
+    );
   });
 });

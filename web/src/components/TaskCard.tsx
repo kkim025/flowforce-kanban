@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useKanban } from '../store/KanbanContext';
 import { getSprintColor } from '../lib/sprint-utils';
+import { getTaskProgress } from '../lib/task-progress';
 import SprintBadge from './sprints/SprintBadge';
 
 const PRIORITY_COLORS = {
@@ -66,30 +67,28 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
         return <span className={`text-[10px] px-2 py-0.5 rounded ${badgeClass}`}>{label}</span>;
     }, [task.dueDate]);
 
-    // Memoized progress calculation for checklists
-    const checklistProgress = useMemo(() => {
-        const allItems = task.checklists?.flatMap(cl => cl.items) ?? [];
-        const total = allItems.length;
-        if (total === 0) return null;
-        const completed = allItems.filter(i => i.isCompleted).length;
-        const progress = (completed / total) * 100;
-        return { total, completed, progress };
-    }, [task.checklists]);
-
-    // Memoized progress for legacy subtasks
-    const legacyProgress = useMemo(() => {
-        if (!task.subTasks?.length) return null;
-        const completed = task.subTasks.filter(s => s.isCompleted).length;
-        const total = task.subTasks.length;
-        const progress = (completed / total) * 100;
-        return { total, completed, progress };
-    }, [task.subTasks]);
+    // Unified subtask progress (issue #35): checklist items + legacy
+    // subTasks roll up into one bar so finishing all subtasks drives
+    // the parent card to its "done" visual state.
+    const progress = useMemo(
+        () => getTaskProgress(task),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- we only care about these two fields; full task identity churns on unrelated updates
+        [task.subTasks, task.checklists]
+    );
+    const hasSubtasks = progress.total > 0;
 
     const handleSprintBadgeClick = useCallback(() => {
         if (taskSprint) {
             dispatch({ type: 'SET_ACTIVE_SPRINT', payload: { sprintId: taskSprint.id } });
         }
     }, [taskSprint, dispatch]);
+
+    // When all subtasks are complete, dim the card and strike through
+    // the title to communicate "this task is finished" at a glance
+    // (Linear/Jira convention).
+    const doneStyle = progress.isComplete
+        ? 'opacity-60 ring-1 ring-emerald-500/30'
+        : '';
 
     return (
         <Draggable draggableId={task.id} index={index}>
@@ -116,6 +115,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                             }}
                             className={`
                 glass group p-4 rounded-xl transition-all duration-300 cursor-pointer relative overflow-hidden
+                ${doneStyle}
                 ${isFocused ? 'ring-2 ring-accent-blue shadow-[0_0_0_4px_rgba(37,99,235,0.15)]' : ''}
                 ${isSelected ? 'ring-2 ring-accent-blue bg-accent-blue/5' : ''}
                 ${snapshot.isDragging
@@ -142,6 +142,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                             />
                                         </span>
                                     )}
+                                    {progress.isComplete && (
+                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                            Done
+                                        </span>
+                                    )}
                                 </div>
                                 <button
                                     onClick={(e) => {
@@ -157,53 +162,42 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, index, onClick: _onClick, onD
                                 </button>
                             </div>
 
-                            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-1 leading-tight">
+                            <h3
+                                className={`font-semibold text-slate-800 dark:text-slate-100 mb-1 leading-tight ${
+                                    progress.isComplete ? 'line-through decoration-emerald-500/60' : ''
+                                }`}
+                            >
                                 {task.title}
                             </h3>
 
                             <div className="flex flex-wrap gap-1 mt-auto">
-                                                            {task.tags.map((tag) => (
-                                                                <span
-                                                                    key={tag.id}
-                                                                    className="text-[10px] px-2 py-0.5 rounded"
-                                                                    style={{
-                                                                        backgroundColor: `${tag.color}26`, // 15% alpha
-                                                                        color: tag.color,
-                                                                    }}
-                                                                >
-                                                                    {tag.name}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                {task.tags.map((tag) => (
+                                    <span
+                                        key={tag.id}
+                                        className="text-[10px] px-2 py-0.5 rounded"
+                                        style={{
+                                            backgroundColor: `${tag.color}26`, // 15% alpha
+                                            color: tag.color,
+                                        }}
+                                    >
+                                        {tag.name}
+                                    </span>
+                                ))}
+                            </div>
 
-                            {/* Subtasks — only show if there are any items */}
-                            {checklistProgress && (
+                            {/* Unified subtask progress (checklist items + legacy subTasks) */}
+                            {hasSubtasks && (
                                 <div className="mt-2 border-slate-100 dark:border-white/5">
                                     <div className="h-1 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden mb-1">
                                         <motion.div
                                             initial={{ width: 0 }}
-                                            animate={{ width: `${checklistProgress.progress}%` }}
-                                            className={`h-full ${checklistProgress.progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
+                                            animate={{ width: `${progress.progress}%` }}
+                                            className={`h-full ${progress.progress === 100 ? 'bg-emerald-500' : 'bg-accent-blue'}`}
                                         />
                                     </div>
-                                    <span className="text-[9px] text-slate-400">{checklistProgress.completed}/{checklistProgress.total} done</span>
-                                </div>
-                            )}
-
-                            {/* Legacy Subtasks Fallback */}
-                            {legacyProgress && (
-                                <div className="mt-3">
-                                    <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
-                                        <span>Progress</span>
-                                        <span>{legacyProgress.completed}/{legacyProgress.total}</span>
-                                    </div>
-                                    <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${legacyProgress.progress}%` }}
-                                            className="h-full bg-accent-blue"
-                                        />
-                                    </div>
+                                    <span className="text-[9px] text-slate-400">
+                                        {progress.completed}/{progress.total} done
+                                    </span>
                                 </div>
                             )}
                         </motion.div>

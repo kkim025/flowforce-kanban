@@ -14,6 +14,9 @@ export interface SprintProps {
 
 @Exclude()
 export class Sprint extends AggregateRoot<SprintProps> {
+  // issue #34: @Exclude() at class level hides id unless @Expose() is set.
+  // Without this the JSON response omits id → frontend SprintSwitcher breaks.
+  @Expose()
   get id(): string {
     return this._id;
   }

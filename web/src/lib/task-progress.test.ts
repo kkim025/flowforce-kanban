@@ -52,7 +52,7 @@ describe('getTaskProgress (issue #35)', () => {
         expect(p.isComplete).toBe(false);
     });
 
-    it('COMBINES both lists (regression for issue #35 — previously used `||`)', () => {
+    it('rolls up checklists + legacy subTasks (issue #35 — previously used `||`)', () => {
         // 1 done legacy + 2 done checklist items out of 2 legacy + 3 checklist = 3/5
         const p = getTaskProgress(makeTask({
             subTasks: [

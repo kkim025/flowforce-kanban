@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+api/dist/
+web/dist/
+mcp-server/dist/
+
+# Environment
+.env
+.env.local
+api/.env
+web/.env.local
+mcp-server/.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Hermes agent artifacts (local-only)
+.hermes/state.db
+.hermes/sessions/
+.hermes/cron/
+.hermes/profiles/
+.hermes/logs/
+.hermes/auth.json
+.hermes/credentials.json
+.hermes/voice-memos/
+.hermes/.env
+
+# Test artifacts
+coverage/
+.nyc_output/
+api/coverage/
+web/coverage/
+mcp-server/coverage/
+
+# Local DB volumes
+api/data/
+
+# Screenshot/debug
+*.png.bak
+/tmp-screenshots/
+
+# Generated docs
+docs/wiki-screenshots/*.tmp

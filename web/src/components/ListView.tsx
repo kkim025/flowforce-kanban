@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { taskMatchesFilters } from '../lib/filter-utils';
+import { getTaskProgress } from '../lib/task-progress';
 
 type SortField = 'title' | 'columnTitle' | 'priority' | 'progress' | 'createdAt' | 'dueDate';
 type SortOrder = 'asc' | 'desc';
@@ -51,11 +52,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
             column.taskIds.forEach(taskId => {
                 const task = state.tasks[taskId];
                 if (task && !task.isArchived) {
-                    const completed = task.checklists?.reduce((acc, cl) => acc + cl.items.filter(i => i.isCompleted).length, 0) || 
-                                    (task.subTasks?.filter(st => st.isCompleted).length || 0);
-                    const total = task.checklists?.reduce((acc, cl) => acc + cl.items.length, 0) || 
-                                 (task.subTasks?.length || 0);
-                    const progress = total > 0 ? (completed / total) * 100 : 0;
+                    const { completed, total, progress } = getTaskProgress(task);
 
                     const query = (state.searchQuery || '').toLowerCase();
                     const matchesSearch = !query ||
@@ -184,7 +181,7 @@ const ListView: React.FC<ListViewProps> = ({ onTaskClick }) => {
                                                 style={{ height: `${ROW_HEIGHT}px` }}
                                             >
                                                 <div className="flex-1 px-8 py-4 flex flex-col justify-center min-w-0">
-                                                    <span className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-accent-blue transition-colors truncate">
+                                                    <span className={`text-sm font-semibold text-slate-900 dark:text-white group-hover:text-accent-blue transition-colors truncate ${task.progress === 100 ? 'line-through decoration-emerald-500/60 opacity-60' : ''}`}>
                                                         {task.title}
                                                     </span>
                                                     {(task.tags || []).length > 0 && (

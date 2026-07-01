@@ -37,7 +37,9 @@ describe('buildServer', () => {
 
     expect(tools.map((t) => t.name)).toEqual(['list_boards']);
     const tool = tools[0]!;
-    expect(tool.description.length).toBeGreaterThan(20);
+    // Trim before length-check so a placeholder like ' '.repeat(25) doesn't
+    // silently pass — we want real prose the LLM can act on.
+    expect(tool.description?.trim().length ?? 0).toBeGreaterThan(20);
   });
 
   it('list_boards calls GET /boards on the API and returns the JSON', async () => {
@@ -46,6 +48,7 @@ describe('buildServer', () => {
       ok: true,
       status: 200,
       json: async () => boards,
+      text: async () => JSON.stringify(boards),
     });
     const api = new ApiClient(
       'http://api',
@@ -67,7 +70,9 @@ describe('buildServer', () => {
     const firstHeaders = (fetchMock.mock.calls[0]![1] as RequestInit).headers as Record<string, string>;
     expect(firstHeaders['Authorization']).toBe('Bearer tk-abc');
 
-    // Tool result content
+    // Tool result content. The SDK marks result.isError when the handler throws;
+    // we verify both that error propagation works (third test below) and that
+    // happy-path results don't carry the error flag.
     expect(result.isError).toBeFalsy();
     const content = result.content as Array<{ type: string; text: string }>;
     expect(content[0]!.type).toBe('text');

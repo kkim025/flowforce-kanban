@@ -13,6 +13,7 @@ describe('ApiClient', () => {
       ok: true,
       status: 200,
       json: async () => [],
+      text: async () => '[]',
     });
     const client = new ApiClient('http://api', () => 'tk-abc', fetchMock as unknown as typeof fetch);
 
@@ -31,6 +32,7 @@ describe('ApiClient', () => {
       ok: true,
       status: 200,
       json: async () => [],
+      text: async () => '[]',
     });
     let token = 'old';
     const client = new ApiClient('http://api', () => token, fetchMock as unknown as typeof fetch);
@@ -51,6 +53,7 @@ describe('ApiClient', () => {
       ok: true,
       status: 200,
       json: async () => ({}),
+      text: async () => '{}',
     });
     const client = new ApiClient('http://api.example.com/', () => 't', fetchMock as unknown as typeof fetch);
 
@@ -80,6 +83,7 @@ describe('ApiClient', () => {
       ok: true,
       status: 201,
       json: async () => ({ id: 't1' }),
+      text: async () => '{"id":"t1"}',
     });
     const client = new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch);
 
@@ -135,6 +139,7 @@ describe('ApiClient', () => {
       ok: true,
       status: 200,
       json: async () => [{ id: 'b1', name: 'My Board' }],
+      text: async () => '[{"id":"b1","name":"My Board"}]',
     });
     const client = new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch);
 
@@ -155,5 +160,54 @@ describe('ApiClient', () => {
     const client = new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch);
 
     await expect(client.delete('/boards/b1')).resolves.toBeUndefined();
+  });
+
+  it('treats a non-204 2xx with an empty body as undefined (no parse)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected end of JSON input');
+      },
+      text: async () => '',
+    });
+    const client = new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch);
+
+    await expect(client.get('/boards')).resolves.toBeUndefined();
+  });
+
+  it('throws ApiClientError on a non-JSON 2xx body (refuses to silently swallow garbage)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '<html><body>502 Bad Gateway</body></html>',
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      },
+    });
+    const client = new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch);
+
+    await expect(client.get('/boards')).rejects.toMatchObject({
+      name: 'ApiClientError',
+      status: 200,
+    });
+  });
+
+  it('rejects a non-http(s) apiUrl at construction time', () => {
+    expect(
+      () => new ApiClient('ftp://api', () => 't', fetchMock as unknown as typeof fetch),
+    ).toThrow(/Invalid apiUrl/);
+    expect(
+      () => new ApiClient('not-a-url', () => 't', fetchMock as unknown as typeof fetch),
+    ).toThrow(/Invalid apiUrl/);
+  });
+
+  it('accepts http and https apiUrls', () => {
+    expect(
+      () => new ApiClient('http://api', () => 't', fetchMock as unknown as typeof fetch),
+    ).not.toThrow();
+    expect(
+      () => new ApiClient('https://api.example.com', () => 't', fetchMock as unknown as typeof fetch),
+    ).not.toThrow();
   });
 });

@@ -73,7 +73,10 @@ function buildStatelessHandler(
 }
 
 export async function startServer(opts: StartServerOptions): Promise<RunningServer> {
-  const mcpPath = (opts.mcpPath ?? '/mcp').replace(/\/+$/, '') || '/mcp';
+  // Normalize the MCP mount path: strip leading + trailing slashes, then
+  // re-prepend a single leading slash so Express mounts it cleanly regardless
+  // of what the caller passed (`mcp`, `/mcp`, `//mcp///`, etc.).
+  const mcpPath = `/${(opts.mcpPath ?? '/mcp').replace(/^\/+|\/+$/g, '') || 'mcp'}`;
   const port = opts.port ?? 3001;
   const host = opts.host ?? '127.0.0.1';
 

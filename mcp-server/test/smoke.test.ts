@@ -74,26 +74,38 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    // Wait for the "Listening on" log line
+    // Wait for the "Listening on" log line. Every resolution / rejection path
+    // must clear the timeout and remove the listeners — otherwise a slow start
+    // leaves the suite blocked until the timer fires, and a successful start
+    // leaves dangling listeners attached to a process that's about to be torn
+    // down by afterAll.
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
+      const t = setTimeout(() => {
         serverProc.stdout?.off('data', onData);
+        serverProc.once('error', () => undefined); // detach reject-on-error
+        serverProc.kill('SIGTERM');
         reject(new Error('MCP server did not start within 10s'));
       }, 10_000);
+
       const onData = (chunk: Buffer): void => {
         const text = chunk.toString();
         process.stdout.write(`[mcp-smoke] ${text}`);
         if (text.includes('Listening on')) {
-          clearTimeout(timeout);
+          clearTimeout(t);
           serverProc.stdout?.off('data', onData);
           resolve();
         }
       };
-      serverProc.stdout?.on('data', onData);
-      serverProc.on('error', (err) => {
-        clearTimeout(timeout);
+
+      const onSpawnError = (err: Error): void => {
+        clearTimeout(t);
+        serverProc.stdout?.off('data', onData);
+        serverProc.kill('SIGTERM').catch(() => undefined);
         reject(err);
-      });
+      };
+
+      serverProc.stdout?.on('data', onData);
+      serverProc.once('error', onSpawnError);
     });
   }, 30_000);
 
@@ -177,12 +189,32 @@ function extractJsonRpc(text: string): {
   id: number;
   result: { tools?: Array<{ name: string }>; content: Array<{ type: string; text: string }> };
 } {
-  // SSE format: "event: message\ndata: {...}\n\n"
+  // SSE format: "event: message\ndata: {...}\n\n" (or just "data: {...}" for
+  // the statelessly-negotiated JSON-only path). Find the FIRST data: line
+  // and parse it.
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (trimmed.startsWith('data:')) {
-      return JSON.parse(trimmed.slice(5).trim());
+      const payload = JSON.parse(trimmed.slice(5).trim()) as Record<string, unknown>;
+      assertJsonRpc(payload);
+      return payload as ReturnType<typeof extractJsonRpc>;
     }
   }
-  return JSON.parse(text);
+  // Fallback: maybe the body is plain JSON.
+  const payload = JSON.parse(text) as Record<string, unknown>;
+  assertJsonRpc(payload);
+  return payload as ReturnType<typeof extractJsonRpc>;
+}
+
+function assertJsonRpc(payload: Record<string, unknown>): asserts payload is {
+  jsonrpc: '2.0';
+  id: number;
+  result: unknown;
+} {
+  if (payload['jsonrpc'] !== '2.0') {
+    throw new Error(`Not a JSON-RPC 2.0 response: ${JSON.stringify(payload).slice(0, 200)}`);
+  }
+  if (typeof payload['id'] !== 'number') {
+    throw new Error(`JSON-RPC response missing numeric id: ${JSON.stringify(payload).slice(0, 200)}`);
+  }
 }

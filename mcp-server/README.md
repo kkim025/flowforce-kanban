@@ -72,6 +72,7 @@ curl -X POST http://localhost:3001/mcp \
 |---|---|---|---|
 | `FLOWFORCE_API_URL` | yes (or `--api-url`) | — | FlowForce REST API base URL, e.g. `http://localhost:5000` |
 | `FLOWFORCE_PORT` | no (or `--port`) | `3001` | Port for the MCP HTTP server |
+| `FLOWFORCE_MCP_PATH` | no (or `--mcp-path`) | `/mcp` | Path the MCP server mounts on |
 | `FLOWFORCE_EMAIL` | yes (Phase 1) | — | Test user email for static login |
 | `FLOWFORCE_PASSWORD` | yes (Phase 1) | — | Test user password for static login |
 

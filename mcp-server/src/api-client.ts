@@ -41,7 +41,20 @@ export class ApiClient {
     getToken: TokenSupplier,
     fetchImpl: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {
+    // Strip trailing slashes so `${baseUrl}/${path}` joins cleanly.
     this.baseUrl = baseUrl.replace(/\/+$/, '');
+    // Defensive URL validation — refuse anything that isn't http(s). Cheap
+    // guard against typos like `--api-url "localhost:5000"` (no scheme) or
+    // `--api-url "javascript:..."` (would be a no-op in Node, but better to
+    // fail loudly than silently misroute requests).
+    try {
+      const u = new URL(this.baseUrl);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+        throw new Error(`Unsupported protocol: ${u.protocol}`);
+      }
+    } catch (err) {
+      throw new Error(`Invalid apiUrl "${baseUrl}": ${(err as Error).message}`);
+    }
     this.getToken = getToken;
     this.defaultFetch = fetchImpl;
   }
@@ -104,16 +117,27 @@ export class ApiClient {
     const response = await this.defaultFetch(url, init);
 
     if (response.ok) {
-      // 204 No Content — return undefined without trying to parse.
+      // 204 No Content — no body by spec.
       if (response.status === 204) {
         return undefined as T;
       }
-      // Some 2xx responses (200, 201, etc.) still have a JSON body.
-      try {
-        return (await response.json()) as T;
-      } catch {
-        // Non-JSON 2xx response; treat as empty success.
+      // For other 2xx, read the body once. Empty body is treated as a
+      // well-defined "no payload" success. Anything else must be valid JSON
+      // — a non-JSON 2xx body is almost certainly a proxy error page
+      // misclassified as success, so we surface it instead of silently
+      // returning undefined.
+      const text = await response.text();
+      if (text.length === 0) {
         return undefined as T;
+      }
+      try {
+        return JSON.parse(text) as T;
+      } catch (err) {
+        throw new ApiClientError(
+          response.status,
+          { rawBody: text.slice(0, 2048) },
+          `FlowForce API returned non-JSON 2xx body: ${(err as Error).message}`,
+        );
       }
     }
 

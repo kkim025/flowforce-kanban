@@ -32,6 +32,7 @@ async function main(): Promise<void> {
     options: {
       'api-url': { type: 'string' },
       port: { type: 'string' },
+      'mcp-path': { type: 'string' },
       email: { type: 'string' },
       password: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
   const email = values.email ?? process.env.FLOWFORCE_EMAIL;
   const password = values.password ?? process.env.FLOWFORCE_PASSWORD;
   const port = parsePort(values.port ?? process.env.FLOWFORCE_PORT, 3001);
+  const mcpPath = values['mcp-path'] ?? process.env.FLOWFORCE_MCP_PATH;
 
   if (!apiUrl) {
     console.error('Missing --api-url (or FLOWFORCE_API_URL env var).');
@@ -77,6 +79,7 @@ async function main(): Promise<void> {
   const server = await startServer({
     apiUrl,
     port,
+    mcpPath,
     getToken: auth.getToken,
   });
 
@@ -106,6 +109,7 @@ Usage:
 Flags:
   --api-url URL     FlowForce API base URL (env: FLOWFORCE_API_URL)
   --port PORT       Port to listen on (default 3001, env: FLOWFORCE_PORT)
+  --mcp-path PATH   MCP mount path (default /mcp, env: FLOWFORCE_MCP_PATH)
   --email EMAIL     FlowForce user email for login (env: FLOWFORCE_EMAIL)
   --password PASS   FlowForce user password for login (env: FLOWFORCE_PASSWORD)
   -h, --help        Show this help

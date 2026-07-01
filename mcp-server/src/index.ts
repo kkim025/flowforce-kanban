@@ -5,6 +5,10 @@
  * Phase 1: no authentication on the `/mcp` route — the MCP server holds the
  * JWT it obtained via /auth/login. Phase 6 (issue #42) adds bearer-token
  * middleware that accepts JWT / API key / OAuth.
+ *
+ * Each request gets a fresh {@link StreamableHTTPServerTransport} (stateless
+ * mode per the SDK examples). This is the right default for a server that
+ * proxies every call to the API and never holds session state.
  */
 
 import express, { type Request, type Response } from 'express';
@@ -32,13 +36,42 @@ export interface RunningServer {
   close: () => Promise<void>;
 }
 
+type McpRequestHandler = (req: Request, res: Response, body?: unknown) => Promise<void>;
+
 /**
- * Start the MCP server. Resolves once the HTTP listener is ready.
+ * Build a per-request handler that creates a fresh `McpServer` +
+ * `StreamableHTTPServerTransport` (stateless mode), forwards the request,
+ * then tears both down.
  *
- * Each request gets a fresh {@link StreamableHTTPServerTransport} — this is
- * the "stateless" pattern from the SDK examples and the right default for a
- * server where every call hits the API and there's no need to hold a session.
+ * Centralizing this here means future changes (auth middleware, request
+ * logging, telemetry, etc.) only need to happen in one place — see issue
+ * #42 for the bearer-token wiring that will plug in here.
  */
+function buildStatelessHandler(
+  apiUrl: string,
+  getToken: TokenSupplier,
+): McpRequestHandler {
+  return async (req, res, body) => {
+    // Build a per-request API client so the bearer token is resolved at the
+    // moment the request is processed (and can be rotated without restart).
+    const api = new ApiClient(apiUrl, getToken);
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    const server = buildServer(api);
+
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, body);
+    } finally {
+      // Tear down so the transport + server can be GC'd after the response
+      // is flushed. Swallow close errors — the request already happened.
+      await server.close().catch(() => undefined);
+      await transport.close().catch(() => undefined);
+    }
+  };
+}
+
 export async function startServer(opts: StartServerOptions): Promise<RunningServer> {
   const mcpPath = (opts.mcpPath ?? '/mcp').replace(/\/+$/, '') || '/mcp';
   const port = opts.port ?? 3001;
@@ -46,6 +79,7 @@ export async function startServer(opts: StartServerOptions): Promise<RunningServ
 
   const app = createMcpExpressApp({ host });
 
+  // Health check — useful for `curl http://host:port/` from monitoring tools.
   app.get('/', (_req, res) => {
     res.json({
       name: 'flowforce-kanban-mcp',
@@ -55,59 +89,28 @@ export async function startServer(opts: StartServerOptions): Promise<RunningServ
     });
   });
 
-  app.post(mcpPath, async (req: Request, res: Response) => {
-    // Build a per-request API client so the bearer token is resolved at the
-    // moment the request is processed (and can be rotated without restart).
-    const api = new ApiClient(opts.apiUrl, opts.getToken);
+  // POST is the main MCP entry point.
+  const handlePost = buildStatelessHandler(opts.apiUrl, opts.getToken);
+  app.post(mcpPath, async (req, res) => handlePost(req, res, req.body));
 
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
+  // GET / DELETE on the MCP path are not part of the stateless contract —
+  // return 405 with a JSON-RPC error body, matching the SDK's stateless
+  // example. (If we ever need GET for SSE streams, that'll be a Phase 2+
+  // feature and will require switching to stateful mode.)
+  const methodNotAllowed = (method: string) => (_req: Request, res: Response): void => {
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: `Method ${method} not allowed on this endpoint.` },
+        id: null,
+      }),
+    );
+  };
+  app.get(mcpPath, methodNotAllowed('GET'));
+  app.delete(mcpPath, methodNotAllowed('DELETE'));
 
-    const server = buildServer(api);
-
-    try {
-      await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
-    } finally {
-      // Detach so the transport can be GC'd after the response is flushed.
-      await server.close().catch(() => undefined);
-      await transport.close().catch(() => undefined);
-    }
-  });
-
-  // Some clients (older SSE ones) also need GET/DELETE on the same path.
-  app.get(mcpPath, async (req: Request, res: Response) => {
-    const api = new ApiClient(opts.apiUrl, opts.getToken);
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    const server = buildServer(api);
-    try {
-      await server.connect(transport);
-      await transport.handleRequest(req, res);
-    } finally {
-      await server.close().catch(() => undefined);
-      await transport.close().catch(() => undefined);
-    }
-  });
-
-  app.delete(mcpPath, async (req: Request, res: Response) => {
-    const api = new ApiClient(opts.apiUrl, opts.getToken);
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    const server = buildServer(api);
-    try {
-      await server.connect(transport);
-      await transport.handleRequest(req, res);
-    } finally {
-      await server.close().catch(() => undefined);
-      await transport.close().catch(() => undefined);
-    }
-  });
-
-  // Fallback: 404 for everything else.
+  // 404 fallback for anything else.
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found' });
   });

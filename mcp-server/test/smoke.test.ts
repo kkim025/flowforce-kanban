@@ -76,17 +76,24 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
 
     // Wait for the "Listening on" log line
     await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        serverProc.stdout?.off('data', onData);
+        reject(new Error('MCP server did not start within 10s'));
+      }, 10_000);
       const onData = (chunk: Buffer): void => {
         const text = chunk.toString();
         process.stdout.write(`[mcp-smoke] ${text}`);
         if (text.includes('Listening on')) {
+          clearTimeout(timeout);
           serverProc.stdout?.off('data', onData);
           resolve();
         }
       };
       serverProc.stdout?.on('data', onData);
-      serverProc.on('error', reject);
-      setTimeout(() => reject(new Error('MCP server did not start within 10s')), 10_000);
+      serverProc.on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
     });
   }, 30_000);
 

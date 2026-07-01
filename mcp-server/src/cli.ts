@@ -68,7 +68,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`[flowforce-kanban-mcp] Logging in to ${apiUrl} as ${email}...`);
+  // Don't log the raw email on startup — it's PII, and the user just typed it.
+  // The login response carries the user id, which is what we surface below.
+  console.log(`[flowforce-kanban-mcp] Logging in to ${apiUrl}...`);
   const auth = await createStaticLoginAuth({ apiUrl, email, password });
   console.log('[flowforce-kanban-mcp] Login OK.');
 

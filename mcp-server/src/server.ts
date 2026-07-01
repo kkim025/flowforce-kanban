@@ -13,9 +13,12 @@ export const SERVER_NAME = 'flowforce-kanban-mcp';
 export const SERVER_VERSION = '0.1.0';
 
 export function buildServer(api: ApiClient): McpServer {
+  // Phase 1 advertises only `tools` — adding `resources: {}` / `prompts: {}`
+  // here would lie to clients. Phases 2 (resources) and 5 (prompts) will
+  // fill those in.
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    { capabilities: { tools: {}, resources: {}, prompts: {} } },
+    { capabilities: { tools: {} } },
   );
 
   server.registerTool(

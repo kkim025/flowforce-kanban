@@ -15,7 +15,7 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ApiClient } from '../api-client.js';
-import { jsonContent } from './_helpers.js';
+import { jsonContent, singleString } from './_helpers.js';
 
 export const BOARDS_URI = 'flowforce://boards';
 export const BOARD_URI = 'flowforce://boards/{boardId}';
@@ -45,7 +45,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const board = await api.get(`/boards/${boardId}`);
       return {
         contents: [
@@ -63,7 +63,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const columns = await api.get<unknown[]>(
         `/columns?boardId=${boardId}`,
       );

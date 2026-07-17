@@ -12,7 +12,7 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ApiClient } from '../api-client.js';
-import { jsonContent } from './_helpers.js';
+import { jsonContent, singleString } from './_helpers.js';
 
 export const BOARD_TAGS_URI = 'flowforce://boards/{boardId}/tags';
 
@@ -25,7 +25,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const tags = await api.get<unknown[]>(`/tags?boardId=${boardId}`);
       return {
         contents: [

@@ -17,13 +17,13 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ApiClient } from '../api-client.js';
-import { jsonContent } from './_helpers.js';
+import { jsonContent, singleString } from './_helpers.js';
 
 export const BOARD_WIKI_URI = 'flowforce://boards/{boardId}/wiki';
 export const BOARD_WIKI_TRASH_URI =
   'flowforce://boards/{boardId}/wiki/trash';
-export const WIKI_PAGE_URI = 'flowforce://wiki/{pageId}';
-export const WIKI_PAGE_VERSIONS_URI = 'flowforce://wiki/{pageId}/versions';
+export const BOARD_WIKI_PAGE_URI = 'flowforce://wiki/{pageId}';
+export const BOARD_WIKI_PAGE_VERSIONS_URI = 'flowforce://wiki/{pageId}/versions';
 
 export function register(server: McpServer, api: ApiClient): void {
   server.resource(
@@ -35,7 +35,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const pages = await api.get<unknown[]>(`/wiki/${boardId}`);
       return {
         contents: [jsonContent(`flowforce://boards/${boardId}/wiki`, pages)],
@@ -52,7 +52,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const pages = await api.get<unknown[]>(`/wiki/${boardId}/trash`);
       return {
         contents: [
@@ -63,14 +63,14 @@ export function register(server: McpServer, api: ApiClient): void {
   );
 
   server.resource(
-    'wiki-page',
-    new ResourceTemplate(WIKI_PAGE_URI, { list: undefined }),
+    'board-wiki-page',
+    new ResourceTemplate(BOARD_WIKI_PAGE_URI, { list: undefined }),
     {
       description: 'A single wiki page including its current Markdown body.',
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const pageId = variables['pageId'] as string;
+      const pageId = singleString(variables, 'pageId');
       const page = await api.get<unknown>(`/wiki/pages/${pageId}`);
       return {
         contents: [
@@ -81,15 +81,15 @@ export function register(server: McpServer, api: ApiClient): void {
   );
 
   server.resource(
-    'wiki-page-versions',
-    new ResourceTemplate(WIKI_PAGE_VERSIONS_URI, { list: undefined }),
+    'board-wiki-page-versions',
+    new ResourceTemplate(BOARD_WIKI_PAGE_VERSIONS_URI, { list: undefined }),
     {
       description:
         'Version history of a wiki page. Useful for diffing or restoring an earlier version (issue #40 plans the restore write tool).',
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const pageId = variables['pageId'] as string;
+      const pageId = singleString(variables, 'pageId');
       const versions = await api.get<unknown[]>(
         `/wiki/pages/${pageId}/versions`,
       );

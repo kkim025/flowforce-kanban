@@ -14,10 +14,10 @@
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ApiClient } from '../api-client.js';
-import { jsonContent } from './_helpers.js';
+import { jsonContent, singleString } from './_helpers.js';
 
 export const BOARD_SPRINTS_URI = 'flowforce://boards/{boardId}/sprints';
-export const BOARD_ACTIVE_SPRINT_URI =
+export const BOARD_SPRINT_ACTIVE_URI =
   'flowforce://boards/{boardId}/sprints/active';
 
 export function register(server: McpServer, api: ApiClient): void {
@@ -30,7 +30,7 @@ export function register(server: McpServer, api: ApiClient): void {
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const sprints = await api.get<unknown[]>(
         `/sprints/boards/${boardId}`,
       );
@@ -43,15 +43,15 @@ export function register(server: McpServer, api: ApiClient): void {
   );
 
   server.resource(
-    'board-active-sprint',
-    new ResourceTemplate(BOARD_ACTIVE_SPRINT_URI, { list: undefined }),
+    'board-sprint-active',
+    new ResourceTemplate(BOARD_SPRINT_ACTIVE_URI, { list: undefined }),
     {
       description:
         'The currently-active sprint for the board, or { sprint: null } if none is active.',
       mimeType: 'application/json',
     },
     async (_uri, variables) => {
-      const boardId = variables['boardId'] as string;
+      const boardId = singleString(variables, 'boardId');
       const sprint = await api.get<unknown | null>(
         `/sprints/boards/${boardId}/active`,
       );

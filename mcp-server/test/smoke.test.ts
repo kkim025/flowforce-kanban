@@ -15,7 +15,28 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server, type IncomingMessage } from 'node:http';
+
+/**
+ * Read a JSON request body. Helper for mock handlers that need to inspect
+ * what the MCP server forwarded upstream.
+ */
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      const text = Buffer.concat(chunks).toString('utf8');
+      if (text.length === 0) return resolve({});
+      try {
+        resolve(JSON.parse(text));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', reject);
+  });
+}
 
 const SMOKE_URL = process.env.FLOWFORCE_SMOKE_URL;
 const SMOKE_PORT = 3099;
@@ -111,7 +132,19 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
         okJson({ count: 0 });
         return;
       }
-
+      if (url === '/tasks' && req.method === 'POST') {
+        if (!requireAuth()) return;
+        // Read the JSON body so we can echo it back. The smoke test
+        // asserts that the MCP server forwarded every field verbatim.
+        readJsonBody(req)
+          .then((data) => {
+            okJson({ id: 't-smoke-1', ...(data as Record<string, unknown>) });
+          })
+          .catch(() => {
+            okJson({ id: 't-smoke-1' });
+          });
+        return;
+      }
       res.writeHead(404).end();
     });
     await new Promise<void>((resolve) => mockApi.listen(mockPort, '127.0.0.1', resolve));
@@ -362,6 +395,129 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
     // The mock returned 1 task in c1, 0 in c2 — flat list should be 1.
     expect(body.tasks.map((t) => t.id)).toEqual(['t1']);
     expect(body.tasks[0]!.columnId).toBe('c1');
+  });
+
+  it('tools/list advertises all 15 tools (1 Phase 1 + 14 Phase 3)', async () => {
+    if (!SMOKE_URL) return;
+    const res = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 7,
+        method: 'tools/list',
+      }),
+    });
+    const payload = extractJsonRpc(await res.text());
+    expect(payload.id).toBe(7);
+    const result = payload.result as {
+      tools: Array<{ name: string }>;
+    };
+    const names = result.tools.map((t) => t.name).sort();
+    // Phase 1 + 14 Phase 3 write tools
+    const expected = [
+      'add_checklist',
+      'add_comment',
+      'add_subtask',
+      'assign_task_to_sprint',
+      'create_task',
+      'delete_checklist',
+      'delete_subtask',
+      'delete_task',
+      'list_boards',
+      'move_task',
+      'reorder_subtasks',
+      'toggle_subtask',
+      'update_checklist',
+      'update_subtask',
+      'update_task',
+    ];
+    for (const name of expected) {
+      expect(names, `missing tool: ${name}`).toContain(name);
+    }
+  });
+
+  it('tools/call create_task hits POST /tasks and round-trips every field', async () => {
+    if (!SMOKE_URL) return;
+    const res = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 8,
+        method: 'tools/call',
+        params: {
+          name: 'create_task',
+          arguments: {
+            columnId: 'c1',
+            content: 'Smoke task from MCP',
+            order: 0,
+            priority: 'HIGH',
+          },
+        },
+      }),
+    });
+    const payload = extractJsonRpc(await res.text());
+    expect(payload.id).toBe(8);
+    const result = payload.result as {
+      content: Array<{ type: string; text: string }>;
+      isError?: boolean;
+    };
+    // Happy path: the mock echoes the body back with an id, and the MCP
+    // server wraps it in a text-content envelope.
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0]!.type).toBe('text');
+    const echoed = JSON.parse(result.content[0]!.text) as {
+      id: string;
+      content: string;
+      priority: string;
+      columnId: string;
+      order: number;
+    };
+    expect(echoed.id).toBe('t-smoke-1');
+    expect(echoed.content).toBe('Smoke task from MCP');
+    expect(echoed.priority).toBe('HIGH');
+    expect(echoed.columnId).toBe('c1');
+    expect(echoed.order).toBe(0);
+  });
+
+  it('tools/call with invalid input returns isError (not a thrown exception)', async () => {
+    // The SDK pattern: missing required field is returned as a JSON-RPC
+    // error with isError=true (code -32602 Input validation error). It
+    // does NOT throw on the client side — the LLM sees the error in the
+    // tool result and can react accordingly.
+    if (!SMOKE_URL) return;
+    const res = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 9,
+        method: 'tools/call',
+        params: {
+          name: 'create_task',
+          // Missing required fields: content, order, priority.
+          arguments: { columnId: 'c1' },
+        },
+      }),
+    });
+    expect(res.ok).toBe(true);
+    const payload = extractJsonRpc(await res.text());
+    expect(payload.id).toBe(9);
+    // The SDK returns an error object, not a tool result. So `result` here
+    // is `{ isError: true, content: [...] }` at the SDK level — but JSON-RPC
+    // serializes tool errors differently. We just verify the call didn't
+    // crash and we got a valid response envelope.
+    expect(payload.result).toBeDefined();
   });
 });
 

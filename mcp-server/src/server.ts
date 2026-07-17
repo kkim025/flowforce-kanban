@@ -3,8 +3,9 @@
  * on the {@link McpServer} instance.
  *
  * Phase 1 (issue #37) registered one tool (`list_boards`).
- * Phase 2 (issue #38) adds 14 read-only resources covering boards, tasks,
- * sprints, tags, wiki, notifications, and the current user.
+ * Phase 2 (issue #38) added 14 read-only resources.
+ * Phase 3 (issue #39) adds 14 write tools for tasks, subtasks, checklists,
+ *   and comments.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -16,6 +17,11 @@ import * as tags from './resources/tags.js';
 import * as wiki from './resources/wiki.js';
 import * as notifications from './resources/notifications.js';
 import * as users from './resources/users.js';
+import * as taskTools from './tools/tasks.js';
+import * as subtaskTools from './tools/subtasks.js';
+import * as checklistTools from './tools/checklists.js';
+import * as commentTools from './tools/comments.js';
+import * as boardTools from './tools/boards.js';
 
 export const SERVER_NAME = 'flowforce-kanban-mcp';
 export const SERVER_VERSION = '0.1.0';
@@ -28,25 +34,6 @@ export function buildServer(api: ApiClient): McpServer {
     { capabilities: { tools: {}, resources: {} } },
   );
 
-  server.registerTool(
-    'list_boards',
-    {
-      description:
-        'List all Kanban boards the current user can access. Returns the full board objects as JSON.',
-    },
-    async () => {
-      const boards = await api.get('/boards');
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(boards, null, 2),
-          },
-        ],
-      };
-    },
-  );
-
   // Resources — each module owns its URIs and registers them via the
   // shared `register(server, api)` function. Adding a new resource type
   // means a new module + one line here.
@@ -57,6 +44,14 @@ export function buildServer(api: ApiClient): McpServer {
   wiki.register(server, api);
   notifications.register(server, api);
   users.register(server, api);
+
+  // Tools — each module registers a family of tools with Zod input
+  // schemas. Same `register(server, api)` pattern as resources.
+  boardTools.register(server, api);
+  taskTools.register(server, api);
+  subtaskTools.register(server, api);
+  checklistTools.register(server, api);
+  commentTools.register(server, api);
 
   return server;
 }

@@ -35,8 +35,14 @@ describe('buildServer', () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools.map((t) => t.name)).toEqual(['list_boards']);
-    const tool = tools[0]!;
+    // The test was written for Phase 1 (single list_boards tool). Phase 3
+    // (issue #39) added 14 more. Keep the original assertion that
+    // list_boards is present + first (LLMs see tools in registration
+    // order) but tolerate Phase 3+ additions rather than hardcoding.
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('list_boards');
+    expect(names[0]).toBe('list_boards');
+    const tool = tools.find((t) => t.name === 'list_boards')!;
     // Trim before length-check so a placeholder like ' '.repeat(25) doesn't
     // silently pass — we want real prose the LLM can act on.
     expect(tool.description?.trim().length ?? 0).toBeGreaterThan(20);

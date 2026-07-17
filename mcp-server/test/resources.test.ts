@@ -99,7 +99,7 @@ describe('MCP resources (Phase 2 — issue #38)', () => {
         expect(uris).toContain('flowforce://notifications');
         expect(uris).toContain('flowforce://notifications/unread-count');
         expect(uris).toContain('flowforce://me');
-        // Templated resources (issue #38 spec, exactly these 10)
+        // Templated resources (issue #38 spec, exactly these 10 in Phase 2)
         expect(uris).toContain('flowforce://boards/{boardId}');
         expect(uris).toContain('flowforce://boards/{boardId}/columns');
         expect(uris).toContain('flowforce://boards/{boardId}/tasks');
@@ -111,8 +111,11 @@ describe('MCP resources (Phase 2 — issue #38)', () => {
         expect(uris).toContain('flowforce://wiki/{pageId}');
         expect(uris).toContain('flowforce://wiki/{pageId}/versions');
 
-        // 4 static + 10 templated = 14 total.
-        expect(resources.length + resourceTemplates.length).toBe(14);
+        // Sanity: at least the 14 URIs from the issue #38 spec must be
+        // registered. Use `>=` rather than `===` so adding new resources
+        // in Phase 3 (write tools may also add resources, e.g. a per-task
+        // resource) doesn't break this test.
+        expect(resources.length + resourceTemplates.length).toBeGreaterThanOrEqual(14);
       } finally {
         await disconnect();
       }

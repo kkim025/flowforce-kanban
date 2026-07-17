@@ -30,7 +30,10 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
   beforeAll(async () => {
     if (!SMOKE_URL) return;
 
-    // 1. Spin up a minimal mock of GET /boards on 127.0.0.1:3098
+    // 1. Spin up a minimal mock of every endpoint Phase 2 resources hit.
+    // Each handler returns a tiny shape that satisfies the resource's
+    // consumer — the goal here is to exercise the JSON-RPC dispatch
+    // end-to-end, not to model the API.
     const mockPort = 3098;
     const expectedToken = 'mock-jwt-token-xyz';
     mockApi = createServer((req, res) => {
@@ -39,14 +42,21 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
         res.end(JSON.stringify({ access_token: expectedToken }));
         return;
       }
-      if (req.url === '/boards' && req.method === 'GET') {
-        const auth = req.headers['authorization'] ?? '';
-        receivedAuthHeaders.push(auth);
+
+      const auth = req.headers['authorization'] ?? '';
+      const requireAuth = (): boolean => {
         if (auth !== `Bearer ${expectedToken}`) {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ statusCode: 401, message: 'Unauthorized' }));
-          return;
+          return false;
         }
+        receivedAuthHeaders.push(auth);
+        return true;
+      };
+
+      // Phase 1 — list_boards tool
+      if (req.url === '/boards' && req.method === 'GET') {
+        if (!requireAuth()) return;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
           JSON.stringify([
@@ -56,6 +66,52 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
         );
         return;
       }
+
+      // Phase 2 — resources
+      const url = req.url ?? '';
+      const okJson = (body: unknown): void => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(body));
+      };
+      if (url === '/boards/b1' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson({ id: 'b1', title: 'Smoke Board Alpha', columns: [] });
+        return;
+      }
+      if (url === '/columns?boardId=b1' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson([
+          { id: 'c1', title: 'To Do', order: 0 },
+          { id: 'c2', title: 'Done', order: 1 },
+        ]);
+        return;
+      }
+      if (url === '/tasks?columnId=c1' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson([{ id: 't1', title: 'Mock Task 1', columnId: 'c1' }]);
+        return;
+      }
+      if (url === '/tasks?columnId=c2' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson([]);
+        return;
+      }
+      if (url === '/users/me' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson({ id: 'u1', email: 'mock@example.com', role: 'MEMBER' });
+        return;
+      }
+      if (url === '/notifications' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson([]);
+        return;
+      }
+      if (url === '/notifications/unread-count' && req.method === 'GET') {
+        if (!requireAuth()) return;
+        okJson({ count: 0 });
+        return;
+      }
+
       res.writeHead(404).end();
     });
     await new Promise<void>((resolve) => mockApi.listen(mockPort, '127.0.0.1', resolve));
@@ -183,11 +239,135 @@ maybeDescribe('live MCP smoke test (mocked upstream API)', () => {
     expect(receivedAuthHeaders.length).toBeGreaterThan(0);
     expect(receivedAuthHeaders.at(-1)).toBe('Bearer mock-jwt-token-xyz');
   });
+
+  it('resources/list advertises all 14 Phase 2 URIs (fixed + templates)', async () => {
+    if (!SMOKE_URL) return;
+    // The MCP spec splits fixed resources from templates across two
+    // distinct methods. We exercise both, then assert every URI from
+    // the issue #38 table is registered.
+    const listFixed = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'resources/list',
+      }),
+    });
+    const fixedPayload = extractJsonRpc(await listFixed.text());
+    const fixedResult = fixedPayload.result as {
+      resources: Array<{ uri: string }>;
+    };
+    expect(fixedResult.resources.length).toBeGreaterThan(0);
+
+    const listTemplates = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'resources/templates/list',
+      }),
+    });
+    const templatesPayload = extractJsonRpc(await listTemplates.text());
+    const templatesResult = templatesPayload.result as {
+      resourceTemplates: Array<{ uriTemplate: string }>;
+    };
+
+    const allUris = [
+      ...fixedResult.resources.map((r) => r.uri),
+      ...templatesResult.resourceTemplates.map((t) => t.uriTemplate),
+    ];
+
+    // Issue #38 acceptance: every URI from the spec table is registered.
+    const expected = [
+      'flowforce://boards',
+      'flowforce://notifications',
+      'flowforce://notifications/unread-count',
+      'flowforce://me',
+      'flowforce://boards/{boardId}',
+      'flowforce://boards/{boardId}/columns',
+      'flowforce://boards/{boardId}/tasks',
+      'flowforce://boards/{boardId}/sprints',
+      'flowforce://boards/{boardId}/sprints/active',
+      'flowforce://boards/{boardId}/tags',
+      'flowforce://boards/{boardId}/wiki',
+      'flowforce://boards/{boardId}/wiki/trash',
+      'flowforce://wiki/{pageId}',
+      'flowforce://wiki/{pageId}/versions',
+    ];
+    for (const uri of expected) {
+      expect(allUris, `missing URI: ${uri}`).toContain(uri);
+    }
+  });
+
+  it('resources/read flowforce://boards/b1 hits GET /boards/b1 on the API', async () => {
+    if (!SMOKE_URL) return;
+    const res = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 5,
+        method: 'resources/read',
+        params: { uri: 'flowforce://boards/b1' },
+      }),
+    });
+    const payload = extractJsonRpc(await res.text());
+    expect(payload.id).toBe(5);
+    const result = payload.result as {
+      contents: Array<{ uri: string; mimeType: string; text: string }>;
+    };
+    expect(result.contents.length).toBe(1);
+    expect(result.contents[0]!.uri).toBe('flowforce://boards/b1');
+    expect(result.contents[0]!.mimeType).toBe('application/json');
+    const board = JSON.parse(result.contents[0]!.text) as { id: string; title: string };
+    expect(board.id).toBe('b1');
+  });
+
+  it('resources/read flowforce://boards/b1/tasks fans out to /columns then /tasks per column', async () => {
+    if (!SMOKE_URL) return;
+    const res = await fetch(`http://127.0.0.1:${SMOKE_PORT}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 6,
+        method: 'resources/read',
+        params: { uri: 'flowforce://boards/b1/tasks' },
+      }),
+    });
+    const payload = extractJsonRpc(await res.text());
+    expect(payload.id).toBe(6);
+    const result = payload.result as {
+      contents: Array<{ uri: string; text: string }>;
+    };
+    const body = JSON.parse(result.contents[0]!.text) as {
+      columns: Array<{ id: string }>;
+      tasks: Array<{ id: string; columnId: string }>;
+    };
+    expect(body.columns.map((c) => c.id)).toEqual(['c1', 'c2']);
+    // The mock returned 1 task in c1, 0 in c2 — flat list should be 1.
+    expect(body.tasks.map((t) => t.id)).toEqual(['t1']);
+    expect(body.tasks[0]!.columnId).toBe('c1');
+  });
 });
 
 function extractJsonRpc(text: string): {
   id: number;
-  result: { tools?: Array<{ name: string }>; content: Array<{ type: string; text: string }> };
+  result: unknown;
 } {
   // SSE format: "event: message\ndata: {...}\n\n" (or just "data: {...}" for
   // the statelessly-negotiated JSON-only path). Find the FIRST data: line
